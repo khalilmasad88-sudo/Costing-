@@ -1475,7 +1475,6 @@ window.handleLogin = async function(email, password) {
     }
     
     const user = users[0];
-    console.log('✅ User found:', user.email);
     
     // Hash password
     const encoder = new TextEncoder();
@@ -1490,8 +1489,6 @@ window.handleLogin = async function(email, password) {
       return false;
     }
     
-    console.log('✅ Password verified');
-    
     // Set session
     sessionStorage.setItem('currentUser', user.id);
     sessionStorage.setItem('userEmail', user.email);
@@ -1503,8 +1500,6 @@ window.handleLogin = async function(email, password) {
     S.currentUserName = user.name;
     S.currentUserRole = user.role;
     S.currentCompanyId = 1;
-    
-    console.log('✅ Session created');
     
     // Load all data
     const { data: allUsers } = await supabaseClient.from('users').select('*');
@@ -1523,17 +1518,58 @@ window.handleLogin = async function(email, password) {
     const { data: pipelineData } = await supabaseClient.from('pipeline').select('*');
     S.pipeline = pipelineData || [];
     
-    console.log('✅ All data loaded');
+    // ============================================
+    // CRITICAL: HIDE LOGIN SCREEN & SHOW DASHBOARD
+    // ============================================
     
-    // ✅ NAVIGATE TO DASHBOARD
-    console.log('Navigating to dashboard...');
+    // Hide login screen
+    const loginScreen = document.querySelector('.login-screen') || 
+                        document.querySelector('[class*="login"]');
+    if (loginScreen) {
+      loginScreen.style.display = 'none';
+      loginScreen.classList.remove('active');
+    }
     
-    // Call showPage to go to dashboard
-    showPage('dashboard');
+    // Hide all modals
+    document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
+    document.querySelectorAll('.modal').forEach(m => {
+      if (m.querySelector('.modal-body')) {
+        m.style.display = 'none';
+      }
+    });
     
-    console.log('✅ Navigation complete');
+    // Get dashboard
+    const dashboard = document.getElementById('page-dashboard');
+    if (dashboard) {
+      // Force dashboard visible
+      dashboard.style.display = 'block';
+      dashboard.style.opacity = '1';
+      dashboard.style.visibility = 'visible';
+      dashboard.classList.add('active');
+      
+      // Show parent container
+      let current = dashboard.parentElement;
+      while (current && current !== document.body) {
+        current.style.display = 'block';
+        current.style.opacity = '1';
+        current.style.visibility = 'visible';
+        current = current.parentElement;
+      }
+    }
     
-    // Success message
+    // Call showPage
+    if (typeof showPage === 'function') {
+      showPage('dashboard');
+    }
+    
+    // Update dashboard
+    if (typeof updateDashboard === 'function') {
+      updateDashboard();
+    }
+    
+    // Scroll to top
+    window.scrollTo(0, 0);
+    
     alert('✅ تم تسجيل الدخول بنجاح!\n\n👤 ' + user.name + '\n📧 ' + user.email);
     
     return true;
@@ -1544,6 +1580,8 @@ window.handleLogin = async function(email, password) {
     return false;
   }
 };
+
+console.log('✅ handleLogin updated with login screen hiding');
 
 console.log('✅ handleLogin updated - will navigate to dashboard');
 
@@ -2244,8 +2282,6 @@ async function saveUser() {
   }
   
   try {
-    console.log('Creating user:', email);
-    
     // Check if exists
     const { data: existing } = await supabaseClient
       .from('users')
@@ -2253,20 +2289,18 @@ async function saveUser() {
       .eq('email', email);
     
     if (existing && existing.length > 0) {
-      alert('❌ هذا البريد موجود مسبقاً!');
+      alert('❌ Email already exists!');
       return;
     }
     
     // Hash password
     const encoder = new TextEncoder();
-    const passwordData = encoder.encode(password + 'future_tag_salt_2026');
-    const hashBuffer = await crypto.subtle.digest('SHA-256', passwordData);
+    const data = encoder.encode(password + 'future_tag_salt_2026');
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const passwordHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     
-    console.log('Inserting to database...');
-    
-    // ✅ NO 'id' FIELD - Database will auto-generate!
+    // Save to database (let DB generate ID)
     const { data: created, error } = await supabaseClient
       .from('users')
       .insert({
@@ -2281,24 +2315,19 @@ async function saveUser() {
       .single();
     
     if (error) {
-      console.error('❌ Failed:', error);
-      alert('❌ فشل: ' + error.message);
+      alert('❌ Failed: ' + error.message);
       return;
     }
     
-    console.log('✅ User created! ID:', created.id);
-    
     // Link to company
-    if (S.currentCompanyId) {
-      await supabaseClient
-        .from('user_companies')
-        .insert({
-          user_id: created.id,
-          company_id: S.currentCompanyId
-        });
-    }
+    await supabaseClient
+      .from('user_companies')
+      .insert({
+        user_id: created.id,
+        company_id: S.currentCompanyId || 1
+      });
     
-    // Add to S.users with database-generated ID
+    // Add to S.users
     S.users.push({
       id: created.id,
       email: created.email,
@@ -2308,7 +2337,7 @@ async function saveUser() {
       password: password,
       password_hash: created.password_hash,
       companies: [S.currentCompanyId || 1],
-      permissions: created.permissions || {},
+      permissions: {},
       assignedProjects: []
     });
     
@@ -2330,18 +2359,10 @@ async function saveUser() {
       document.getElementById('user-phone').value = '';
     }
     
-    alert(
-      '✅ تم إنشاء المستخدم بنجاح!\n\n' +
-      '👤 ' + created.name + '\n' +
-      '📧 ' + created.email + '\n' +
-      '🆔 ID: ' + created.id
-    );
-    
-    console.log('Total users:', S.users.length);
+    alert('✅ تم إنشاء المستخدم بنجاح!\n\n👤 ' + created.name + '\n📧 ' + created.email);
     
   } catch (err) {
-    console.error('❌ Error:', err);
-    alert('❌ خطأ: ' + err.message);
+    alert('❌ Error: ' + err.message);
   }
 }
 
