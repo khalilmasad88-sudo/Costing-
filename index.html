@@ -2234,10 +2234,54 @@ async function updateUser(userId) {
   }
 }
 
-function deleteUser(id){
-  if(!confirm('Delete this user?'))return;
-  S.users=S.users.filter(u=>u.id!==id);
-  renderUsersList();save();
+async function deleteUser(userId) {
+  // Confirm deletion
+  if (!confirm('هل أنت متأكد من حذف هذا المستخدم؟\n\nلا يمكن التراجع عن هذا الإجراء!')) {
+    return;
+  }
+  
+  try {
+    console.log('Deleting user ID:', userId);
+    
+    // ✅ Delete from Supabase
+    const { error } = await supabaseClient
+      .from('users')
+      .delete()
+      .eq('id', userId);
+    
+    if (error) {
+      console.error('❌ Delete failed:', error);
+      alert('فشل حذف المستخدم: ' + error.message);
+      return;
+    }
+    
+    console.log('✅ User deleted from Supabase');
+    
+    // ✅ Update local state
+    S.users = S.users.filter(u => u.id !== userId);
+    save();
+    
+    // ✅ Refresh UI
+    renderUsersList();
+    
+    alert('✅ تم حذف المستخدم بنجاح!');
+    
+    // ✅ Reload users from Supabase to confirm
+    const { data: allUsers } = await supabaseClient
+      .from('users')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    S.users = allUsers || [];
+    save();
+    renderUsersList();
+    
+    console.log('Total users now:', S.users.length);
+    
+  } catch (err) {
+    console.error('❌ Exception:', err);
+    alert('حدث خطأ أثناء الحذف: ' + err.message);
+  }
 }
 
 function changeUserPassword(id){
