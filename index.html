@@ -1214,164 +1214,136 @@ async function handleLogin(e){
   }
   
   try {
-    // SUPABASE MODE - ACTIVE
-    try {
-      // Hash password (simple SHA256 for now - bcrypt on server)
-      const passwordHash = CryptoJS.SHA256(password + 'salt').toString();
-  
-      // Note: We're using simple hash for compatibility
-      // Server has bcrypt, but for initial testing we use SHA256
-      // TODO: Implement proper bcrypt verification via RPC
-  
-      const { data: users, error: searchError } = await retryOperation(
-        async () => await supabaseClient
-          .from('users')
-          .select('*')
-          .eq('email', email),
-        'find user'
-      );
-  
-      if (searchError || !users || users.length === 0) {
-        errorDiv.textContent = 'البريد الإلكتروني غير موجود';
-        errorDiv.style.display = 'block';
-        return false;
-      }
-      
-      const user = users[0];
-  
-      // For now: simple password check
-      // TODO: Use bcrypt verification
-      const isValid = user.password_hash === passwordHash || 
-                      password === 'FutureTag@2026!Secure'; // Temp admin bypass
-      
-      if (!isValid) {
-        errorDiv.textContent = 'كلمة المرور غير صحيحة';
-        errorDiv.style.display = 'block';
-        return false;
-      }
-      
-      // Update last login
-      await supabaseClient
-        .from('users')
-        .update({ last_login_at: new Date().toISOString() })
-        .eq('id', user.id);
-      
-      // Save session
-      localStorage.setItem('userId', user.id);
-      localStorage.setItem('userEmail', user.email);
-      localStorage.setItem('sessionStart', Date.now());
-      
-      // Set current user
-      S.currentUser = user;
-      
-      // Load user's companies
-      const { data: userCompanies } = await retryOperation(
-        async () => await supabaseClient
-          .from('user_companies')
-          .select('company_id, companies(*)')
-          .eq('user_id', user.id),
-        'load companies'
-      );
-      
-      S.companies = userCompanies?.map(uc => uc.companies) || [];
-      S.currentCompanyId = S.companies[0]?.id || null;
-      
-      // Load quotations
-      const { data: quotations } = await retryOperation(
-        async () => await supabaseClient
-          .from('quotations')
-          .select('*')
-          .eq('company_id', S.currentCompanyId)
-          .order('created_at', { ascending: false })
-          .limit(50),
-        'load quotations'
-      );
-      
-      S.quotations = quotations || [];
-      
-      // Load pipeline
-      const { data: pipeline } = await retryOperation(
-        async () => await supabaseClient
-          .from('pipeline')
-          .select('*')
-          .eq('company_id', S.currentCompanyId)
-          .order('created_at', { ascending: false }),
-        'load pipeline'
-      );
-      
-      S.pipeline = pipeline || [];
-      
-      // Hide login, show app
-      document.getElementById('loginScreen').classList.remove('active');
-      document.getElementById('appContainer').classList.add('active');
-  
-      // Apply UI
-      applyUser();
-      applyPermissions();
-      renderCompanyDropdown();
-      renderUsersList();
-      renderQList();
-      renderPipeline();
-      updateDashboard();
-  
-      const id = S.activeQId || S.quotations[0]?.id;
-      const found = S.quotations.find(q => q.id === id);
-      if (found) openQuotation(found.id);
-      else if (S.quotations.length) openQuotation(S.quotations[0].id);
-      
-      return true;
-  
-    } catch (err) {
-      console.error('Login exception:', err);
-      errorDiv.textContent = 'حدث خطأ أثناء تسجيل الدخول: ' + err.message;
+    // ============================================
+    // SUPABASE MODE - Load users from database
+    // ============================================
+    
+    // Load users from Supabase
+    const { data: dbUsers, error: usersError } = await supabaseClient
+      .from('users')
+      .select('*');
+    
+    if (usersError) {
+      console.error('Error loading users:', usersError);
+      errorDiv.textContent = 'خطأ في الاتصال بقاعدة البيانات';
       errorDiv.style.display = 'block';
       return false;
     }
     
-    /* SUPABASE MODE (uncomment when database is deployed):
-    const passwordHash = await hashPasswordBcrypt(password);
+    // Update users in state
+    S.users = dbUsers || [];
     
-    const { data: user, error } = await retryOperation(
-      async () => await supabaseClient
-        .from('users')
-        .select('*')
-        .eq('email', email)
-        .eq('password_hash', passwordHash)
-        .single(),
-      'login'
+    // Find user by email and password
+    const passwordHash = CryptoJS.SHA256(password + 'salt').toString();
+    const user = S.users.find(u => 
+      u.email === email && u.password_hash === passwordHash
     );
     
-    if(error || !user){
-      errorDiv.textContent='البريد الإلكتروني أو كلمة المرور غير صحيحة';
-      errorDiv.style.display='block';
+    if (!user) {
+      errorDiv.textContent = '⚠️ البريد الإلكتروني أو كلمة المرور غير صحيحة';
+      errorDiv.style.display = 'block';
       return false;
     }
     
-    // Update last login
-    await supabaseClient
-      .from('users')
-      .update({ last_login_at: new Date().toISOString() })
-      .eq('id', user.id);
+    console.log('✅ Login successful:', user.email);
     
-    // Save session
+    // Set current user
+    S.currentUser = user.id;
     localStorage.setItem('userId', user.id);
     localStorage.setItem('userEmail', user.email);
     localStorage.setItem('sessionStart', Date.now());
     
-    // Load user data
-    await loadUserDataSupabase(user.id);
+    // ============================================
+    // LOAD DATA FROM SUPABASE
+    // ============================================
+    console.log('🔄 Loading data from Supabase...');
+    
+    // Load companies
+    const { data: companies } = await supabaseClient
+      .from('companies')
+      .select('*');
+    S.companies = companies || [];
+    
+    // Load user-company associations
+    const { data: userCompanies } = await supabaseClient
+      .from('user_companies')
+      .select('company_id')
+      .eq('user_id', user.id);
+    
+    // Set current company (first associated company)
+    if (userCompanies && userCompanies.length > 0) {
+      S.currentCompanyId = userCompanies[0].company_id;
+    } else if (S.companies.length > 0) {
+      S.currentCompanyId = S.companies[0].id;
+    }
+    
+    // Load quotations for current company
+    if (S.currentCompanyId) {
+      const { data: quotations } = await supabaseClient
+        .from('quotations')
+        .select('*')
+        .eq('company_id', S.currentCompanyId)
+        .order('created_at', { ascending: false });
+      S.quotations = quotations || [];
+      
+      console.log('✅ Quotations loaded:', S.quotations.length);
+    }
+    
+    // Load pipeline
+    if (S.currentCompanyId) {
+      const { data: pipeline } = await supabaseClient
+        .from('pipeline')
+        .select('*')
+        .eq('company_id', S.currentCompanyId)
+        .order('created_at', { ascending: false });
+      S.pipeline = pipeline || [];
+      
+      console.log('✅ Pipeline loaded:', S.pipeline.length);
+    }
+    
+    console.log('✅ All data loaded from Supabase!');
+    
+    // ============================================
+    // UPDATE UI
+    // ============================================
     
     // Hide login, show app
     document.getElementById('loginScreen').classList.remove('active');
     document.getElementById('appContainer').classList.add('active');
     
-    return true;
-    */
+    // Apply user settings
+    applyUser();
+    applyPermissions();
     
-  } catch(err) {
-    console.error('Login exception:', err);
-    errorDiv.textContent='حدث خطأ أثناء تسجيل الدخول';
-    errorDiv.style.display='block';
+    // Save to localStorage
+    save();
+    
+    // Render UI components
+    renderCompanyDropdown();
+    renderUsersList();
+    renderCompanyCheckboxes();
+    populateQNumDropdown();
+    renderPipeline();
+    renderQList();
+    renderBOQ();
+    updateDashboard();
+    
+    // Open first quotation if available
+    const id = S.activeQId || S.quotations[0]?.id;
+    const found = S.quotations.find(q => q.id === id);
+    if (found) {
+      openQuotation(found.id);
+    } else if (S.quotations.length) {
+      openQuotation(S.quotations[0].id);
+    }
+    
+    console.log('✅ Login complete!');
+    return true;
+    
+  } catch (err) {
+    console.error('❌ Login exception:', err);
+    errorDiv.textContent = 'حدث خطأ أثناء تسجيل الدخول: ' + err.message;
+    errorDiv.style.display = 'block';
     return false;
   }
 }
@@ -1413,7 +1385,56 @@ function logout(){
   document.getElementById('loginScreen').classList.add('active');
   document.getElementById('appContainer').classList.remove('active');
 }
+// Add this NEW function before init()
+async function loadDataFromSupabase() {
+  console.log('🔄 Loading from Supabase...');
+  
+  try {
+    // Load users
+    const { data: users } = await supabaseClient.from('users').select('*');
+    S.users = users || [];
+    
+    // Load companies
+    const { data: companies } = await supabaseClient.from('companies').select('*');
+    S.companies = companies || [];
+    
+    // Set company
+    if (S.companies.length > 0 && !S.currentCompanyId) {
+      S.currentCompanyId = S.companies[0].id;
+    }
+    
+    // Load quotations
+    if (S.currentCompanyId) {
+      const { data: quotations } = await supabaseClient
+        .from('quotations')
+        .select('*')
+        .eq('company_id', S.currentCompanyId)
+        .order('created_at', { ascending: false });
+      S.quotations = quotations || [];
+    }
+    
+    // Load pipeline
+    if (S.currentCompanyId) {
+      const { data: pipeline } = await supabaseClient
+        .from('pipeline')
+        .select('*')
+        .eq('company_id', S.currentCompanyId);
+      S.pipeline = pipeline || [];
+    }
+    
+    console.log('✅ Data loaded from Supabase');
+    return true;
+  } catch (error) {
+    console.error('❌ Load failed:', error);
+    return false;
+  }
+}
 
+// Initialization
+function init(){
+  // ... existing code ...
+}
+ 
 // Initialization
 function init(){
   applyCompany();
