@@ -2212,22 +2212,21 @@ async function saveUser() {
     console.log('Creating user:', email);
     
     // Check if email exists
-    const { data: existing, error: checkError } = await supabaseClient
+    const { data: existingUsers, error: checkError } = await supabaseClient
       .from('users')
       .select('id')
       .eq('email', email);
     
-    // Handle the query - if data exists and has items, email exists
-    if (existing && existing.length > 0) {
+    if (existingUsers && existingUsers.length > 0) {
       alert('❌ هذا البريد الإلكتروني موجود مسبقاً!\nEmail already exists!\n\n📧 ' + email);
       return;
     }
     
-    // Hash password using Web Crypto API (built-in, no library needed!)
+    // Hash password with SHA-256
     console.log('Hashing password with SHA-256...');
     const encoder = new TextEncoder();
-    const data = encoder.encode(password + 'future_tag_salt_2026');
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const passwordData = encoder.encode(password + 'future_tag_salt_2026');
+    const hashBuffer = await crypto.subtle.digest('SHA-256', passwordData);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const passwordHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     console.log('✅ Password hashed');
@@ -2243,26 +2242,26 @@ async function saveUser() {
     };
     
     // Insert to Supabase
-    const { data, error } = await supabaseClient
+    const { data: createdUser, error: insertError } = await supabaseClient
       .from('users')
       .insert(newUser)
       .select()
       .single();
     
-    if (error) {
-      console.error('❌ Save failed:', error);
-      alert('❌ فشل حفظ المستخدم\nFailed to save user\n\n' + error.message);
+    if (insertError) {
+      console.error('❌ Save failed:', insertError);
+      alert('❌ فشل حفظ المستخدم\nFailed to save user\n\n' + insertError.message);
       return;
     }
     
-    console.log('✅ User created in Supabase:', data.id);
+    console.log('✅ User created in Supabase:', createdUser.id);
     
     // Link to company
     if (S.currentCompanyId) {
       const { error: linkError } = await supabaseClient
         .from('user_companies')
         .insert({
-          user_id: data.id,
+          user_id: createdUser.id,
           company_id: S.currentCompanyId
         });
       
@@ -2274,7 +2273,7 @@ async function saveUser() {
     }
     
     // Update local state
-    S.users.push(data);
+    S.users.push(createdUser);
     
     // Refresh UI
     if (typeof renderUsersList === 'function') {
@@ -2294,11 +2293,11 @@ async function saveUser() {
       '✅ تم إنشاء المستخدم بنجاح!\n' +
       'User created successfully!\n\n' +
       '━━━━━━━━━━━━━━━━━━━━\n\n' +
-      '👤 Name: ' + data.name + '\n' +
-      '📧 Email: ' + data.email + '\n' +
-      '👔 Role: ' + data.role + '\n' +
-      '📱 Phone: ' + (data.phone || 'N/A') + '\n' +
-      '🆔 ID: ' + data.id + '\n\n' +
+      '👤 Name: ' + createdUser.name + '\n' +
+      '📧 Email: ' + createdUser.email + '\n' +
+      '👔 Role: ' + createdUser.role + '\n' +
+      '📱 Phone: ' + (createdUser.phone || 'N/A') + '\n' +
+      '🆔 ID: ' + createdUser.id + '\n\n' +
       '━━━━━━━━━━━━━━━━━━━━\n\n' +
       '✓ Password encrypted (SHA-256)\n' +
       '✓ Saved to database'
