@@ -2197,13 +2197,11 @@ async function saveUser() {
   const role = document.getElementById('user-role')?.value;
   const phone = document.getElementById('user-phone')?.value || '';
   
-  // Validation
   if (!email || !name || !password) {
     alert('⚠️ الرجاء إدخال جميع الحقول المطلوبة\nPlease fill all required fields');
     return;
   }
   
-  // Validate email format
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
     alert('⚠️ البريد الإلكتروني غير صحيح\nInvalid email format');
@@ -2213,25 +2211,25 @@ async function saveUser() {
   try {
     console.log('Creating user:', email);
     
-    // Check if email already exists
-    const { data: existing } = await supabaseClient
+    // Check if email exists
+    const { data: existing, error: checkError } = await supabaseClient
       .from('users')
-      .select('id, email')
-      .eq('email', email)
-      .single();
+      .select('id')
+      .eq('email', email);
     
-    if (existing) {
-      alert(
-        '❌ هذا البريد الإلكتروني موجود مسبقاً!\n' +
-        'Email already exists!\n\n' +
-        '📧 ' + email
-      );
+    // Handle the query - if data exists and has items, email exists
+    if (existing && existing.length > 0) {
+      alert('❌ هذا البريد الإلكتروني موجود مسبقاً!\nEmail already exists!\n\n📧 ' + email);
       return;
     }
     
-    // ✅ Hash password with bcrypt (secure!)
-    console.log('Hashing password with bcrypt...');
-    const passwordHash = await bcrypt.hash(password, 10);
+    // Hash password using Web Crypto API (built-in, no library needed!)
+    console.log('Hashing password with SHA-256...');
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password + 'future_tag_salt_2026');
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const passwordHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     console.log('✅ Password hashed');
     
     // Create user object
@@ -2253,12 +2251,7 @@ async function saveUser() {
     
     if (error) {
       console.error('❌ Save failed:', error);
-      
-      if (error.code === '23505') {
-        alert('❌ هذا البريد الإلكتروني موجود مسبقاً!\nEmail already exists!');
-      } else {
-        alert('❌ فشل حفظ المستخدم\nFailed to save user\n\n' + error.message);
-      }
+      alert('❌ فشل حفظ المستخدم\nFailed to save user\n\n' + error.message);
       return;
     }
     
@@ -2289,29 +2282,25 @@ async function saveUser() {
     }
     
     // Clear form
-    const emailInput = document.getElementById('user-email');
-    const nameInput = document.getElementById('user-name');
-    const passwordInput = document.getElementById('user-password');
-    const phoneInput = document.getElementById('user-phone');
+    document.getElementById('user-email').value = '';
+    document.getElementById('user-name').value = '';
+    document.getElementById('user-password').value = '';
+    if (document.getElementById('user-phone')) {
+      document.getElementById('user-phone').value = '';
+    }
     
-    if (emailInput) emailInput.value = '';
-    if (nameInput) nameInput.value = '';
-    if (passwordInput) passwordInput.value = '';
-    if (phoneInput) phoneInput.value = '';
-    
-    // ✅ SUCCESS ALERT
+    // Success alert
     alert(
       '✅ تم إنشاء المستخدم بنجاح!\n' +
       'User created successfully!\n\n' +
       '━━━━━━━━━━━━━━━━━━━━\n\n' +
-      '👤 الاسم / Name:\n    ' + data.name + '\n\n' +
-      '📧 البريد / Email:\n    ' + data.email + '\n\n' +
-      '👔 الدور / Role:\n    ' + data.role + '\n\n' +
-      '📱 الجوال / Phone:\n    ' + (data.phone || 'N/A') + '\n\n' +
-      '🆔 User ID:\n    ' + data.id + '\n\n' +
+      '👤 Name: ' + data.name + '\n' +
+      '📧 Email: ' + data.email + '\n' +
+      '👔 Role: ' + data.role + '\n' +
+      '📱 Phone: ' + (data.phone || 'N/A') + '\n' +
+      '🆔 ID: ' + data.id + '\n\n' +
       '━━━━━━━━━━━━━━━━━━━━\n\n' +
-      '✓ تم الحفظ في قاعدة البيانات\n' +
-      '✓ Password encrypted with bcrypt\n' +
+      '✓ Password encrypted (SHA-256)\n' +
       '✓ Saved to database'
     );
     
