@@ -1458,38 +1458,47 @@ function showNotification(message){
 // ============================================
 
 window.handleLogin = async function(email, password) {
-  console.log('=== LOGIN ATTEMPT ===');
-  console.log('Email:', email);
+  console.log('🔐 LOGIN ATTEMPT:', email);
   
   try {
-    // Get user from database
+    // 1. Get user from database
     const { data: users, error } = await supabaseClient
       .from('users')
       .select('*')
       .eq('email', email)
       .limit(1);
     
-    if (error || !users || users.length === 0) {
+    if (error) {
+      console.error('Database error:', error);
+      alert('❌ خطأ في الاتصال بقاعدة البيانات');
+      return false;
+    }
+    
+    if (!users || users.length === 0) {
+      console.log('❌ User not found');
       alert('❌ البريد الإلكتروني أو كلمة المرور غير صحيحة');
       return false;
     }
     
     const user = users[0];
+    console.log('✅ User found:', user.email);
     
-    // Hash password
+    // 2. Hash and verify password
     const encoder = new TextEncoder();
     const passwordData = encoder.encode(password + 'future_tag_salt_2026');
     const hashBuffer = await crypto.subtle.digest('SHA-256', passwordData);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const enteredHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     
-    // Verify password
     if (user.password_hash !== enteredHash) {
+      console.log('❌ Password mismatch');
       alert('❌ البريد الإلكتروني أو كلمة المرور غير صحيحة');
       return false;
     }
     
-    // Set session
+    console.log('✅ Password verified');
+    
+    // 3. Set session
     sessionStorage.setItem('currentUser', user.id);
     sessionStorage.setItem('userEmail', user.email);
     sessionStorage.setItem('userName', user.name);
@@ -1501,7 +1510,11 @@ window.handleLogin = async function(email, password) {
     S.currentUserRole = user.role;
     S.currentCompanyId = 1;
     
-    // Load all data
+    console.log('✅ Session created');
+    
+    // 4. Load all data from Supabase
+    console.log('Loading data...');
+    
     const { data: allUsers } = await supabaseClient.from('users').select('*');
     S.users = allUsers?.map(u => ({
       id: u.id, email: u.email, name: u.name, role: u.role,
@@ -1518,65 +1531,100 @@ window.handleLogin = async function(email, password) {
     const { data: pipelineData } = await supabaseClient.from('pipeline').select('*');
     S.pipeline = pipelineData || [];
     
-    // ============================================
-    // CRITICAL: HIDE LOGIN SCREEN & SHOW DASHBOARD
-    // ============================================
+    console.log('✅ Data loaded');
     
-    // Hide login screen
-    const loginScreen = document.querySelector('.login-screen') || 
-                        document.querySelector('[class*="login"]');
-    if (loginScreen) {
-      loginScreen.style.display = 'none';
-      loginScreen.classList.remove('active');
-    }
+    // 5. HIDE LOGIN SCREEN - CRITICAL!
+    console.log('Hiding login screen...');
+    
+    // Find and hide login screen
+    const loginScreens = [
+      document.querySelector('.login-screen'),
+      document.querySelector('[class*="login-screen"]'),
+      document.getElementById('login-screen'),
+      document.querySelector('.login-page'),
+      document.getElementById('login-page')
+    ];
+    
+    loginScreens.forEach(screen => {
+      if (screen) {
+        screen.style.display = 'none';
+        screen.style.opacity = '0';
+        screen.style.visibility = 'hidden';
+        screen.classList.remove('active');
+        console.log('✅ Hidden:', screen.className || screen.id);
+      }
+    });
     
     // Hide all modals
-    document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
+    document.querySelectorAll('.modal-overlay').forEach(m => {
+      m.style.display = 'none';
+    });
+    
     document.querySelectorAll('.modal').forEach(m => {
       if (m.querySelector('.modal-body')) {
         m.style.display = 'none';
       }
     });
     
-    // Get dashboard
+    console.log('✅ Modals hidden');
+    
+    // 6. SHOW DASHBOARD - CRITICAL!
+    console.log('Showing dashboard...');
+    
     const dashboard = document.getElementById('page-dashboard');
     if (dashboard) {
-      // Force dashboard visible
+      // Force dashboard and all parents visible
       dashboard.style.display = 'block';
       dashboard.style.opacity = '1';
       dashboard.style.visibility = 'visible';
       dashboard.classList.add('active');
       
-      // Show parent container
       let current = dashboard.parentElement;
       while (current && current !== document.body) {
-        current.style.display = 'block';
-        current.style.opacity = '1';
-        current.style.visibility = 'visible';
+        if (current.style) {
+          current.style.display = 'block';
+          current.style.opacity = '1';
+          current.style.visibility = 'visible';
+        }
         current = current.parentElement;
+      }
+      
+      console.log('✅ Dashboard shown');
+    }
+    
+    // 7. Use showPage if available
+    if (typeof showPage === 'function') {
+      try {
+        showPage('dashboard');
+        console.log('✅ showPage called');
+      } catch (e) {
+        console.log('showPage error:', e);
       }
     }
     
-    // Call showPage
-    if (typeof showPage === 'function') {
-      showPage('dashboard');
-    }
-    
-    // Update dashboard
+    // 8. Update dashboard data
     if (typeof updateDashboard === 'function') {
-      updateDashboard();
+      try {
+        updateDashboard();
+        console.log('✅ Dashboard updated');
+      } catch (e) {
+        console.log('updateDashboard error:', e);
+      }
     }
     
-    // Scroll to top
+    // 9. Scroll to top
     window.scrollTo(0, 0);
     
+    console.log('✅ LOGIN COMPLETE');
+    
+    // Success message
     alert('✅ تم تسجيل الدخول بنجاح!\n\n👤 ' + user.name + '\n📧 ' + user.email);
     
     return true;
     
   } catch (err) {
-    console.error('❌ Login error:', err);
-    alert('❌ حدث خطأ: ' + err.message);
+    console.error('❌ LOGIN ERROR:', err);
+    alert('❌ حدث خطأ أثناء تسجيل الدخول:\n' + err.message);
     return false;
   }
 };
@@ -2269,6 +2317,35 @@ function renderUsersList(){
   </tr>`).join('');
 }
 
+window.syncUsersToFtagShared = async function() {
+  if (!supabaseClient) return;
+  
+  try {
+    const { data: shared } = await supabaseClient
+      .from('ftag_shared')
+      .select('*')
+      .eq('company_id', 1)
+      .single();
+    
+    if (!shared) return;
+    
+    const updated = {
+      ...shared.data,
+      users: S.users,
+      lastModified: Date.now()
+    };
+    
+    await supabaseClient
+      .from('ftag_shared')
+      .update({ data: updated })
+      .eq('company_id', 1);
+      
+    console.log('✅ Users synced to ftag_shared');
+  } catch (err) {
+    console.error('Sync error:', err);
+  }
+};
+  
 async function saveUser() {
   const email = document.getElementById('user-email')?.value.trim();
   const name = document.getElementById('user-name')?.value.trim();
