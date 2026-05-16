@@ -1732,10 +1732,26 @@ async function restoreLatestFromSupabase(){
       const localTime=S.lastModified||0;
       
       if(remoteTime>localTime){
-        Object.assign(S,sharedData.data);
-        S.lastModified=remoteTime;
-        localStorage.setItem('ftag_v5_state',JSON.stringify(S));
-        console.log('✓ Restored from shared database');
+        // ✅ Save current user BEFORE overwriting
+        const savedCurrentUser = S.currentUser;
+        const savedCurrentUserEmail = S.currentUserEmail;
+        const savedCurrentUserName = S.currentUserName;
+        const savedCurrentUserRole = S.currentUserRole;
+        const savedCurrentCompanyId = S.currentCompanyId;
+        
+        // Load shared data
+        Object.assign(S, sharedData.data);
+        
+        // ✅ RESTORE current user (don't let shared data overwrite it!)
+        S.currentUser = savedCurrentUser;
+        S.currentUserEmail = savedCurrentUserEmail;
+        S.currentUserName = savedCurrentUserName;
+        S.currentUserRole = savedCurrentUserRole;
+        S.currentCompanyId = savedCurrentCompanyId;
+        
+        S.lastModified = remoteTime;
+        localStorage.setItem('ftag_v5_state', JSON.stringify(S));
+        console.log('✓ Restored from shared database (preserved current user)');
         updateSupabaseStatus(true);
       }
     }
