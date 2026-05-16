@@ -3156,7 +3156,6 @@
     document.getElementById('app-modal-color').value = app ? app.color : 'rgba(160,140,240,0.12)';
     document.getElementById('app-modal-badge').value = app ? app.badge : 'planned';
     // Show company storage indicator
-    var co = COMPANIES.find(function(c){ return c.id === activeCompanyId; });
     var hasStorage = co && co.supabase && co.supabase.url && co.supabase.anonKey;
     document.getElementById('app-co-storage-indicator').style.display = hasStorage ? 'block' : 'none';
     document.getElementById('app-co-storage-missing').style.display   = hasStorage ? 'none'  : 'block';
