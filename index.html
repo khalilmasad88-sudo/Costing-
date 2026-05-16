@@ -2083,101 +2083,137 @@ function renderUsersList(){
   </tr>`).join('');
 }
 
-function saveUser(){
-  const id=document.getElementById('user-name').dataset.userId;
-  const user=id?S.users.find(u=>u.id==id):blankUser();
-  user.name=document.getElementById('user-name').value;
-  user.email=document.getElementById('user-email').value;
-  user.phone=document.getElementById('user-phone').value;
-  const pwd=document.getElementById('user-password').value;
-  if(pwd)user.password=pwd;
-  user.role=document.getElementById('user-role').value;
-  user.companies=S.companies.filter(c=>document.getElementById(`company-${c.id}`)?.checked).map(c=>c.id);
-  user.permissions={
-    dashboard:document.getElementById('perm-dashboard')?.checked||false,
-    pipeline:document.getElementById('perm-pipeline')?.checked||false,
-    quotation:document.getElementById('perm-quotation')?.checked||false,
-    boq:document.getElementById('perm-boq')?.checked||false,
-    users:document.getElementById('perm-users')?.checked||false,
-    settings:document.getElementById('perm-settings')?.checked||false
-  };
-  const proj=document.getElementById('user-projects').value.split(',').map(s=>s.trim()).filter(Boolean);
-  user.assignedProjects=proj.length?proj:[];
-  if(!id)S.users.push(user);
-  renderUsersList();save();closeModal('userModal');
-  document.getElementById('user-name').dataset.userId='';
+// NEW - يحفظ في Supabase
+async function saveUser() {
+  // Collect user data from form
+  const email = document.getElementById('user-email').value.trim();
+  const name = document.getElementById('user-name').value.trim();
+  const password = document.getElementById('user-password').value;
+  const role = document.getElementById('user-role').value;
+  const phone = document.getElementById('user-phone')?.value || '';
+  
+  if (!email || !name || !password) {
+    alert('الرجاء إدخال جميع الحقول المطلوبة');
+    return;
+  }
+  
+  try {
+    // Hash password
+    const passwordHash = CryptoJS.SHA256(password + 'salt').toString();
+    
+    // Create user object
+    const newUser = {
+      email: email,
+      name: name,
+      role: role,
+      password_hash: passwordHash,
+      phone: phone,
+      permissions: {},
+      created_at: new Date().toISOString()
+    };
+    
+    console.log('Creating user:', email);
+    
+    // ✅ Save to Supabase
+    const { data, error } = await supabaseClient
+      .from('users')
+      .insert(newUser)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('❌ Save failed:', error);
+      alert('فشل حفظ المستخدم: ' + error.message);
+      return;
+    }
+    
+    console.log('✅ User created in Supabase:', data.id);
+    
+    // ✅ Link to company
+    if (S.currentCompanyId) {
+      const { error: linkError } = await supabaseClient
+        .from('user_companies')
+        .insert({
+          user_id: data.id,
+          company_id: S.currentCompanyId
+        });
+      
+      if (linkError) {
+        console.error('⚠️ Failed to link to company:', linkError);
+      } else {
+        console.log('✅ User linked to company');
+      }
+    }
+    
+    // ✅ Update local state
+    S.users.push(data);
+    save();
+    
+    // ✅ Refresh UI
+    renderUsersList();
+    
+    // ✅ Close modal and clear form
+    closeModal('user-modal'); // or whatever your modal ID is
+    document.getElementById('user-form')?.reset();
+    
+    alert('✅ تم إنشاء المستخدم بنجاح!');
+    
+  } catch (err) {
+    console.error('❌ Exception:', err);
+    alert('حدث خطأ: ' + err.message);
+  }
 }
 
-function editUser(id){
-  const currentUser=getCurrentUser();
-  if(!currentUser||(!currentUser.permissions.users&&currentUser.role!=='Admin')){
-    alert('⚠️ ليس لديك صلاحية لتعديل المستخدمين');
-    return;
-  }
+async function updateUser(userId) {
+  // Get updated data from form
+  const email = document.getElementById('edit-user-email').value.trim();
+  const name = document.getElementById('edit-user-name').value.trim();
+  const role = document.getElementById('edit-user-role').value;
+  const phone = document.getElementById('edit-user-phone')?.value || '';
   
-  const user=S.users.find(u=>u.id===id);
-  if(!user){
-    alert('⚠️ المستخدم غير موجود');
-    return;
-  }
-  
-  try{
-    const modalTitle=document.getElementById('user-modal-title');
-    if(modalTitle)modalTitle.textContent='Edit User';
+  try {
+    // Prepare update object
+    const updates = {
+      email: email,
+      name: name,
+      role: role,
+      phone: phone,
+      updated_at: new Date().toISOString()
+    };
     
-    const userName=document.getElementById('user-name');
-    if(userName){
-      userName.value=user.name;
-      userName.dataset.userId=user.id;
+    console.log('Updating user:', userId);
+    
+    // ✅ Update in Supabase
+    const { data, error } = await supabaseClient
+      .from('users')
+      .update(updates)
+      .eq('id', userId)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('❌ Update failed:', error);
+      alert('فشل التحديث: ' + error.message);
+      return;
     }
     
-    const userEmail=document.getElementById('user-email');
-    if(userEmail)userEmail.value=user.email;
+    console.log('✅ User updated in Supabase');
     
-    const userPhone=document.getElementById('user-phone');
-    if(userPhone)userPhone.value=user.phone||'';
-    
-    const userPassword=document.getElementById('user-password');
-    if(userPassword){
-      userPassword.value='';
-      userPassword.placeholder='Leave empty to keep current';
+    // ✅ Update local state
+    const index = S.users.findIndex(u => u.id === userId);
+    if (index >= 0) {
+      S.users[index] = data;
     }
+    save();
     
-    const userRole=document.getElementById('user-role');
-    if(userRole)userRole.value=user.role;
+    // ✅ Refresh UI
+    renderUsersList();
     
-    // Set company checkboxes
-    S.companies.forEach(c=>{
-      const cb=document.getElementById(`company-${c.id}`);
-      if(cb)cb.checked=(user.companies||[]).includes(c.id);
-    });
+    alert('✅ تم تحديث المستخدم بنجاح!');
     
-    // Set permissions - with null checks
-    const permDashboard=document.getElementById('perm-dashboard');
-    if(permDashboard)permDashboard.checked=user.permissions?.dashboard||false;
-    
-    const permPipeline=document.getElementById('perm-pipeline');
-    if(permPipeline)permPipeline.checked=user.permissions?.pipeline||false;
-    
-    const permQuotation=document.getElementById('perm-quotation');
-    if(permQuotation)permQuotation.checked=user.permissions?.quotation||false;
-    
-    const permBoq=document.getElementById('perm-boq');
-    if(permBoq)permBoq.checked=user.permissions?.boq||false;
-    
-    const permUsers=document.getElementById('perm-users');
-    if(permUsers)permUsers.checked=user.permissions?.users||false;
-    
-    const permSettings=document.getElementById('perm-settings');
-    if(permSettings)permSettings.checked=user.permissions?.settings||false;
-    
-    const userProjects=document.getElementById('user-projects');
-    if(userProjects)userProjects.value=(user.assignedProjects||[]).join(', ');
-    
-    openModal('userModal');
-  }catch(err){
-    console.error('Edit user error:',err);
-    alert('⚠️ خطأ في فتح نافذة التعديل: '+err.message);
+  } catch (err) {
+    console.error('❌ Exception:', err);
+    alert('حدث خطأ: ' + err.message);
   }
 }
 
