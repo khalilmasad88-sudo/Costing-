@@ -2200,6 +2200,8 @@ async function saveUser() {
   }
   
   try {
+    console.log('Creating user:', email);
+    
     // Check if exists
     const { data: existing } = await supabaseClient
       .from('users')
@@ -2207,25 +2209,23 @@ async function saveUser() {
       .eq('email', email);
     
     if (existing && existing.length > 0) {
-      alert('❌ Email already exists!');
+      alert('❌ هذا البريد موجود مسبقاً!');
       return;
     }
     
     // Hash password
     const encoder = new TextEncoder();
-    const data = encoder.encode(password + 'future_tag_salt_2026');
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const passwordData = encoder.encode(password + 'future_tag_salt_2026');
+    const hashBuffer = await crypto.subtle.digest('SHA-256', passwordData);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const passwordHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     
-    // Generate ID
-    const userId = Date.now() + Math.random();
+    console.log('Inserting to database...');
     
-    // Save to database
+    // ✅ NO 'id' FIELD - Database will auto-generate!
     const { data: created, error } = await supabaseClient
       .from('users')
       .insert({
-        id: userId,
         email: email,
         name: name,
         role: role,
@@ -2237,34 +2237,41 @@ async function saveUser() {
       .single();
     
     if (error) {
-      alert('❌ Failed: ' + error.message);
+      console.error('❌ Failed:', error);
+      alert('❌ فشل: ' + error.message);
       return;
     }
     
-    // Link to company
-    await supabaseClient
-      .from('user_companies')
-      .insert({
-        user_id: userId,
-        company_id: S.currentCompanyId || 1
-      });
+    console.log('✅ User created! ID:', created.id);
     
-    // Add to S.users
+    // Link to company
+    if (S.currentCompanyId) {
+      await supabaseClient
+        .from('user_companies')
+        .insert({
+          user_id: created.id,
+          company_id: S.currentCompanyId
+        });
+    }
+    
+    // Add to S.users with database-generated ID
     S.users.push({
-      id: userId,
-      email: email,
-      name: name,
-      role: role,
-      phone: phone,
+      id: created.id,
+      email: created.email,
+      name: created.name,
+      role: created.role,
+      phone: created.phone || '',
       password: password,
-      password_hash: passwordHash,
+      password_hash: created.password_hash,
       companies: [S.currentCompanyId || 1],
-      permissions: {},
+      permissions: created.permissions || {},
       assignedProjects: []
     });
     
-    // ✅ SYNC TO FTAG_SHARED
-    await syncUsersToFtagShared();
+    // Sync to ftag_shared
+    if (typeof syncUsersToFtagShared === 'function') {
+      await syncUsersToFtagShared();
+    }
     
     // Refresh UI
     if (typeof renderUsersList === 'function') {
@@ -2279,10 +2286,18 @@ async function saveUser() {
       document.getElementById('user-phone').value = '';
     }
     
-    alert('✅ User created successfully!\n\n👤 ' + name + '\n📧 ' + email);
+    alert(
+      '✅ تم إنشاء المستخدم بنجاح!\n\n' +
+      '👤 ' + created.name + '\n' +
+      '📧 ' + created.email + '\n' +
+      '🆔 ID: ' + created.id
+    );
+    
+    console.log('Total users:', S.users.length);
     
   } catch (err) {
-    alert('❌ Error: ' + err.message);
+    console.error('❌ Error:', err);
+    alert('❌ خطأ: ' + err.message);
   }
 }
 
