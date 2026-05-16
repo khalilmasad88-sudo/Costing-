@@ -1455,55 +1455,52 @@ function showNotification(message){
 // Login/Logout
 async function handleLogin(email, password) {
   try {
-    console.log('Attempting login:', email);
-    
     // Get user from database
-    const { data: users, error } = await supabaseClient
+    const { data: users } = await supabaseClient
       .from('users')
       .select('*')
       .eq('email', email)
       .limit(1);
     
-    if (error || !users || users.length === 0) {
-      alert('❌ البريد الإلكتروني أو كلمة المرور غير صحيحة\nInvalid email or password');
+    if (!users || users.length === 0) {
+      alert('❌ Invalid email or password');
       return false;
     }
     
     const user = users[0];
     
-    // ✅ Verify password with bcrypt
-    console.log('Verifying password...');
-    const passwordMatch = await bcrypt.compare(password, user.password_hash);
+    // Hash password
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password + 'future_tag_salt_2026');
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     
-    if (!passwordMatch) {
-      alert('❌ البريد الإلكتروني أو كلمة المرور غير صحيحة\nInvalid email or password');
+    // Verify
+    if (user.password_hash !== hash) {
+      alert('❌ Invalid email or password');
       return false;
     }
     
-    console.log('✅ Password verified');
-    
-    // Create session
+    // Set session
     sessionStorage.setItem('currentUser', user.id);
     sessionStorage.setItem('userEmail', user.email);
     sessionStorage.setItem('userName', user.name);
     sessionStorage.setItem('userRole', user.role);
-    sessionStorage.setItem('loginTime', Date.now());
     
     S.currentUser = user.id;
     S.currentUserEmail = user.email;
     S.currentUserName = user.name;
     S.currentUserRole = user.role;
     
-    // Load user data
-    // await loadUserData();
+    // Load data
+    await loadUsersFromDatabase();
     
-    console.log('✅ Login successful:', user.email);
-    
+    alert('✅ Login successful!');
     return true;
     
   } catch (err) {
-    console.error('❌ Login error:', err);
-    alert('❌ حدث خطأ أثناء تسجيل الدخول\nLogin error\n\n' + err.message);
+    alert('❌ Login error: ' + err.message);
     return false;
   }
 }
@@ -2198,82 +2195,76 @@ async function saveUser() {
   const phone = document.getElementById('user-phone')?.value || '';
   
   if (!email || !name || !password) {
-    alert('⚠️ الرجاء إدخال جميع الحقول المطلوبة\nPlease fill all required fields');
-    return;
-  }
-  
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    alert('⚠️ البريد الإلكتروني غير صحيح\nInvalid email format');
+    alert('⚠️ الرجاء إدخال جميع الحقول المطلوبة');
     return;
   }
   
   try {
-    console.log('Creating user:', email);
-    
-    // Check if email exists
-    const { data: existingUsers, error: checkError } = await supabaseClient
+    // Check if exists
+    const { data: existing } = await supabaseClient
       .from('users')
       .select('id')
       .eq('email', email);
     
-    if (existingUsers && existingUsers.length > 0) {
-      alert('❌ هذا البريد الإلكتروني موجود مسبقاً!\nEmail already exists!\n\n📧 ' + email);
+    if (existing && existing.length > 0) {
+      alert('❌ Email already exists!');
       return;
     }
     
-    // Hash password with SHA-256
-    console.log('Hashing password with SHA-256...');
+    // Hash password
     const encoder = new TextEncoder();
-    const passwordData = encoder.encode(password + 'future_tag_salt_2026');
-    const hashBuffer = await crypto.subtle.digest('SHA-256', passwordData);
+    const data = encoder.encode(password + 'future_tag_salt_2026');
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const passwordHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    console.log('✅ Password hashed');
     
-    // Create user object
-    const newUser = {
-      email: email,
-      name: name,
-      role: role,
-      password_hash: passwordHash,
-      phone: phone,
-      permissions: {}
-    };
+    // Generate ID
+    const userId = Date.now() + Math.random();
     
-    // Insert to Supabase
-    const { data: createdUser, error: insertError } = await supabaseClient
+    // Save to database
+    const { data: created, error } = await supabaseClient
       .from('users')
-      .insert(newUser)
+      .insert({
+        id: userId,
+        email: email,
+        name: name,
+        role: role,
+        password_hash: passwordHash,
+        phone: phone,
+        permissions: {}
+      })
       .select()
       .single();
     
-    if (insertError) {
-      console.error('❌ Save failed:', insertError);
-      alert('❌ فشل حفظ المستخدم\nFailed to save user\n\n' + insertError.message);
+    if (error) {
+      alert('❌ Failed: ' + error.message);
       return;
     }
     
-    console.log('✅ User created in Supabase:', createdUser.id);
-    
     // Link to company
-    if (S.currentCompanyId) {
-      const { error: linkError } = await supabaseClient
-        .from('user_companies')
-        .insert({
-          user_id: createdUser.id,
-          company_id: S.currentCompanyId
-        });
-      
-      if (linkError) {
-        console.warn('⚠️ Failed to link to company:', linkError);
-      } else {
-        console.log('✅ User linked to company');
-      }
-    }
+    await supabaseClient
+      .from('user_companies')
+      .insert({
+        user_id: userId,
+        company_id: S.currentCompanyId || 1
+      });
     
-    // Update local state
-    S.users.push(createdUser);
+    // Add to S.users
+    S.users.push({
+      id: userId,
+      email: email,
+      name: name,
+      role: role,
+      phone: phone,
+      password: password,
+      password_hash: passwordHash,
+      companies: [S.currentCompanyId || 1],
+      permissions: {},
+      assignedProjects: []
+    });
+    
+    // ✅ SYNC TO FTAG_SHARED
+    await syncUsersToFtagShared();
     
     // Refresh UI
     if (typeof renderUsersList === 'function') {
@@ -2288,26 +2279,10 @@ async function saveUser() {
       document.getElementById('user-phone').value = '';
     }
     
-    // Success alert
-    alert(
-      '✅ تم إنشاء المستخدم بنجاح!\n' +
-      'User created successfully!\n\n' +
-      '━━━━━━━━━━━━━━━━━━━━\n\n' +
-      '👤 Name: ' + createdUser.name + '\n' +
-      '📧 Email: ' + createdUser.email + '\n' +
-      '👔 Role: ' + createdUser.role + '\n' +
-      '📱 Phone: ' + (createdUser.phone || 'N/A') + '\n' +
-      '🆔 ID: ' + createdUser.id + '\n\n' +
-      '━━━━━━━━━━━━━━━━━━━━\n\n' +
-      '✓ Password encrypted (SHA-256)\n' +
-      '✓ Saved to database'
-    );
-    
-    console.log('Total users:', S.users.length);
+    alert('✅ User created successfully!\n\n👤 ' + name + '\n📧 ' + email);
     
   } catch (err) {
-    console.error('❌ Exception:', err);
-    alert('❌ حدث خطأ\nError occurred\n\n' + err.message);
+    alert('❌ Error: ' + err.message);
   }
 }
 
