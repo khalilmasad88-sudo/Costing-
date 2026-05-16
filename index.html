@@ -2085,11 +2085,10 @@ function renderUsersList(){
 
 // NEW - يحفظ في Supabase
 async function saveUser() {
-  // Collect user data from form
-  const email = document.getElementById('user-email').value.trim();
-  const name = document.getElementById('user-name').value.trim();
-  const password = document.getElementById('user-password').value;
-  const role = document.getElementById('user-role').value;
+  const email = document.getElementById('user-email')?.value.trim();
+  const name = document.getElementById('user-name')?.value.trim();
+  const password = document.getElementById('user-password')?.value;
+  const role = document.getElementById('user-role')?.value;
   const phone = document.getElementById('user-phone')?.value || '';
   
   if (!email || !name || !password) {
@@ -2098,23 +2097,19 @@ async function saveUser() {
   }
   
   try {
-    // Hash password
     const passwordHash = CryptoJS.SHA256(password + 'salt').toString();
     
-    // Create user object
     const newUser = {
       email: email,
       name: name,
       role: role,
       password_hash: passwordHash,
       phone: phone,
-      permissions: {},
-      created_at: new Date().toISOString()
+      permissions: {}
     };
     
     console.log('Creating user:', email);
     
-    // ✅ Save to Supabase
     const { data, error } = await supabaseClient
       .from('users')
       .insert(newUser)
@@ -2122,14 +2117,18 @@ async function saveUser() {
       .single();
     
     if (error) {
+      if (error.code === '23505') {
+        alert('❌ هذا البريد الإلكتروني موجود مسبقاً!');
+      } else {
+        alert('فشل حفظ المستخدم: ' + error.message);
+      }
       console.error('❌ Save failed:', error);
-      alert('فشل حفظ المستخدم: ' + error.message);
       return;
     }
     
-    console.log('✅ User created in Supabase:', data.id);
+    console.log('✅ User created! ID:', data.id);
     
-    // ✅ Link to company
+    // Link to company
     if (S.currentCompanyId) {
       const { error: linkError } = await supabaseClient
         .from('user_companies')
@@ -2138,25 +2137,43 @@ async function saveUser() {
           company_id: S.currentCompanyId
         });
       
-      if (linkError) {
-        console.error('⚠️ Failed to link to company:', linkError);
-      } else {
-        console.log('✅ User linked to company');
+      if (!linkError) {
+        console.log('✅ Linked to company');
       }
     }
     
-    // ✅ Update local state
+    // Update local state
     S.users.push(data);
     save();
     
-    // ✅ Refresh UI
-    renderUsersList();
+    // Reload users list
+    const { data: allUsers } = await supabaseClient
+      .from('users')
+      .select('*')
+      .order('created_at', { ascending: false });
     
-    // ✅ Close modal and clear form
-    closeModal('user-modal'); // or whatever your modal ID is
-    document.getElementById('user-form')?.reset();
+    S.users = allUsers || [];
+    save();
     
-    alert('✅ تم إنشاء المستخدم بنجاح!');
+    // Refresh UI
+    if (typeof renderUsersList === 'function') {
+      renderUsersList();
+    }
+    
+    // Clear form fields manually
+    const emailInput = document.getElementById('user-email');
+    const nameInput = document.getElementById('user-name');
+    const passwordInput = document.getElementById('user-password');
+    const phoneInput = document.getElementById('user-phone');
+    
+    if (emailInput) emailInput.value = '';
+    if (nameInput) nameInput.value = '';
+    if (passwordInput) passwordInput.value = '';
+    if (phoneInput) phoneInput.value = '';
+    
+    alert('✅ تم إنشاء المستخدم بنجاح!\n\nEmail: ' + data.email + '\nID: ' + data.id);
+    
+    console.log('Total users now:', S.users.length);
     
   } catch (err) {
     console.error('❌ Exception:', err);
