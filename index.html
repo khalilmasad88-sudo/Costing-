@@ -2186,29 +2186,132 @@ function renderUsersList(){
   </tr>`).join('');
 }
 
-function saveUser(){
-  const id=document.getElementById('user-name').dataset.userId;
-  const user=id?S.users.find(u=>u.id==id):blankUser();
-  user.name=document.getElementById('user-name').value;
-  user.email=document.getElementById('user-email').value;
-  user.phone=document.getElementById('user-phone').value;
-  const pwd=document.getElementById('user-password').value;
-  if(pwd)user.password=pwd;
-  user.role=document.getElementById('user-role').value;
-  user.companies=S.companies.filter(c=>document.getElementById(`company-${c.id}`)?.checked).map(c=>c.id);
-  user.permissions={
-    dashboard:document.getElementById('perm-dashboard')?.checked||false,
-    pipeline:document.getElementById('perm-pipeline')?.checked||false,
-    quotation:document.getElementById('perm-quotation')?.checked||false,
-    boq:document.getElementById('perm-boq')?.checked||false,
-    users:document.getElementById('perm-users')?.checked||false,
-    settings:document.getElementById('perm-settings')?.checked||false
-  };
-  const proj=document.getElementById('user-projects').value.split(',').map(s=>s.trim()).filter(Boolean);
-  user.assignedProjects=proj.length?proj:[];
-  if(!id)S.users.push(user);
-  renderUsersList();save();closeModal('userModal');
-  document.getElementById('user-name').dataset.userId='';
+async function saveUser() {
+  const email = document.getElementById('user-email')?.value.trim();
+  const name = document.getElementById('user-name')?.value.trim();
+  const password = document.getElementById('user-password')?.value;
+  const role = document.getElementById('user-role')?.value;
+  const phone = document.getElementById('user-phone')?.value || '';
+  
+  // Validation
+  if (!email || !name || !password) {
+    alert('⚠️ الرجاء إدخال جميع الحقول المطلوبة\nPlease fill all required fields');
+    return;
+  }
+  
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    alert('⚠️ البريد الإلكتروني غير صحيح\nInvalid email format');
+    return;
+  }
+  
+  try {
+    console.log('Creating user:', email);
+    
+    // Check if email already exists
+    const { data: existing } = await supabaseClient
+      .from('users')
+      .select('id, email')
+      .eq('email', email)
+      .single();
+    
+    if (existing) {
+      alert(
+        '❌ هذا البريد الإلكتروني موجود مسبقاً!\n' +
+        'Email already exists!\n\n' +
+        '📧 ' + email
+      );
+      return;
+    }
+    
+    // Hash password
+    const passwordHash = CryptoJS.SHA256(password + 'salt').toString();
+    
+    // Create user
+    const newUser = {
+      email: email,
+      name: name,
+      role: role,
+      password_hash: passwordHash,
+      phone: phone,
+      permissions: {}
+    };
+    
+    // Insert to Supabase
+    const { data, error } = await supabaseClient
+      .from('users')
+      .insert(newUser)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('❌ Save failed:', error);
+      
+      if (error.code === '23505') {
+        alert('❌ هذا البريد الإلكتروني موجود مسبقاً!\nEmail already exists!');
+      } else {
+        alert('❌ فشل حفظ المستخدم\nFailed to save user\n\n' + error.message);
+      }
+      return;
+    }
+    
+    console.log('✅ User created:', data.id);
+    
+    // Link to company
+    if (S.currentCompanyId) {
+      const { error: linkError } = await supabaseClient
+        .from('user_companies')
+        .insert({
+          user_id: data.id,
+          company_id: S.currentCompanyId
+        });
+      
+      if (linkError) {
+        console.warn('⚠️ Failed to link to company:', linkError);
+      }
+    }
+    
+    // Update local state
+    S.users.push(data);
+    
+    // Refresh UI
+    if (typeof renderUsersList === 'function') {
+      renderUsersList();
+    }
+    
+    // Clear form
+    const emailInput = document.getElementById('user-email');
+    const nameInput = document.getElementById('user-name');
+    const passwordInput = document.getElementById('user-password');
+    const phoneInput = document.getElementById('user-phone');
+    
+    if (emailInput) emailInput.value = '';
+    if (nameInput) nameInput.value = '';
+    if (passwordInput) passwordInput.value = '';
+    if (phoneInput) phoneInput.value = '';
+    
+    // ✅ SUCCESS ALERT
+    alert(
+      '✅ تم إنشاء المستخدم بنجاح!\n' +
+      'User created successfully!\n\n' +
+      '━━━━━━━━━━━━━━━━━━━━\n\n' +
+      '👤 الاسم / Name:\n    ' + data.name + '\n\n' +
+      '📧 البريد / Email:\n    ' + data.email + '\n\n' +
+      '👔 الدور / Role:\n    ' + data.role + '\n\n' +
+      '📱 الجوال / Phone:\n    ' + (data.phone || 'N/A') + '\n\n' +
+      '🆔 User ID:\n    ' + data.id + '\n\n' +
+      '━━━━━━━━━━━━━━━━━━━━\n\n' +
+      '✓ تم الحفظ في قاعدة البيانات\n' +
+      '✓ Saved to database'
+    );
+    
+    console.log('Total users:', S.users.length);
+    
+  } catch (err) {
+    console.error('❌ Exception:', err);
+    alert('❌ حدث خطأ\nError occurred\n\n' + err.message);
+  }
 }
 
 function editUser(id){
