@@ -1469,14 +1469,7 @@ window.handleLogin = async function(email, password) {
       .eq('email', email)
       .limit(1);
     
-    if (error) {
-      console.error('Database error:', error);
-      alert('❌ خطأ في قاعدة البيانات');
-      return false;
-    }
-    
-    if (!users || users.length === 0) {
-      console.log('❌ User not found');
+    if (error || !users || users.length === 0) {
       alert('❌ البريد الإلكتروني أو كلمة المرور غير صحيحة');
       return false;
     }
@@ -1493,7 +1486,6 @@ window.handleLogin = async function(email, password) {
     
     // Verify password
     if (user.password_hash !== enteredHash) {
-      console.log('❌ Password mismatch');
       alert('❌ البريد الإلكتروني أو كلمة المرور غير صحيحة');
       return false;
     }
@@ -1505,7 +1497,6 @@ window.handleLogin = async function(email, password) {
     sessionStorage.setItem('userEmail', user.email);
     sessionStorage.setItem('userName', user.name);
     sessionStorage.setItem('userRole', user.role);
-    sessionStorage.setItem('loginTime', Date.now());
     
     S.currentUser = user.id;
     S.currentUserEmail = user.email;
@@ -1515,72 +1506,35 @@ window.handleLogin = async function(email, password) {
     
     console.log('✅ Session created');
     
-    // Load users
-    const { data: allUsers } = await supabaseClient
-      .from('users')
-      .select('*');
-    
+    // Load all data
+    const { data: allUsers } = await supabaseClient.from('users').select('*');
     S.users = allUsers?.map(u => ({
-      id: u.id,
-      email: u.email,
-      name: u.name,
-      role: u.role,
-      phone: u.phone || '',
-      password: 'encrypted',
-      password_hash: u.password_hash,
-      companies: [1],
-      permissions: u.permissions || {},
-      assignedProjects: []
+      id: u.id, email: u.email, name: u.name, role: u.role,
+      phone: u.phone || '', password: 'encrypted', password_hash: u.password_hash,
+      companies: [1], permissions: u.permissions || {}, assignedProjects: []
     })) || [];
     
-    console.log('✅ Users loaded:', S.users.length);
+    const { data: companiesData } = await supabaseClient.from('companies').select('*');
+    S.companies = companiesData || [];
     
-    // Load companies
-    const { data: companiesData } = await supabaseClient
-      .from('companies')
-      .select('*');
-    
-    S.companies = companiesData?.map(c => ({
-      id: c.id,
-      name: c.name,
-      email: c.email || '',
-      phone: c.phone || '',
-      tag: 'Security Systems',
-      color: '#3b82f6',
-      users: []
-    })) || [];
-    
-    console.log('✅ Companies loaded:', S.companies.length);
-    
-    // Load quotations
-    const { data: quotationsData } = await supabaseClient
-      .from('quotations')
-      .select('*');
-    
+    const { data: quotationsData } = await supabaseClient.from('quotations').select('*');
     S.quotations = quotationsData || [];
-    console.log('✅ Quotations loaded:', S.quotations.length);
     
-    // Load pipeline
-    const { data: pipelineData } = await supabaseClient
-      .from('pipeline')
-      .select('*');
-    
+    const { data: pipelineData } = await supabaseClient.from('pipeline').select('*');
     S.pipeline = pipelineData || [];
-    console.log('✅ Pipeline loaded:', S.pipeline.length);
     
     console.log('✅ All data loaded');
     
+    // ✅ NAVIGATE TO DASHBOARD
+    console.log('Navigating to dashboard...');
+    
+    // Call showPage to go to dashboard
+    showPage('dashboard');
+    
+    console.log('✅ Navigation complete');
+    
     // Success message
     alert('✅ تم تسجيل الدخول بنجاح!\n\n👤 ' + user.name + '\n📧 ' + user.email);
-    
-    // Redirect or reload
-    if (typeof showPage === 'function') {
-      showPage('dashboard');
-    } else if (typeof init === 'function') {
-      init();
-    } else {
-      location.reload();
-    }
     
     return true;
     
@@ -1590,6 +1544,8 @@ window.handleLogin = async function(email, password) {
     return false;
   }
 };
+
+console.log('✅ handleLogin updated - will navigate to dashboard');
 
 console.log('✅ handleLogin function updated');
 
