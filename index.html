@@ -1453,55 +1453,59 @@ function showNotification(message){
 }
 
 // Login/Logout
-function handleLogin(e){
-  if(e)e.preventDefault();
-  const email=document.getElementById('login-email').value.trim();
-  const password=document.getElementById('login-password').value;
-  const errorDiv=document.getElementById('login-error');
-  
-  // Hide previous error
-  errorDiv.style.display='none';
-  
-  if(!email||!password){
-    errorDiv.textContent='الرجاء إدخال البريد الإلكتروني وكلمة المرور';
-    errorDiv.style.display='block';
+async function handleLogin(email, password) {
+  try {
+    console.log('Attempting login:', email);
+    
+    // Get user from database
+    const { data: users, error } = await supabaseClient
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .limit(1);
+    
+    if (error || !users || users.length === 0) {
+      alert('❌ البريد الإلكتروني أو كلمة المرور غير صحيحة\nInvalid email or password');
+      return false;
+    }
+    
+    const user = users[0];
+    
+    // ✅ Verify password with bcrypt
+    console.log('Verifying password...');
+    const passwordMatch = await bcrypt.compare(password, user.password_hash);
+    
+    if (!passwordMatch) {
+      alert('❌ البريد الإلكتروني أو كلمة المرور غير صحيحة\nInvalid email or password');
+      return false;
+    }
+    
+    console.log('✅ Password verified');
+    
+    // Create session
+    sessionStorage.setItem('currentUser', user.id);
+    sessionStorage.setItem('userEmail', user.email);
+    sessionStorage.setItem('userName', user.name);
+    sessionStorage.setItem('userRole', user.role);
+    sessionStorage.setItem('loginTime', Date.now());
+    
+    S.currentUser = user.id;
+    S.currentUserEmail = user.email;
+    S.currentUserName = user.name;
+    S.currentUserRole = user.role;
+    
+    // Load user data
+    // await loadUserData();
+    
+    console.log('✅ Login successful:', user.email);
+    
+    return true;
+    
+  } catch (err) {
+    console.error('❌ Login error:', err);
+    alert('❌ حدث خطأ أثناء تسجيل الدخول\nLogin error\n\n' + err.message);
     return false;
   }
-  
-  console.log('Login attempt:', email);
-  console.log('Available users:', S.users.length);
-  console.log('Users:', S.users.map(u=>({email:u.email,role:u.role})));
-  
-  const user=S.users.find(u=>u.email===email&&u.password===password);
-  
-  if(user){
-    console.log('Login successful:', user.name);
-    S.currentUser=user.id;
-    document.getElementById('loginScreen').classList.remove('active');
-    document.getElementById('appContainer').classList.add('active');
-    applyUser();
-    applyPermissions();
-    save();
-    
-    // Reload to show correct data
-    renderCompanyDropdown();
-    renderUsersList();
-    renderCompanyCheckboxes();
-    populateQNumDropdown();
-    renderPipeline();
-    renderQList();
-    renderBOQ();
-    updateDashboard();
-    
-    const id=S.activeQId||S.quotations[0]?.id;
-    const found=S.quotations.find(q=>q.id===id);
-    if(found)openQuotation(found.id);else if(S.quotations.length)openQuotation(S.quotations[0].id);
-  }else{
-    console.log('Login failed - user not found or wrong password');
-    errorDiv.textContent='⚠️ الاسم أو الرقم السري خاطئ';
-    errorDiv.style.display='block';
-  }
-  return false;
 }
 
 function resetToDefaults(){
@@ -2225,10 +2229,12 @@ async function saveUser() {
       return;
     }
     
-    // Hash password
-    const passwordHash = CryptoJS.SHA256(password + 'salt').toString();
+    // ✅ Hash password with bcrypt (secure!)
+    console.log('Hashing password with bcrypt...');
+    const passwordHash = await bcrypt.hash(password, 10);
+    console.log('✅ Password hashed');
     
-    // Create user
+    // Create user object
     const newUser = {
       email: email,
       name: name,
@@ -2256,7 +2262,7 @@ async function saveUser() {
       return;
     }
     
-    console.log('✅ User created:', data.id);
+    console.log('✅ User created in Supabase:', data.id);
     
     // Link to company
     if (S.currentCompanyId) {
@@ -2269,6 +2275,8 @@ async function saveUser() {
       
       if (linkError) {
         console.warn('⚠️ Failed to link to company:', linkError);
+      } else {
+        console.log('✅ User linked to company');
       }
     }
     
@@ -2303,6 +2311,7 @@ async function saveUser() {
       '🆔 User ID:\n    ' + data.id + '\n\n' +
       '━━━━━━━━━━━━━━━━━━━━\n\n' +
       '✓ تم الحفظ في قاعدة البيانات\n' +
+      '✓ Password encrypted with bcrypt\n' +
       '✓ Saved to database'
     );
     
