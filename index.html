@@ -1453,57 +1453,145 @@ function showNotification(message){
 }
 
 // Login/Logout
-async function handleLogin(email, password) {
+// ============================================
+// COMPLETE LOGIN FUNCTION - NO DEPENDENCIES
+// ============================================
+
+window.handleLogin = async function(email, password) {
+  console.log('=== LOGIN ATTEMPT ===');
+  console.log('Email:', email);
+  
   try {
     // Get user from database
-    const { data: users } = await supabaseClient
+    const { data: users, error } = await supabaseClient
       .from('users')
       .select('*')
       .eq('email', email)
       .limit(1);
     
+    if (error) {
+      console.error('Database error:', error);
+      alert('❌ خطأ في قاعدة البيانات');
+      return false;
+    }
+    
     if (!users || users.length === 0) {
-      alert('❌ Invalid email or password');
+      console.log('❌ User not found');
+      alert('❌ البريد الإلكتروني أو كلمة المرور غير صحيحة');
       return false;
     }
     
     const user = users[0];
+    console.log('✅ User found:', user.email);
     
     // Hash password
     const encoder = new TextEncoder();
-    const data = encoder.encode(password + 'future_tag_salt_2026');
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const passwordData = encoder.encode(password + 'future_tag_salt_2026');
+    const hashBuffer = await crypto.subtle.digest('SHA-256', passwordData);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    const enteredHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     
-    // Verify
-    if (user.password_hash !== hash) {
-      alert('❌ Invalid email or password');
+    // Verify password
+    if (user.password_hash !== enteredHash) {
+      console.log('❌ Password mismatch');
+      alert('❌ البريد الإلكتروني أو كلمة المرور غير صحيحة');
       return false;
     }
+    
+    console.log('✅ Password verified');
     
     // Set session
     sessionStorage.setItem('currentUser', user.id);
     sessionStorage.setItem('userEmail', user.email);
     sessionStorage.setItem('userName', user.name);
     sessionStorage.setItem('userRole', user.role);
+    sessionStorage.setItem('loginTime', Date.now());
     
     S.currentUser = user.id;
     S.currentUserEmail = user.email;
     S.currentUserName = user.name;
     S.currentUserRole = user.role;
+    S.currentCompanyId = 1;
     
-    // Load data
-    await loadUsersFromDatabase();
+    console.log('✅ Session created');
     
-    alert('✅ Login successful!');
+    // Load users
+    const { data: allUsers } = await supabaseClient
+      .from('users')
+      .select('*');
+    
+    S.users = allUsers?.map(u => ({
+      id: u.id,
+      email: u.email,
+      name: u.name,
+      role: u.role,
+      phone: u.phone || '',
+      password: 'encrypted',
+      password_hash: u.password_hash,
+      companies: [1],
+      permissions: u.permissions || {},
+      assignedProjects: []
+    })) || [];
+    
+    console.log('✅ Users loaded:', S.users.length);
+    
+    // Load companies
+    const { data: companiesData } = await supabaseClient
+      .from('companies')
+      .select('*');
+    
+    S.companies = companiesData?.map(c => ({
+      id: c.id,
+      name: c.name,
+      email: c.email || '',
+      phone: c.phone || '',
+      tag: 'Security Systems',
+      color: '#3b82f6',
+      users: []
+    })) || [];
+    
+    console.log('✅ Companies loaded:', S.companies.length);
+    
+    // Load quotations
+    const { data: quotationsData } = await supabaseClient
+      .from('quotations')
+      .select('*');
+    
+    S.quotations = quotationsData || [];
+    console.log('✅ Quotations loaded:', S.quotations.length);
+    
+    // Load pipeline
+    const { data: pipelineData } = await supabaseClient
+      .from('pipeline')
+      .select('*');
+    
+    S.pipeline = pipelineData || [];
+    console.log('✅ Pipeline loaded:', S.pipeline.length);
+    
+    console.log('✅ All data loaded');
+    
+    // Success message
+    alert('✅ تم تسجيل الدخول بنجاح!\n\n👤 ' + user.name + '\n📧 ' + user.email);
+    
+    // Redirect or reload
+    if (typeof showPage === 'function') {
+      showPage('dashboard');
+    } else if (typeof init === 'function') {
+      init();
+    } else {
+      location.reload();
+    }
+    
     return true;
     
   } catch (err) {
-    alert('❌ Login error: ' + err.message);
+    console.error('❌ Login error:', err);
+    alert('❌ حدث خطأ: ' + err.message);
     return false;
   }
-}
+};
+
+console.log('✅ handleLogin function updated');
 
 function resetToDefaults(){
   if(confirm('Reset all data to defaults?\n\nThis will delete all your data and reset to factory settings.\n\nDefault login:\nadmin@futuretag.com / admin123')){
