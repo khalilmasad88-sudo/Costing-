@@ -1793,11 +1793,14 @@ async function createAutomaticBackup(type='daily'){
     
     const {data,error}=await supabaseClient.from('ftag_backups').insert({
       company_id:S.currentCompanyId,
-      data:S,
-      created_by:user.email,
+      user_id:String(user.id || S.currentUser),  // Add user_id
+      backup_name:type==='daily'?'نسخة يومية تلقائية':'نسخة ذكية',  // ✅ Add this!
       description:description,
       backup_date:new Date().toISOString().split('T')[0],
-      backup_type:type
+      timestamp:new Date().toISOString(),  // Add timestamp
+      data:S,
+      backup_type:type,
+      created_by:user.email
     });
     
     if(!error){
@@ -1889,11 +1892,14 @@ async function createBackup(){
   try{
     const {data,error}=await supabaseClient.from('ftag_backups').insert({
       company_id:S.currentCompanyId,
-      data:S,
-      created_by:user.email,
+      user_id:String(user.id || S.currentUser),  // Add user_id
+      backup_name:'نسخة يدوية - '+new Date().toLocaleDateString('ar-SA'),  // ✅ Add this!
       description:description||'نسخة يدوية',
       backup_date:new Date().toISOString().split('T')[0],
-      backup_type:'manual'
+      timestamp:new Date().toISOString(),  // Add timestamp
+      data:S,
+      backup_type:'manual',
+      created_by:user.email
     });
     
     if(error)throw error;
