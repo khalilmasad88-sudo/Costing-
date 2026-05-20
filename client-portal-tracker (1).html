@@ -1,0 +1,3150 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Portal Tracker - Future Tag Security</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Dark Theme (Professional) */
+            --bg-primary: #0f1419;
+            --bg-secondary: #1a1f29;
+            --bg-card: #242933;
+            --bg-card-hover: #2d3340;
+            --text-primary: #f0f6fc;
+            --text-secondary: #9da5b4;
+            --text-tertiary: #6c7489;
+            --accent-primary: #0969da;
+            --accent-secondary: #1f6feb;
+            --accent-hover: #388bfd;
+            --success-green: #2ea043;
+            --warning-yellow: #bf8700;
+            --danger-red: #da3633;
+            --info-blue: #0969da;
+            --border-default: #373e47;
+            --border-emphasis: #444c56;
+            --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.4);
+            --shadow-hover: 0 8px 24px rgba(9, 105, 218, 0.2);
+            --overlay-bg: rgba(13, 17, 23, 0.9);
+        }
+
+        [data-theme="light"] {
+            /* Light Theme (Professional) */
+            --bg-primary: #ffffff;
+            --bg-secondary: #f6f8fa;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f6f8fa;
+            --text-primary: #24292f;
+            --text-secondary: #57606a;
+            --text-tertiary: #6e7781;
+            --accent-primary: #0969da;
+            --accent-secondary: #0550ae;
+            --accent-hover: #0860ca;
+            --success-green: #1a7f37;
+            --warning-yellow: #9a6700;
+            --danger-red: #cf222e;
+            --info-blue: #0969da;
+            --border-default: #d0d7de;
+            --border-emphasis: #b1bac4;
+            --shadow-card: 0 2px 8px rgba(31, 35, 40, 0.08);
+            --shadow-hover: 0 4px 16px rgba(9, 105, 218, 0.15);
+            --overlay-bg: rgba(175, 184, 193, 0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            margin-bottom: 3rem;
+            border-bottom: 2px solid var(--border-default);
+            padding-bottom: 2rem;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+        }
+
+        .brand {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        h1 {
+            font-family: 'Orbitron', monospace;
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+            text-transform: uppercase;
+            margin: 0;
+            position: relative;
+        }
+
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 2px;
+        }
+
+        .company-name {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .company-logo {
+            max-height: 50px;
+            max-width: 200px;
+            object-fit: contain;
+            margin-bottom: 0.5rem;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: #ffffff;
+            border: 1px solid transparent;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--accent-secondary), var(--accent-hover));
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(9, 105, 218, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border-emphasis);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--accent-amber);
+        }
+
+        .lang-toggle,
+        .theme-toggle,
+        .settings-btn {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .lang-toggle:hover,
+        .theme-toggle:hover,
+        .settings-btn:hover {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+            background: var(--bg-card);
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 300px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.875rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-tertiary);
+            font-size: 1rem;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 0.5rem;
+            background: var(--bg-secondary);
+            padding: 0.25rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-default);
+        }
+
+        .filter-btn {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .filter-btn.active {
+            background: var(--accent-primary);
+            color: #ffffff;
+        }
+
+        .filter-btn:not(.active):hover {
+            color: var(--text-primary);
+            background: var(--bg-card);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--stat-color, var(--accent-amber));
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-family: 'Orbitron', monospace;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            animation: fadeInUp 0.6s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .client-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-default);
+            border-radius: 12px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            animation: cardEnter 0.4s ease backwards;
+        }
+
+        .client-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--status-color, var(--accent-amber)), transparent);
+            opacity: 0.6;
+        }
+
+        @keyframes cardEnter {
+            from {
+                opacity: 0;
+                transform: scale(0.95) translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .client-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-hover);
+            border-color: var(--accent-primary);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .client-info {
+            flex: 1;
+        }
+
+        .client-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .client-category {
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .status-badge {
+            padding: 0.375rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+        }
+
+        .status-registered {
+            background: rgba(63, 185, 80, 0.15);
+            color: var(--success-green);
+            border: 1px solid rgba(63, 185, 80, 0.3);
+        }
+
+        .status-pending {
+            background: rgba(210, 153, 34, 0.15);
+            color: var(--warning-yellow);
+            border: 1px solid rgba(210, 153, 34, 0.3);
+        }
+
+        .status-not-registered {
+            background: rgba(248, 81, 73, 0.15);
+            color: var(--danger-red);
+            border: 1px solid rgba(248, 81, 73, 0.3);
+        }
+
+        .card-details {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .detail-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .detail-icon {
+            width: 16px;
+            color: var(--text-tertiary);
+        }
+
+        .detail-label {
+            color: var(--text-secondary);
+            min-width: 100px;
+        }
+
+        .detail-value {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .portal-url {
+            color: var(--accent-primary);
+            text-decoration: none;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+
+        .portal-url:hover {
+            text-decoration: underline;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 0.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-default);
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 0.5rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .action-btn:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        .action-btn.primary {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: #ffffff;
+            border: none;
+        }
+
+        .action-btn.primary:hover {
+            background: linear-gradient(135deg, var(--accent-secondary), var(--accent-hover));
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(9, 105, 218, 0.3);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--overlay-bg);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border-emphasis);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+            animation: modalSlideUp 0.3s ease;
+        }
+
+        @keyframes modalSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-default);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-select {
+            cursor: pointer;
+        }
+
+        .modal-footer {
+            padding: 1.5rem;
+            border-top: 1px solid var(--border-default);
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            color: var(--text-tertiary);
+            margin-bottom: 1rem;
+        }
+
+        .empty-title {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-text {
+            color: var(--text-tertiary);
+            margin-bottom: 2rem;
+        }
+
+        .notification {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-emphasis);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            z-index: 2000;
+            animation: slideInRight 0.3s ease;
+            max-width: 400px;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .notification.success {
+            border-left: 4px solid var(--success-green);
+        }
+
+        .notification.error {
+            border-left: 4px solid var(--danger-red);
+        }
+
+        .notification-icon {
+            font-size: 1.5rem;
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .notification-message {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 1.75rem;
+            }
+
+            .header-actions {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .search-box {
+                min-width: 100%;
+            }
+
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Arabic RTL Support */
+        [dir="rtl"] {
+            font-family: 'IBM Plex Sans', 'Tajawal', sans-serif;
+        }
+
+        [dir="rtl"] .search-icon {
+            left: auto;
+            right: 0.875rem;
+        }
+
+        [dir="rtl"] .search-box input {
+            padding-left: 1rem;
+            padding-right: 2.5rem;
+        }
+
+        [dir="rtl"] .stat-card::before {
+            left: auto;
+            right: 0;
+        }
+
+        /* Settings Modal Specific Styles */
+        .settings-modal .modal-content {
+            max-width: 700px;
+        }
+
+        .settings-tabs {
+            display: flex;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--border-default);
+            margin-bottom: 1.5rem;
+            padding: 0 1.5rem;
+        }
+
+        .settings-tab {
+            padding: 0.75rem 1.25rem;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--text-secondary);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+
+        .settings-tab:hover {
+            color: var(--text-primary);
+        }
+
+        .settings-tab.active {
+            color: var(--accent-primary);
+            border-bottom-color: var(--accent-primary);
+        }
+
+        .settings-content {
+            display: none;
+        }
+
+        .settings-content.active {
+            display: block;
+        }
+
+        .config-row {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 1rem;
+            align-items: start;
+            margin-bottom: 1.25rem;
+        }
+
+        .config-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            padding-top: 0.75rem;
+        }
+
+        .config-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .config-hint {
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+            font-style: italic;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-tertiary);
+        }
+
+        .status-dot.connected {
+            background: var(--success-green);
+            box-shadow: 0 0 8px rgba(46, 160, 67, 0.5);
+        }
+
+        .backup-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .backup-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .backup-buttons {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .backup-btn {
+            padding: 0.625rem 1.25rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .backup-btn:hover {
+            border-color: var(--accent-primary);
+            background: var(--bg-card-hover);
+        }
+
+        .backup-info {
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+            margin-top: 0.5rem;
+        }
+
+        .sync-status {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .sync-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .sync-label {
+            color: var(--text-secondary);
+        }
+
+        .sync-value {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .danger-zone {
+            background: rgba(218, 54, 51, 0.05);
+            border: 1px solid rgba(218, 54, 51, 0.2);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .danger-title {
+            color: var(--danger-red);
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-danger {
+            background: var(--danger-red);
+            color: white;
+            border: none;
+        }
+
+        .btn-danger:hover {
+            background: #b32929;
+            transform: none;
+        }
+
+        .password-field {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 0.75rem;
+            background: none;
+            border: none;
+            color: var(--text-tertiary);
+            cursor: pointer;
+            padding: 0.5rem;
+            font-size: 1.1rem;
+            transition: color 0.2s ease;
+        }
+
+        .password-toggle:hover {
+            color: var(--text-primary);
+        }
+
+        [dir="rtl"] .password-toggle {
+            right: auto;
+            left: 0.75rem;
+        }
+
+        .password-input {
+            padding-right: 3rem !important;
+        }
+
+        [dir="rtl"] .password-input {
+            padding-right: 0.75rem !important;
+            padding-left: 3rem !important;
+        }
+
+        .credential-box {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            padding: 0.75rem;
+            font-family: monospace;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+
+        .credential-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .credential-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .credential-label {
+            color: var(--text-tertiary);
+            font-size: 0.75rem;
+        }
+
+        .credential-value {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .logo-preview {
+            max-width: 200px;
+            max-height: 100px;
+            object-fit: contain;
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+            background: var(--bg-secondary);
+        }
+
+        .file-upload-area {
+            border: 2px dashed var(--border-default);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: var(--bg-secondary);
+        }
+
+        .file-upload-area:hover {
+            border-color: var(--accent-primary);
+            background: var(--bg-card);
+        }
+
+        .file-upload-area.dragover {
+            border-color: var(--accent-primary);
+            background: var(--bg-card);
+            transform: scale(1.02);
+        }
+
+        .file-upload-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .file-upload-text {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .file-upload-hint {
+            color: var(--text-tertiary);
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
+
+        .attached-files-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .attached-file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.625rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            font-size: 0.875rem;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .file-icon {
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .file-details {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .file-name {
+            color: var(--text-primary);
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-size {
+            color: var(--text-tertiary);
+            font-size: 0.75rem;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .file-action-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .file-action-btn:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .file-action-btn.download:hover {
+            color: var(--accent-primary);
+        }
+
+        .file-action-btn.delete:hover {
+            color: var(--danger-red);
+        }
+
+        .files-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .upload-progress {
+            width: 100%;
+            height: 4px;
+            background: var(--bg-secondary);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        .upload-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .file-input-hidden {
+            display: none;
+        }
+
+        .auth-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--overlay-bg);
+            backdrop-filter: blur(10px);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .auth-overlay.active {
+            display: flex;
+        }
+
+        .auth-dialog {
+            background: var(--bg-card);
+            border: 1px solid var(--border-emphasis);
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+            animation: modalSlideUp 0.3s ease;
+        }
+
+        .auth-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .auth-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .auth-message {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        .auth-input {
+            width: 100%;
+            padding: 0.875rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            text-align: center;
+            font-family: monospace;
+            letter-spacing: 0.2em;
+            margin-bottom: 1rem;
+        }
+
+        .auth-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
+        }
+
+        .auth-buttons {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .auth-error {
+            color: var(--danger-red);
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <div class="brand">
+                    <img id="companyLogo" class="company-logo" style="display: none;" alt="Company Logo">
+                    <h1 data-lang-en="Portal Tracker" data-lang-ar="متتبع البوابات">Portal Tracker</h1>
+                    <div class="company-name" id="companyNameDisplay">Future Tag Security Solutions</div>
+                </div>
+                <div class="header-actions">
+                    <button class="theme-toggle icon-btn" onclick="toggleTheme()" title="Toggle Theme">
+                        <span id="themeIcon">🌙</span>
+                    </button>
+                    <button class="lang-toggle" onclick="toggleLanguage()" data-lang-en="عربي" data-lang-ar="English">عربي</button>
+                    <button class="settings-btn icon-btn" onclick="openSettings()" title="Settings">⚙️</button>
+                    <button class="btn btn-primary" onclick="openAddModal()" data-lang-en="+ Add Client" data-lang-ar="+ إضافة عميل">+ Add Client</button>
+                </div>
+            </div>
+            <div class="controls">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" placeholder="Search clients..." 
+                           data-lang-en-placeholder="Search clients..." 
+                           data-lang-ar-placeholder="البحث عن العملاء..."
+                           oninput="filterClients()">
+                </div>
+                <div class="filter-group">
+                    <button class="filter-btn active" data-filter="all" onclick="setFilter('all')" 
+                            data-lang-en="All" data-lang-ar="الكل">All</button>
+                    <button class="filter-btn" data-filter="registered" onclick="setFilter('registered')" 
+                            data-lang-en="Registered" data-lang-ar="مسجل">Registered</button>
+                    <button class="filter-btn" data-filter="pending" onclick="setFilter('pending')" 
+                            data-lang-en="Pending" data-lang-ar="قيد الانتظار">Pending</button>
+                    <button class="filter-btn" data-filter="not-registered" onclick="setFilter('not-registered')" 
+                            data-lang-en="Not Registered" data-lang-ar="غير مسجل">Not Registered</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="stats" id="statsContainer">
+            <div class="stat-card" style="--stat-color: var(--text-primary)">
+                <div class="stat-label" data-lang-en="Total Clients" data-lang-ar="إجمالي العملاء">Total Clients</div>
+                <div class="stat-value" id="statTotal">0</div>
+            </div>
+            <div class="stat-card" style="--stat-color: var(--success-green)">
+                <div class="stat-label" data-lang-en="Registered" data-lang-ar="مسجل">Registered</div>
+                <div class="stat-value" id="statRegistered">0</div>
+            </div>
+            <div class="stat-card" style="--stat-color: var(--warning-yellow)">
+                <div class="stat-label" data-lang-en="Pending" data-lang-ar="قيد الانتظار">Pending</div>
+                <div class="stat-value" id="statPending">0</div>
+            </div>
+            <div class="stat-card" style="--stat-color: var(--danger-red)">
+                <div class="stat-label" data-lang-en="Not Registered" data-lang-ar="غير مسجل">Not Registered</div>
+                <div class="stat-value" id="statNotRegistered">0</div>
+            </div>
+        </div>
+
+        <div class="cards-grid" id="cardsContainer"></div>
+
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-icon">📋</div>
+            <div class="empty-title" data-lang-en="No Clients Found" data-lang-ar="لم يتم العثور على عملاء">No Clients Found</div>
+            <div class="empty-text" data-lang-en="Start by adding your first client portal" data-lang-ar="ابدأ بإضافة بوابة العميل الأولى">Start by adding your first client portal</div>
+            <button class="btn btn-primary" onclick="openAddModal()" data-lang-en="+ Add Client" data-lang-ar="+ إضافة عميل">+ Add Client</button>
+        </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div class="modal" id="clientModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle" data-lang-en="Add Client" data-lang-ar="إضافة عميل">Add Client</h2>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="clientForm" onsubmit="saveClient(event)">
+                    <div class="form-group">
+                        <label class="form-label" data-lang-en="Client Name" data-lang-ar="اسم العميل">Client Name</label>
+                        <input type="text" class="form-input" id="clientName" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" data-lang-en="Category" data-lang-ar="الفئة">Category</label>
+                        <input type="text" class="form-input" id="clientCategory" placeholder="e.g., Government, Private Sector, Education">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" data-lang-en="Portal URL" data-lang-ar="رابط البوابة">Portal URL</label>
+                        <input type="url" class="form-input" id="portalUrl" placeholder="https://client-portal.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" data-lang-en="Registration Status" data-lang-ar="حالة التسجيل">Registration Status</label>
+                        <select class="form-select" id="registrationStatus" required>
+                            <option value="registered" data-lang-en="Registered" data-lang-ar="مسجل">Registered</option>
+                            <option value="pending" data-lang-en="Pending" data-lang-ar="قيد الانتظار">Pending</option>
+                            <option value="not-registered" data-lang-en="Not Registered" data-lang-ar="غير مسجل">Not Registered</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" data-lang-en="Username" data-lang-ar="اسم المستخدم">Username</label>
+                        <input type="text" class="form-input" id="username">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" data-lang-en="Password" data-lang-ar="كلمة المرور">Password</label>
+                        <div class="password-field">
+                            <input type="password" class="form-input password-input" id="password">
+                            <button type="button" class="password-toggle" onclick="togglePasswordVisibility('password')">👁️</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" data-lang-en="Contact Person" data-lang-ar="الشخص المسؤول">Contact Person</label>
+                        <input type="text" class="form-input" id="contactPerson">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" data-lang-en="Contact Email" data-lang-ar="البريد الإلكتروني للاتصال">Contact Email</label>
+                        <input type="email" class="form-input" id="contactEmail">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" data-lang-en="Notes" data-lang-ar="ملاحظات">Notes</label>
+                        <textarea class="form-textarea" id="notes" placeholder="Additional information..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" data-lang-en="Attachments (PDF)" data-lang-ar="المرفقات (PDF)">Attachments (PDF)</label>
+                        <div class="file-upload-area" onclick="document.getElementById('pdfFileInput').click()">
+                            <div class="file-upload-icon">📎</div>
+                            <div class="file-upload-text" data-lang-en="Click to upload PDF files" data-lang-ar="انقر لتحميل ملفات PDF">Click to upload PDF files</div>
+                            <div class="file-upload-hint" data-lang-en="Max 5MB per file" data-lang-ar="حد أقصى 5 ميجابايت لكل ملف">Max 5MB per file</div>
+                        </div>
+                        <input type="file" id="pdfFileInput" class="file-input-hidden" accept=".pdf" multiple onchange="handlePDFUpload(event)">
+                        <div class="upload-progress" id="uploadProgress">
+                            <div class="upload-progress-bar" id="uploadProgressBar"></div>
+                        </div>
+                        <div class="attached-files-list" id="attachedFilesList"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()" data-lang-en="Cancel" data-lang-ar="إلغاء">Cancel</button>
+                <button class="btn btn-primary" onclick="document.getElementById('clientForm').requestSubmit()" data-lang-en="Save Client" data-lang-ar="حفظ العميل">Save Client</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal settings-modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" data-lang-en="Settings" data-lang-ar="الإعدادات">Settings</h2>
+                <button class="modal-close" onclick="closeSettings()">×</button>
+            </div>
+            
+            <div class="settings-tabs">
+                <button class="settings-tab active" data-tab="company" onclick="switchSettingsTab('company')" 
+                        data-lang-en="Company" data-lang-ar="الشركة">Company</button>
+                <button class="settings-tab" data-tab="supabase" onclick="switchSettingsTab('supabase')" 
+                        data-lang-en="Supabase" data-lang-ar="Supabase">Supabase</button>
+                <button class="settings-tab" data-tab="backup" onclick="switchSettingsTab('backup')" 
+                        data-lang-en="Backup & Sync" data-lang-ar="النسخ والمزامنة">Backup & Sync</button>
+                <button class="settings-tab" data-tab="security" onclick="switchSettingsTab('security')" 
+                        data-lang-en="Security" data-lang-ar="الأمان">Security</button>
+                <button class="settings-tab" data-tab="advanced" onclick="switchSettingsTab('advanced')" 
+                        data-lang-en="Advanced" data-lang-ar="متقدم">Advanced</button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Company Info Tab -->
+                <div class="settings-content active" id="company-content">
+                    <div class="config-row">
+                        <div class="config-label" data-lang-en="Company Name" data-lang-ar="اسم الشركة">Company Name</div>
+                        <div class="config-input-group">
+                            <input type="text" class="form-input" id="companyName" placeholder="Future Tag Security Solutions">
+                            <div class="config-hint" data-lang-en="Displayed in the header" data-lang-ar="يظهر في رأس الصفحة">Displayed in the header</div>
+                        </div>
+                    </div>
+
+                    <div class="config-row">
+                        <div class="config-label" data-lang-en="Company Logo" data-lang-ar="شعار الشركة">Company Logo</div>
+                        <div class="config-input-group">
+                            <div class="file-upload-area" onclick="document.getElementById('logoFileInput').click()">
+                                <div class="file-upload-icon">🖼️</div>
+                                <div class="file-upload-text" data-lang-en="Click to upload logo" data-lang-ar="انقر لتحميل الشعار">Click to upload logo</div>
+                                <div class="file-upload-hint" data-lang-en="PNG, JPG, SVG (Max 2MB)" data-lang-ar="PNG, JPG, SVG (حد أقصى 2 ميجابايت)">PNG, JPG, SVG (Max 2MB)</div>
+                            </div>
+                            <input type="file" id="logoFileInput" class="file-input-hidden" accept="image/*" onchange="handleLogoUpload(event)">
+                            <img id="logoPreview" class="logo-preview" style="display: none;" alt="Logo Preview">
+                            <button class="btn btn-secondary" id="removeLogo" style="display: none; margin-top: 0.5rem;" onclick="removeLogo()" 
+                                    data-lang-en="Remove Logo" data-lang-ar="إزالة الشعار">Remove Logo</button>
+                        </div>
+                    </div>
+
+                    <div class="config-row">
+                        <div class="config-label"></div>
+                        <div class="config-input-group">
+                            <div class="config-hint" data-lang-en="Logo will be displayed in the header" data-lang-ar="سيتم عرض الشعار في رأس الصفحة">Logo will be displayed in the header</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Supabase Tab -->
+                <div class="settings-content active" id="supabase-content">
+                    <div class="backup-section" style="margin-bottom: 1.5rem;">
+                        <div class="backup-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span>ℹ️</span>
+                            <span data-lang-en="Important Note" data-lang-ar="ملاحظة مهمة">Important Note</span>
+                        </div>
+                        <div class="backup-info" data-lang-en="Supabase integration requires opening this file via HTTP server (not file://). Use Live Server extension in VS Code, or host the file online. For offline use, all features work with localStorage only." data-lang-ar="يتطلب التكامل مع Supabase فتح هذا الملف عبر خادم HTTP (وليس file://). استخدم Live Server في VS Code، أو استضف الملف على الإنترنت. للاستخدام دون اتصال، جميع الميزات تعمل مع localStorage فقط.">
+                            Supabase integration requires opening this file via HTTP server (not file://). Use Live Server extension in VS Code, or host the file online. For offline use, all features work with localStorage only.
+                        </div>
+                    </div>
+
+                    <div class="config-row">
+                        <div class="config-label" data-lang-en="Supabase URL" data-lang-ar="رابط Supabase">Supabase URL</div>
+                        <div class="config-input-group">
+                            <input type="url" class="form-input" id="supabaseUrl" placeholder="https://your-project.supabase.co">
+                            <div class="config-hint" data-lang-en="Your Supabase project URL" data-lang-ar="رابط مشروع Supabase الخاص بك">Your Supabase project URL</div>
+                        </div>
+                    </div>
+
+                    <div class="config-row">
+                        <div class="config-label" data-lang-en="Supabase Key" data-lang-ar="مفتاح Supabase">Supabase Key</div>
+                        <div class="config-input-group">
+                            <input type="password" class="form-input" id="supabaseKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6...">
+                            <div class="config-hint" data-lang-en="Your Supabase anon/public key" data-lang-ar="مفتاح Supabase العام">Your Supabase anon/public key</div>
+                        </div>
+                    </div>
+
+                    <div class="config-row">
+                        <div class="config-label" data-lang-en="Table Name" data-lang-ar="اسم الجدول">Table Name</div>
+                        <div class="config-input-group">
+                            <input type="text" class="form-input" id="supabaseTable" placeholder="client_portals">
+                            <div class="config-hint" data-lang-en="Database table for storing client data" data-lang-ar="جدول قاعدة البيانات لتخزين بيانات العملاء">Database table for storing client data</div>
+                        </div>
+                    </div>
+
+                    <div class="config-row">
+                        <div class="config-label"></div>
+                        <div class="config-input-group">
+                            <button class="btn btn-primary" onclick="testSupabaseConnection()" 
+                                    data-lang-en="Test Connection" data-lang-ar="اختبار الاتصال">Test Connection</button>
+                            <div class="status-indicator" id="supabaseStatus" style="display: none;">
+                                <span class="status-dot"></span>
+                                <span class="status-text">Not connected</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sync-status" id="syncStatus" style="display: none;">
+                        <div class="sync-info">
+                            <span class="sync-label" data-lang-en="Last Sync:" data-lang-ar="آخر مزامنة:">Last Sync:</span>
+                            <span class="sync-value" id="lastSyncTime">Never</span>
+                        </div>
+                        <div class="sync-info">
+                            <span class="sync-label" data-lang-en="Records:" data-lang-ar="السجلات:">Records:</span>
+                            <span class="sync-value" id="syncRecords">0</span>
+                        </div>
+                        <button class="btn btn-secondary" onclick="syncWithSupabase()" 
+                                data-lang-en="Sync Now" data-lang-ar="مزامنة الآن">Sync Now</button>
+                    </div>
+                </div>
+
+                <!-- Backup Tab -->
+                <div class="settings-content" id="backup-content">
+                    <div class="backup-section">
+                        <div class="backup-title" data-lang-en="Export Data" data-lang-ar="تصدير البيانات">Export Data</div>
+                        <div class="backup-buttons">
+                            <button class="backup-btn" onclick="exportToJSON()">
+                                <span>📥</span>
+                                <span data-lang-en="Export as JSON" data-lang-ar="تصدير JSON">Export as JSON</span>
+                            </button>
+                            <button class="backup-btn" onclick="exportToCSV()">
+                                <span>📊</span>
+                                <span data-lang-en="Export as CSV" data-lang-ar="تصدير CSV">Export as CSV</span>
+                            </button>
+                        </div>
+                        <div class="backup-info" data-lang-en="Download all client data for backup" data-lang-ar="تنزيل جميع بيانات العملاء للنسخ الاحتياطي">Download all client data for backup</div>
+                    </div>
+
+                    <div class="backup-section">
+                        <div class="backup-title" data-lang-en="Import Data" data-lang-ar="استيراد البيانات">Import Data</div>
+                        <div class="backup-buttons">
+                            <label class="backup-btn" style="cursor: pointer;">
+                                <span>📤</span>
+                                <span data-lang-en="Import from JSON" data-lang-ar="استيراد JSON">Import from JSON</span>
+                                <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importFromJSON(event)">
+                            </label>
+                            <button class="backup-btn" onclick="importFromBridge()">
+                                <span>🔗</span>
+                                <span data-lang-en="Import from Company Portal" data-lang-ar="استيراد من بوابة الشركة">Import from Company Portal</span>
+                            </button>
+                        </div>
+                        <div class="backup-info" data-lang-en="Restore data from backup or sync with Company Portal bridge" data-lang-ar="استعادة البيانات من النسخة الاحتياطية أو المزامنة مع جسر بوابة الشركة">Restore data from backup or sync with Company Portal bridge</div>
+                    </div>
+
+                    <div class="backup-section">
+                        <div class="backup-title" data-lang-en="Auto-Sync with Company Portal" data-lang-ar="المزامنة التلقائية مع بوابة الشركة">Auto-Sync with Company Portal</div>
+                        <div class="config-row" style="grid-template-columns: 1fr;">
+                            <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;">
+                                <input type="checkbox" id="autoSyncEnabled" onchange="toggleAutoSync()" style="width: 18px; height: 18px; cursor: pointer;">
+                                <span data-lang-en="Enable automatic sync with Zeina Portal bridge" data-lang-ar="تفعيل المزامنة التلقائية مع جسر Zeina Portal">Enable automatic sync with Zeina Portal bridge</span>
+                            </label>
+                        </div>
+                        <div class="backup-info" data-lang-en="When enabled, client data will be shared with Company Portal app through localStorage bridge" data-lang-ar="عند التفعيل، سيتم مشاركة بيانات العملاء مع تطبيق بوابة الشركة عبر جسر localStorage">When enabled, client data will be shared with Company Portal app through localStorage bridge</div>
+                    </div>
+                </div>
+
+                <!-- Security Tab -->
+                <div class="settings-content" id="security-content">
+                    <div class="backup-section">
+                        <div class="backup-title" data-lang-en="Settings Password" data-lang-ar="كلمة مرور الإعدادات">Settings Password</div>
+                        <div class="config-hint" style="margin-bottom: 1rem;" data-lang-en="Protect your settings with a password. Default password is: 123" data-lang-ar="احمِ إعداداتك بكلمة مرور. كلمة المرور الافتراضية: 123">Protect your settings with a password. Default password is: 123</div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" data-lang-en="Current Password" data-lang-ar="كلمة المرور الحالية">Current Password</label>
+                            <div class="password-field">
+                                <input type="password" class="form-input password-input" id="currentPassword" placeholder="Enter current password">
+                                <button type="button" class="password-toggle" onclick="togglePasswordVisibility('currentPassword')">👁️</button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" data-lang-en="New Password" data-lang-ar="كلمة المرور الجديدة">New Password</label>
+                            <div class="password-field">
+                                <input type="password" class="form-input password-input" id="newPassword" placeholder="Enter new password">
+                                <button type="button" class="password-toggle" onclick="togglePasswordVisibility('newPassword')">👁️</button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" data-lang-en="Confirm New Password" data-lang-ar="تأكيد كلمة المرور">Confirm New Password</label>
+                            <div class="password-field">
+                                <input type="password" class="form-input password-input" id="confirmPassword" placeholder="Confirm new password">
+                                <button type="button" class="password-toggle" onclick="togglePasswordVisibility('confirmPassword')">👁️</button>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary" onclick="changeSettingsPassword()" 
+                                data-lang-en="Change Password" data-lang-ar="تغيير كلمة المرور">Change Password</button>
+                    </div>
+
+                    <div class="backup-section">
+                        <div class="backup-title" data-lang-en="Password Protection" data-lang-ar="حماية كلمة المرور">Password Protection</div>
+                        <div class="config-row" style="grid-template-columns: 1fr;">
+                            <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;">
+                                <input type="checkbox" id="requirePasswordForEdit" onchange="togglePasswordProtection()" style="width: 18px; height: 18px; cursor: pointer;">
+                                <span data-lang-en="Require password when editing client credentials" data-lang-ar="طلب كلمة المرور عند تعديل بيانات العملاء">Require password when editing client credentials</span>
+                            </label>
+                        </div>
+                        <div class="backup-info" data-lang-en="When enabled, you'll need to enter your settings password before editing any client's username or password" data-lang-ar="عند التفعيل، ستحتاج إلى إدخال كلمة مرور الإعدادات قبل تعديل اسم المستخدم أو كلمة المرور لأي عميل">When enabled, you'll need to enter your settings password before editing any client's username or password</div>
+                    </div>
+                </div>
+
+                <!-- Advanced Tab -->
+                <div class="settings-content" id="advanced-content">
+                    <div class="backup-section">
+                        <div class="backup-title" data-lang-en="Storage Management" data-lang-ar="إدارة التخزين">Storage Management</div>
+                        <div class="backup-info" style="margin-bottom: 1rem;" data-lang-en="Monitor and manage localStorage usage. Free up space by removing files." data-lang-ar="مراقبة وإدارة استخدام localStorage. توفير مساحة بحذف الملفات.">Monitor and manage localStorage usage. Free up space by removing files.</div>
+                        <button class="btn btn-primary" onclick="openStorageManagement()" data-lang-en="Open Storage Manager" data-lang-ar="فتح مدير التخزين">Open Storage Manager</button>
+                    </div>
+
+                    <div class="config-row">
+                        <div class="config-label" data-lang-en="Storage Type" data-lang-ar="نوع التخزين">Storage Type</div>
+                        <div class="config-input-group">
+                            <select class="form-select" id="storageType" onchange="changeStorageType()">
+                                <option value="localStorage">Local Storage</option>
+                                <option value="supabase">Supabase Cloud</option>
+                                <option value="both">Both (Sync)</option>
+                            </select>
+                            <div class="config-hint" data-lang-en="Choose where to store your data" data-lang-ar="اختر مكان تخزين بياناتك">Choose where to store your data</div>
+                        </div>
+                    </div>
+
+                    <div class="config-row">
+                        <div class="config-label" data-lang-en="Bridge Key" data-lang-ar="مفتاح الجسر">Bridge Key</div>
+                        <div class="config-input-group">
+                            <input type="text" class="form-input" id="bridgeKey" value="futureTag_companyPortal_bridge" readonly>
+                            <div class="config-hint" data-lang-en="localStorage key used for Company Portal integration" data-lang-ar="مفتاح localStorage المستخدم للتكامل مع بوابة الشركة">localStorage key used for Company Portal integration</div>
+                        </div>
+                    </div>
+
+                    <div class="danger-zone">
+                        <div class="danger-title">
+                            <span>⚠️</span>
+                            <span data-lang-en="Danger Zone" data-lang-ar="منطقة الخطر">Danger Zone</span>
+                        </div>
+                        <button class="btn btn-danger" onclick="clearAllData()" 
+                                data-lang-en="Clear All Data" data-lang-ar="مسح جميع البيانات">Clear All Data</button>
+                        <div class="backup-info" data-lang-en="This will permanently delete all client records from local storage" data-lang-ar="سيؤدي هذا إلى حذف جميع سجلات العملاء نهائياً من التخزين المحلي">This will permanently delete all client records from local storage</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeSettings()" data-lang-en="Close" data-lang-ar="إغلاق">Close</button>
+                <button class="btn btn-primary" onclick="saveSettings()" data-lang-en="Save Settings" data-lang-ar="حفظ الإعدادات">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Files Viewer Modal -->
+    <div class="modal" id="filesModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="filesModalTitle" data-lang-en="Attached Files" data-lang-ar="الملفات المرفقة">Attached Files</h2>
+                <button class="modal-close" onclick="closeFilesModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="attached-files-list" id="filesViewerList"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeFilesModal()" data-lang-en="Close" data-lang-ar="إغلاق">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Storage Management Modal -->
+    <div class="modal" id="storageModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" data-lang-en="Storage Management" data-lang-ar="إدارة التخزين">Storage Management</h2>
+                <button class="modal-close" onclick="closeStorageModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="backup-section">
+                    <div class="backup-title" data-lang-en="Storage Usage" data-lang-ar="استخدام التخزين">Storage Usage</div>
+                    <div class="sync-status" style="display: block;">
+                        <div class="sync-info">
+                            <span class="sync-label" data-lang-en="Total Storage:" data-lang-ar="إجمالي التخزين:">Total Storage:</span>
+                            <span class="sync-value" id="totalStorage">0 MB</span>
+                        </div>
+                        <div class="sync-info">
+                            <span class="sync-label" data-lang-en="Client Data:" data-lang-ar="بيانات العملاء:">Client Data:</span>
+                            <span class="sync-value" id="clientDataSize">0 MB</span>
+                        </div>
+                        <div class="sync-info">
+                            <span class="sync-label" data-lang-en="Total Files:" data-lang-ar="إجمالي الملفات:">Total Files:</span>
+                            <span class="sync-value" id="totalFiles">0</span>
+                        </div>
+                        <div class="sync-info">
+                            <span class="sync-label" data-lang-en="Clients:" data-lang-ar="العملاء:">Clients:</span>
+                            <span class="sync-value" id="totalClients">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="backup-section">
+                    <div class="backup-title" data-lang-en="Quick Actions" data-lang-ar="إجراءات سريعة">Quick Actions</div>
+                    <div class="backup-buttons">
+                        <button class="backup-btn" onclick="removeAllAttachments()">
+                            <span>🗑️</span>
+                            <span data-lang-en="Remove All Files" data-lang-ar="حذف جميع الملفات">Remove All Files</span>
+                        </button>
+                        <button class="backup-btn" onclick="exportToJSON()">
+                            <span>📥</span>
+                            <span data-lang-en="Export Backup" data-lang-ar="تصدير نسخة احتياطية">Export Backup</span>
+                        </button>
+                        <button class="backup-btn" onclick="compressOldFiles()">
+                            <span>🗜️</span>
+                            <span data-lang-en="Remove Old Files" data-lang-ar="حذف الملفات القديمة">Remove Old Files</span>
+                        </button>
+                    </div>
+                    <div class="backup-info" data-lang-en="Free up space by removing attachments. Client data will be preserved." data-lang-ar="توفير مساحة بحذف المرفقات. سيتم الحفاظ على بيانات العملاء.">Free up space by removing attachments. Client data will be preserved.</div>
+                </div>
+
+                <div class="backup-section">
+                    <div class="backup-title" data-lang-en="Clients with Files" data-lang-ar="العملاء ذوو الملفات">Clients with Files</div>
+                    <div id="clientsWithFiles" style="max-height: 300px; overflow-y: auto;"></div>
+                </div>
+
+                <div class="backup-section" style="background: rgba(9, 105, 218, 0.05); border-color: rgba(9, 105, 218, 0.2);">
+                    <div class="backup-title" style="color: var(--info-blue);">
+                        <span>💡</span>
+                        <span data-lang-en="Recommendation" data-lang-ar="توصية">Recommendation</span>
+                    </div>
+                    <div class="backup-info" data-lang-en="For storing many files, we recommend using Supabase cloud storage. localStorage is limited to ~5-10MB total." data-lang-ar="لتخزين العديد من الملفات، نوصي باستخدام التخزين السحابي Supabase. localStorage محدود بـ ~5-10 ميجابايت إجمالي.">For storing many files, we recommend using Supabase cloud storage. localStorage is limited to ~5-10MB total.</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeStorageModal()" data-lang-en="Close" data-lang-ar="إغلاق">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Authentication Overlay -->
+    <div class="auth-overlay" id="authOverlay">
+        <div class="auth-dialog">
+            <div class="auth-icon">🔐</div>
+            <h3 class="auth-title" id="authTitle" data-lang-en="Authentication Required" data-lang-ar="مطلوب المصادقة">Authentication Required</h3>
+            <p class="auth-message" id="authMessage" data-lang-en="Please enter your password to continue" data-lang-ar="يرجى إدخال كلمة المرور للمتابعة">Please enter your password to continue</p>
+            <div class="auth-error" id="authError">Incorrect password</div>
+            <input type="password" class="auth-input" id="authInput" placeholder="•••" maxlength="20" autocomplete="off">
+            <div class="auth-buttons">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="cancelAuth()" data-lang-en="Cancel" data-lang-ar="إلغاء">Cancel</button>
+                <button class="btn btn-primary" style="flex: 1;" onclick="submitAuth()" data-lang-en="Submit" data-lang-ar="تأكيد">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let clients = [];
+        let currentFilter = 'all';
+        let currentLang = 'en';
+        let editingClientId = null;
+        let currentTheme = 'dark';
+        let currentSettingsTab = 'company';
+        let supabaseClient = null;
+        let authCallback = null;
+        let currentAttachments = [];
+        let appSettings = {
+            companyName: 'Future Tag Security Solutions',
+            companyLogo: '',
+            supabaseUrl: '',
+            supabaseKey: '',
+            supabaseTable: 'client_portals',
+            storageType: 'localStorage',
+            autoSync: false,
+            bridgeKey: 'futureTag_companyPortal_bridge',
+            settingsPassword: '123',
+            requirePasswordForEdit: true
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+            loadTheme();
+            loadClients();
+            renderClients();
+            updateStats();
+            initializeSupabase();
+            updateCompanyBranding();
+        });
+
+        // Load clients from localStorage
+        function loadClients() {
+            try {
+                const stored = localStorage.getItem('futureTagClients');
+                if (stored) {
+                    clients = JSON.parse(stored);
+                } else {
+                    // Sample data
+                    clients = [
+                    {
+                        id: Date.now() + 1,
+                        name: 'Saudi Aramco',
+                        category: 'Government',
+                        portalUrl: 'https://supplier.aramco.com',
+                        status: 'registered',
+                        username: 'futuretag_sa',
+                        password: '••••••••',
+                        contactPerson: 'Ahmed Al-Rashid',
+                        contactEmail: 'ahmed.rashid@aramco.com',
+                        notes: 'Main procurement portal for Aramco projects',
+                        lastAccess: '2026-05-15',
+                        createdAt: new Date().toISOString(),
+                        attachments: []
+                    },
+                    {
+                        id: Date.now() + 2,
+                        name: 'NEOM',
+                        category: 'Government',
+                        portalUrl: 'https://vendors.neom.com',
+                        status: 'pending',
+                        username: 'future_tag_security',
+                        password: '',
+                        contactPerson: 'Sarah Johnson',
+                        contactEmail: 'vendors@neom.com',
+                        notes: 'Application submitted on May 10, awaiting approval',
+                        lastAccess: '2026-05-10',
+                        createdAt: new Date().toISOString(),
+                        attachments: []
+                    },
+                    {
+                        id: Date.now() + 3,
+                        name: 'King Abdullah Financial District',
+                        category: 'Private Sector',
+                        portalUrl: 'https://kafd-portal.sa',
+                        status: 'not-registered',
+                        username: '',
+                        password: '',
+                        contactPerson: 'Mohammed Al-Otaibi',
+                        contactEmail: 'procurement@kafd.sa',
+                        notes: 'Need to complete registration before Q3',
+                        lastAccess: '',
+                        createdAt: new Date().toISOString(),
+                        attachments: []
+                    }
+                ];
+                saveClients();
+            }
+            } catch (error) {
+                console.error('Error loading clients:', error);
+                showNotification('error', 'Load Error', 'Could not load client data. Starting fresh.');
+                clients = [];
+            }
+        }
+
+        // Save clients to localStorage
+        function saveClients() {
+            try {
+                const dataSize = new Blob([JSON.stringify(clients)]).size;
+                const sizeMB = (dataSize / (1024 * 1024)).toFixed(2);
+                
+                // Check storage size before saving
+                if (dataSize > 4.5 * 1024 * 1024) { // 4.5MB warning
+                    console.warn(`Storage size: ${sizeMB}MB - approaching limit`);
+                }
+                
+                localStorage.setItem('futureTagClients', JSON.stringify(clients));
+            } catch (e) {
+                if (e.name === 'QuotaExceededError') {
+                    handleStorageQuotaExceeded();
+                } else {
+                    console.error('Error saving data:', e);
+                    showNotification('error', 'Save Failed', 'Could not save data: ' + e.message);
+                }
+            }
+        }
+
+        // Handle storage quota exceeded
+        function handleStorageQuotaExceeded() {
+            const totalSize = calculateStorageSize();
+            const message = currentLang === 'en' 
+                ? `Storage full (${totalSize}MB)! Too many files. Please:\n\n1. Remove old files from clients\n2. Export data as backup\n3. Delete some clients\n4. Use Supabase for cloud storage`
+                : `التخزين ممتلئ (${totalSize} ميجابايت)! ملفات كثيرة جداً. يرجى:\n\n1. حذف الملفات القديمة من العملاء\n2. تصدير البيانات كنسخة احتياطية\n3. حذف بعض العملاء\n4. استخدام Supabase للتخزين السحابي`;
+            
+            if (confirm(message + '\n\n' + (currentLang === 'en' ? 'Open storage management?' : 'فتح إدارة التخزين؟'))) {
+                openStorageManagement();
+            }
+        }
+
+        // Calculate total storage size
+        function calculateStorageSize() {
+            let total = 0;
+            for (let key in localStorage) {
+                if (localStorage.hasOwnProperty(key)) {
+                    total += localStorage[key].length + key.length;
+                }
+            }
+            return (total / (1024 * 1024)).toFixed(2);
+        }
+
+        // Calculate client data size
+        function getClientDataSize() {
+            const dataStr = JSON.stringify(clients);
+            return {
+                bytes: new Blob([dataStr]).size,
+                mb: (new Blob([dataStr]).size / (1024 * 1024)).toFixed(2),
+                clientsCount: clients.length,
+                filesCount: clients.reduce((sum, c) => sum + (c.attachments?.length || 0), 0)
+            };
+        }
+
+        // Render client cards
+        function renderClients() {
+            const container = document.getElementById('cardsContainer');
+            const emptyState = document.getElementById('emptyState');
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+            let filtered = clients.filter(client => {
+                const matchesFilter = currentFilter === 'all' || client.status === currentFilter;
+                const matchesSearch = !searchTerm || 
+                    client.name.toLowerCase().includes(searchTerm) ||
+                    client.category.toLowerCase().includes(searchTerm) ||
+                    client.portalUrl.toLowerCase().includes(searchTerm);
+                return matchesFilter && matchesSearch;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            container.innerHTML = filtered.map((client, index) => `
+                <div class="client-card" style="--status-color: ${getStatusColor(client.status)}; animation-delay: ${index * 0.05}s">
+                    <div class="card-header">
+                        <div class="client-info">
+                            <div class="client-name">${client.name}</div>
+                            <div class="client-category">${client.category || 'Uncategorized'}</div>
+                        </div>
+                        <span class="status-badge status-${client.status}">
+                            ${getStatusLabel(client.status)}
+                        </span>
+                    </div>
+                    <div class="card-details">
+                        <div class="detail-row">
+                            <span class="detail-icon">🌐</span>
+                            <a href="${client.portalUrl}" target="_blank" class="portal-url" onclick="event.stopPropagation()">${client.portalUrl}</a>
+                        </div>
+                        ${(client.username || client.password) ? `
+                        <div class="credential-box">
+                            ${client.username ? `
+                            <div class="credential-row">
+                                <span class="credential-label" data-lang-en="Username:" data-lang-ar="المستخدم:">Username:</span>
+                                <span class="credential-value">${client.username}</span>
+                            </div>
+                            ` : ''}
+                            ${client.password ? `
+                            <div class="credential-row">
+                                <span class="credential-label" data-lang-en="Password:" data-lang-ar="كلمة المرور:">Password:</span>
+                                <span class="credential-value password-hidden" id="pwd-${client.id}" data-password="${client.password.replace(/"/g, '&quot;')}">••••••••</span>
+                                <button class="file-action-btn" onclick="togglePasswordDisplay(${client.id}); event.stopPropagation();" title="Show/Hide">👁️</button>
+                            </div>
+                            ` : ''}
+                        </div>
+                        ` : ''}
+                        ${client.contactPerson ? `
+                        <div class="detail-row">
+                            <span class="detail-icon">📧</span>
+                            <span class="detail-label" data-lang-en="Contact:" data-lang-ar="جهة الاتصال:">Contact:</span>
+                            <span class="detail-value">${client.contactPerson}</span>
+                        </div>
+                        ` : ''}
+                        ${client.lastAccess ? `
+                        <div class="detail-row">
+                            <span class="detail-icon">🕐</span>
+                            <span class="detail-label" data-lang-en="Last Access:" data-lang-ar="آخر دخول:">Last Access:</span>
+                            <span class="detail-value">${formatDate(client.lastAccess)}</span>
+                        </div>
+                        ` : ''}
+                        ${client.notes ? `
+                        <div class="detail-row">
+                            <span class="detail-icon">📝</span>
+                            <span class="detail-value" style="font-size: 0.85rem; color: var(--text-secondary);">${client.notes}</span>
+                        </div>
+                        ` : ''}
+                        ${client.attachments && client.attachments.length > 0 ? `
+                        <div class="detail-row">
+                            <span class="detail-icon">📎</span>
+                            <span class="files-badge">
+                                <span>${client.attachments.length}</span>
+                                <span data-lang-en="file(s)" data-lang-ar="ملف">file(s)</span>
+                            </span>
+                        </div>
+                        ` : ''}
+                    </div>
+                    <div class="card-actions">
+                        <button class="action-btn primary" onclick="openPortal('${client.portalUrl}')" 
+                                data-lang-en="Open Portal" data-lang-ar="فتح البوابة">Open Portal</button>
+                        ${client.attachments && client.attachments.length > 0 ? `
+                        <button class="action-btn" onclick="viewClientFiles(${client.id}); event.stopPropagation();" 
+                                data-lang-en="Files" data-lang-ar="الملفات">Files (${client.attachments.length})</button>
+                        ` : ''}
+                        <button class="action-btn" onclick="editClient(${client.id}); event.stopPropagation();" 
+                                data-lang-en="Edit" data-lang-ar="تعديل">Edit</button>
+                        <button class="action-btn" onclick="deleteClient(${client.id}); event.stopPropagation();" 
+                                data-lang-en="Delete" data-lang-ar="حذف">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+
+            applyLanguage();
+        }
+
+        // Update statistics
+        function updateStats() {
+            const total = clients.length;
+            const registered = clients.filter(c => c.status === 'registered').length;
+            const pending = clients.filter(c => c.status === 'pending').length;
+            const notRegistered = clients.filter(c => c.status === 'not-registered').length;
+
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statRegistered').textContent = registered;
+            document.getElementById('statPending').textContent = pending;
+            document.getElementById('statNotRegistered').textContent = notRegistered;
+        }
+
+        // Filter clients
+        function setFilter(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.filter === filter);
+            });
+            renderClients();
+        }
+
+        function filterClients() {
+            renderClients();
+        }
+
+        // Modal functions
+        function openAddModal() {
+            editingClientId = null;
+            currentAttachments = [];
+            document.getElementById('clientForm').reset();
+            document.getElementById('modalTitle').textContent = currentLang === 'en' ? 'Add Client' : 'إضافة عميل';
+            document.getElementById('clientModal').classList.add('active');
+            renderAttachedFiles();
+            applyLanguage();
+        }
+
+        function editClient(id) {
+            const client = clients.find(c => c.id === id);
+            if (!client) return;
+
+            // Check if password is required for editing credentials
+            if (appSettings.requirePasswordForEdit && (client.username || client.password)) {
+                authenticateUser((authenticated) => {
+                    if (authenticated) {
+                        openEditClientForm(id, client);
+                    }
+                });
+            } else {
+                openEditClientForm(id, client);
+            }
+        }
+
+        function openEditClientForm(id, client) {
+            editingClientId = id;
+            currentAttachments = client.attachments ? [...client.attachments] : [];
+            document.getElementById('clientName').value = client.name;
+            document.getElementById('clientCategory').value = client.category || '';
+            document.getElementById('portalUrl').value = client.portalUrl;
+            document.getElementById('registrationStatus').value = client.status;
+            document.getElementById('username').value = client.username || '';
+            document.getElementById('password').value = client.password || '';
+            document.getElementById('contactPerson').value = client.contactPerson || '';
+            document.getElementById('contactEmail').value = client.contactEmail || '';
+            document.getElementById('notes').value = client.notes || '';
+
+            document.getElementById('modalTitle').textContent = currentLang === 'en' ? 'Edit Client' : 'تعديل العميل';
+            document.getElementById('clientModal').classList.add('active');
+            renderAttachedFiles();
+            applyLanguage();
+        }
+
+        function closeModal() {
+            document.getElementById('clientModal').classList.remove('active');
+            editingClientId = null;
+        }
+
+        // Save client
+        function saveClient(event) {
+            event.preventDefault();
+
+            const clientData = {
+                name: document.getElementById('clientName').value,
+                category: document.getElementById('clientCategory').value,
+                portalUrl: document.getElementById('portalUrl').value,
+                status: document.getElementById('registrationStatus').value,
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value,
+                contactPerson: document.getElementById('contactPerson').value,
+                contactEmail: document.getElementById('contactEmail').value,
+                notes: document.getElementById('notes').value,
+                lastAccess: document.getElementById('registrationStatus').value === 'registered' ? new Date().toISOString().split('T')[0] : '',
+                attachments: currentAttachments
+            };
+
+            if (editingClientId) {
+                // Update existing client
+                const index = clients.findIndex(c => c.id === editingClientId);
+                clients[index] = { ...clients[index], ...clientData };
+                showNotification('success', 'Client Updated', 'Client information has been updated successfully');
+            } else {
+                // Add new client
+                const newClient = {
+                    id: Date.now(),
+                    ...clientData,
+                    createdAt: new Date().toISOString()
+                };
+                clients.push(newClient);
+                showNotification('success', 'Client Added', 'New client has been added successfully');
+            }
+
+            saveClients();
+            renderClients();
+            updateStats();
+            closeModal();
+        }
+
+        // Delete client
+        function deleteClient(id) {
+            if (confirm(currentLang === 'en' ? 'Are you sure you want to delete this client?' : 'هل أنت متأكد من حذف هذا العميل؟')) {
+                clients = clients.filter(c => c.id !== id);
+                saveClients();
+                renderClients();
+                updateStats();
+                showNotification('success', 'Client Deleted', 'Client has been removed from the system');
+            }
+        }
+
+        // Open portal
+        function openPortal(url) {
+            window.open(url, '_blank');
+        }
+
+        // Utility functions
+        function getStatusColor(status) {
+            const colors = {
+                'registered': 'var(--success-green)',
+                'pending': 'var(--warning-yellow)',
+                'not-registered': 'var(--danger-red)'
+            };
+            return colors[status] || 'var(--text-secondary)';
+        }
+
+        function getStatusLabel(status) {
+            const labels = {
+                'registered': currentLang === 'en' ? 'Registered' : 'مسجل',
+                'pending': currentLang === 'en' ? 'Pending' : 'قيد الانتظار',
+                'not-registered': currentLang === 'en' ? 'Not Registered' : 'غير مسجل'
+            };
+            return labels[status] || status;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleDateString(currentLang === 'en' ? 'en-US' : 'ar-SA', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        // Language toggle
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'ar' : 'en';
+            document.documentElement.setAttribute('dir', currentLang === 'ar' ? 'rtl' : 'ltr');
+            applyLanguage();
+            renderClients();
+        }
+
+        function applyLanguage() {
+            document.querySelectorAll('[data-lang-en]').forEach(el => {
+                const text = el.getAttribute(`data-lang-${currentLang}`);
+                if (text) {
+                    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                        el.placeholder = el.getAttribute(`data-lang-${currentLang}-placeholder`) || text;
+                    } else if (el.tagName === 'OPTION') {
+                        el.textContent = text;
+                    } else {
+                        el.textContent = text;
+                    }
+                }
+            });
+        }
+
+        // Notification system
+        function showNotification(type, title, message) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div class="notification-icon">${type === 'success' ? '✓' : '✕'}</div>
+                <div class="notification-content">
+                    <div class="notification-title">${title}</div>
+                    <div class="notification-message">${message}</div>
+                </div>
+            `;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.animation = 'slideInRight 0.3s ease reverse';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // Close modal on outside click
+        document.getElementById('clientModal').addEventListener('click', (e) => {
+            if (e.target.id === 'clientModal') {
+                closeModal();
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+                closeSettings();
+            }
+            if (e.ctrlKey && e.key === 'k') {
+                e.preventDefault();
+                document.getElementById('searchInput').focus();
+            }
+        });
+
+        // Theme Management
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('futureTagTheme') || 'dark';
+            currentTheme = savedTheme;
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon();
+        }
+
+        function toggleTheme() {
+            currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            localStorage.setItem('futureTagTheme', currentTheme);
+            updateThemeIcon();
+        }
+
+        function updateThemeIcon() {
+            const icon = document.getElementById('themeIcon');
+            icon.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+        }
+
+        // Settings Management
+        function loadSettings() {
+            const saved = localStorage.getItem('futureTagSettings');
+            if (saved) {
+                appSettings = { ...appSettings, ...JSON.parse(saved) };
+                applySettings();
+            }
+        }
+
+        function saveSettings() {
+            appSettings.companyName = document.getElementById('companyName').value;
+            // Logo is saved separately via handleLogoUpload
+            appSettings.supabaseUrl = document.getElementById('supabaseUrl').value;
+            appSettings.supabaseKey = document.getElementById('supabaseKey').value;
+            appSettings.supabaseTable = document.getElementById('supabaseTable').value;
+            appSettings.storageType = document.getElementById('storageType').value;
+            appSettings.autoSync = document.getElementById('autoSyncEnabled').checked;
+            appSettings.requirePasswordForEdit = document.getElementById('requirePasswordForEdit').checked;
+
+            localStorage.setItem('futureTagSettings', JSON.stringify(appSettings));
+            initializeSupabase();
+            updateCompanyBranding();
+            showNotification('success', 'Settings Saved', 'Your settings have been saved successfully');
+        }
+
+        function applySettings() {
+            document.getElementById('companyName').value = appSettings.companyName || 'Future Tag Security Solutions';
+            document.getElementById('supabaseUrl').value = appSettings.supabaseUrl || '';
+            document.getElementById('supabaseKey').value = appSettings.supabaseKey || '';
+            document.getElementById('supabaseTable').value = appSettings.supabaseTable || 'client_portals';
+            document.getElementById('storageType').value = appSettings.storageType || 'localStorage';
+            document.getElementById('autoSyncEnabled').checked = appSettings.autoSync || false;
+            document.getElementById('bridgeKey').value = appSettings.bridgeKey;
+            document.getElementById('requirePasswordForEdit').checked = appSettings.requirePasswordForEdit !== false;
+            
+            const logoPreview = document.getElementById('logoPreview');
+            const removeLogo = document.getElementById('removeLogo');
+            if (appSettings.companyLogo) {
+                // Check for blob URL and remove it
+                if (appSettings.companyLogo.startsWith('blob:')) {
+                    appSettings.companyLogo = '';
+                    localStorage.setItem('futureTagSettings', JSON.stringify(appSettings));
+                    logoPreview.style.display = 'none';
+                    removeLogo.style.display = 'none';
+                } else if (appSettings.companyLogo.startsWith('data:image/')) {
+                    logoPreview.src = appSettings.companyLogo;
+                    logoPreview.style.display = 'block';
+                    removeLogo.style.display = 'inline-block';
+                } else {
+                    logoPreview.style.display = 'none';
+                    removeLogo.style.display = 'none';
+                }
+            } else {
+                logoPreview.style.display = 'none';
+                removeLogo.style.display = 'none';
+            }
+        }
+
+        function openSettings() {
+            authenticateUser((authenticated) => {
+                if (authenticated) {
+                    applySettings();
+                    document.getElementById('settingsModal').classList.add('active');
+                    applyLanguage();
+                }
+            });
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+
+        function switchSettingsTab(tab) {
+            currentSettingsTab = tab;
+            
+            // Update tabs
+            document.querySelectorAll('.settings-tab').forEach(t => {
+                t.classList.toggle('active', t.dataset.tab === tab);
+            });
+
+            // Update content
+            document.querySelectorAll('.settings-content').forEach(c => {
+                c.classList.remove('active');
+            });
+            document.getElementById(`${tab}-content`).classList.add('active');
+        }
+
+        // Supabase Integration
+        function initializeSupabase() {
+            if (!window.supabase) {
+                // Running in offline mode - all features work with localStorage
+                return;
+            }
+            
+            if (appSettings.supabaseUrl && appSettings.supabaseKey) {
+                try {
+                    supabaseClient = supabase.createClient(appSettings.supabaseUrl, appSettings.supabaseKey);
+                } catch (error) {
+                    console.error('Supabase initialization error:', error);
+                }
+            }
+        }
+
+        async function testSupabaseConnection() {
+            const statusEl = document.getElementById('supabaseStatus');
+            const statusDot = statusEl.querySelector('.status-dot');
+            const statusText = statusEl.querySelector('.status-text');
+            
+            statusEl.style.display = 'flex';
+            statusText.textContent = currentLang === 'en' ? 'Testing...' : 'جاري الاختبار...';
+            statusDot.classList.remove('connected');
+
+            // Check if Supabase library is loaded
+            if (!window.supabase) {
+                statusText.textContent = currentLang === 'en' 
+                    ? 'Supabase library not loaded. Please open this file via HTTP server (e.g., Live Server)' 
+                    : 'مكتبة Supabase غير محملة. يرجى فتح الملف عبر خادم HTTP';
+                showNotification('error', 'Library Not Loaded', 'Supabase requires HTTP server. Use Live Server or host the file online.');
+                return;
+            }
+
+            if (!appSettings.supabaseUrl || !appSettings.supabaseKey) {
+                statusText.textContent = currentLang === 'en' ? 'Please fill in Supabase credentials' : 'يرجى ملء بيانات Supabase';
+                return;
+            }
+
+            try {
+                initializeSupabase();
+                const { data, error } = await supabaseClient
+                    .from(appSettings.supabaseTable)
+                    .select('count')
+                    .limit(1);
+
+                if (error) throw error;
+
+                statusDot.classList.add('connected');
+                statusText.textContent = currentLang === 'en' ? 'Connected successfully!' : 'تم الاتصال بنجاح!';
+                document.getElementById('syncStatus').style.display = 'block';
+                showNotification('success', 'Connection Success', 'Successfully connected to Supabase');
+            } catch (error) {
+                statusText.textContent = currentLang === 'en' ? `Error: ${error.message}` : `خطأ: ${error.message}`;
+                showNotification('error', 'Connection Failed', error.message);
+            }
+        }
+
+        async function syncWithSupabase() {
+            if (!window.supabase) {
+                showNotification('error', 'Library Not Loaded', 'Supabase requires HTTP server. Please use Live Server or host online.');
+                return;
+            }
+
+            if (!supabaseClient) {
+                showNotification('error', 'Not Connected', 'Please configure and test Supabase connection first');
+                return;
+            }
+
+            try {
+                // Upload local data to Supabase
+                const { data, error } = await supabaseClient
+                    .from(appSettings.supabaseTable)
+                    .upsert(clients.map(client => ({
+                        id: client.id,
+                        data: client,
+                        updated_at: new Date().toISOString()
+                    })));
+
+                if (error) throw error;
+
+                // Update sync status
+                const now = new Date();
+                document.getElementById('lastSyncTime').textContent = now.toLocaleString(currentLang === 'en' ? 'en-US' : 'ar-SA');
+                document.getElementById('syncRecords').textContent = clients.length;
+
+                showNotification('success', 'Sync Complete', `Successfully synced ${clients.length} records`);
+            } catch (error) {
+                showNotification('error', 'Sync Failed', error.message);
+            }
+        }
+
+        // Backup & Export Functions
+        function exportToJSON() {
+            const dataStr = JSON.stringify(clients, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `client-portals-backup-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+            showNotification('success', 'Export Complete', 'Data exported successfully');
+        }
+
+        function exportToCSV() {
+            const headers = ['Name', 'Category', 'Portal URL', 'Status', 'Username', 'Contact Person', 'Contact Email', 'Notes'];
+            const rows = clients.map(c => [
+                c.name,
+                c.category || '',
+                c.portalUrl,
+                c.status,
+                c.username || '',
+                c.contactPerson || '',
+                c.contactEmail || '',
+                c.notes || ''
+            ]);
+
+            const csv = [headers, ...rows]
+                .map(row => row.map(cell => `"${cell}"`).join(','))
+                .join('\n');
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `client-portals-${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+            URL.revokeObjectURL(url);
+            showNotification('success', 'Export Complete', 'CSV exported successfully');
+        }
+
+        function importFromJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (confirm(currentLang === 'en' 
+                        ? `Import ${imported.length} records? This will replace existing data.` 
+                        : `استيراد ${imported.length} سجل؟ سيؤدي هذا إلى استبدال البيانات الموجودة.`)) {
+                        clients = imported;
+                        saveClients();
+                        renderClients();
+                        updateStats();
+                        showNotification('success', 'Import Complete', `Imported ${imported.length} records`);
+                    }
+                } catch (error) {
+                    showNotification('error', 'Import Failed', 'Invalid JSON file');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function importFromBridge() {
+            try {
+                const bridgeData = localStorage.getItem(appSettings.bridgeKey);
+                if (!bridgeData) {
+                    showNotification('error', 'No Bridge Data', 'No data found in Company Portal bridge. Please ensure the Company Portal app is configured.');
+                    return;
+                }
+
+                const bridgeObj = JSON.parse(bridgeData);
+                if (bridgeObj.clients && Array.isArray(bridgeObj.clients)) {
+                    if (confirm(currentLang === 'en' 
+                        ? `Import ${bridgeObj.clients.length} clients from Company Portal?` 
+                        : `استيراد ${bridgeObj.clients.length} عميل من بوابة الشركة؟`)) {
+                        
+                        // Merge or replace based on user preference
+                        clients = bridgeObj.clients.map(c => ({
+                            id: c.id || Date.now() + Math.random(),
+                            name: c.name || c.clientName,
+                            category: c.category || '',
+                            portalUrl: c.portalUrl || c.url,
+                            status: c.status || 'not-registered',
+                            username: c.username || '',
+                            password: c.password || '',
+                            contactPerson: c.contactPerson || '',
+                            contactEmail: c.contactEmail || c.email || '',
+                            notes: c.notes || '',
+                            lastAccess: c.lastAccess || '',
+                            createdAt: c.createdAt || new Date().toISOString()
+                        }));
+
+                        saveClients();
+                        renderClients();
+                        updateStats();
+                        showNotification('success', 'Import Complete', `Imported ${clients.length} clients from Company Portal`);
+                    }
+                } else {
+                    showNotification('error', 'Invalid Bridge Data', 'Bridge data format is incorrect');
+                }
+            } catch (error) {
+                showNotification('error', 'Import Failed', error.message);
+            }
+        }
+
+        function toggleAutoSync() {
+            const enabled = document.getElementById('autoSyncEnabled').checked;
+            if (enabled) {
+                // Write current data to bridge
+                updateBridge();
+                showNotification('success', 'Auto-Sync Enabled', 'Data will be synced with Company Portal');
+            } else {
+                showNotification('success', 'Auto-Sync Disabled', 'Company Portal sync disabled');
+            }
+        }
+
+        function updateBridge() {
+            if (appSettings.autoSync) {
+                const bridgeData = {
+                    lastUpdate: new Date().toISOString(),
+                    source: 'Client Portal Tracker',
+                    clients: clients
+                };
+                localStorage.setItem(appSettings.bridgeKey, JSON.stringify(bridgeData));
+            }
+        }
+
+        function changeStorageType() {
+            const type = document.getElementById('storageType').value;
+            appSettings.storageType = type;
+            
+            if (type === 'supabase' || type === 'both') {
+                if (!appSettings.supabaseUrl || !appSettings.supabaseKey) {
+                    alert(currentLang === 'en' 
+                        ? 'Please configure Supabase settings first' 
+                        : 'يرجى تكوين إعدادات Supabase أولاً');
+                    switchSettingsTab('supabase');
+                }
+            }
+        }
+
+        function clearAllData() {
+            if (confirm(currentLang === 'en' 
+                ? 'Are you sure? This will permanently delete all client records!' 
+                : 'هل أنت متأكد؟ سيؤدي هذا إلى حذف جميع سجلات العملاء نهائياً!')) {
+                if (confirm(currentLang === 'en' 
+                    ? 'This action cannot be undone. Continue?' 
+                    : 'لا يمكن التراجع عن هذا الإجراء. المتابعة؟')) {
+                    clients = [];
+                    saveClients();
+                    renderClients();
+                    updateStats();
+                    showNotification('success', 'Data Cleared', 'All client records have been deleted');
+                }
+            }
+        }
+
+        // Override saveClients to include bridge update
+        const originalSaveClients = saveClients;
+        saveClients = function() {
+            originalSaveClients();
+            updateBridge();
+            
+            // Auto-sync to Supabase if configured and library is loaded
+            if (window.supabase && appSettings.storageType === 'both' && supabaseClient) {
+                syncWithSupabase();
+            }
+        };
+
+        // Close settings modal on outside click
+        document.getElementById('settingsModal').addEventListener('click', (e) => {
+            if (e.target.id === 'settingsModal') {
+                closeSettings();
+            }
+        });
+
+        // Close files modal on outside click
+        document.getElementById('filesModal').addEventListener('click', (e) => {
+            if (e.target.id === 'filesModal') {
+                closeFilesModal();
+            }
+        });
+
+        // Close storage modal on outside click
+        document.getElementById('storageModal').addEventListener('click', (e) => {
+            if (e.target.id === 'storageModal') {
+                closeStorageModal();
+            }
+        });
+
+        // Company Branding Functions
+        function updateCompanyBranding() {
+            const nameEl = document.getElementById('companyNameDisplay');
+            const logoEl = document.getElementById('companyLogo');
+            
+            nameEl.textContent = appSettings.companyName || 'Future Tag Security Solutions';
+            
+            if (appSettings.companyLogo) {
+                // Check if logo is a blob URL (invalid on server)
+                if (appSettings.companyLogo.startsWith('blob:')) {
+                    console.warn('Blob URL detected in logo - removing invalid logo');
+                    appSettings.companyLogo = '';
+                    localStorage.setItem('futureTagSettings', JSON.stringify(appSettings));
+                    logoEl.style.display = 'none';
+                    return;
+                }
+                
+                // Only set if it's a valid data URL (base64)
+                if (appSettings.companyLogo.startsWith('data:image/')) {
+                    logoEl.src = appSettings.companyLogo;
+                    logoEl.style.display = 'block';
+                } else {
+                    console.warn('Invalid logo format - must be base64 data URL');
+                    logoEl.style.display = 'none';
+                }
+            } else {
+                logoEl.style.display = 'none';
+            }
+        }
+
+        // Logo Upload Handler
+        function handleLogoUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Check file type
+            if (!file.type.startsWith('image/')) {
+                showNotification('error', 'Invalid File Type', 'Please upload an image file');
+                return;
+            }
+
+            // Check file size (2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                showNotification('error', 'File Too Large', 'Logo must be less than 2MB');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                appSettings.companyLogo = e.target.result;
+                localStorage.setItem('futureTagSettings', JSON.stringify(appSettings));
+                
+                const preview = document.getElementById('logoPreview');
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                document.getElementById('removeLogo').style.display = 'inline-block';
+                
+                updateCompanyBranding();
+                showNotification('success', 'Logo Uploaded', 'Company logo has been updated');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeLogo() {
+            if (confirm(currentLang === 'en' ? 'Remove company logo?' : 'إزالة شعار الشركة؟')) {
+                appSettings.companyLogo = '';
+                localStorage.setItem('futureTagSettings', JSON.stringify(appSettings));
+                
+                document.getElementById('logoPreview').style.display = 'none';
+                document.getElementById('removeLogo').style.display = 'none';
+                document.getElementById('logoFileInput').value = '';
+                
+                updateCompanyBranding();
+                showNotification('success', 'Logo Removed', 'Company logo has been removed');
+            }
+        }
+
+        // PDF Upload Handler
+        function handlePDFUpload(event) {
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
+
+            const progressBar = document.getElementById('uploadProgressBar');
+            const progressContainer = document.getElementById('uploadProgress');
+            
+            progressContainer.style.display = 'block';
+            let processed = 0;
+
+            Array.from(files).forEach((file, index) => {
+                // Check file type
+                if (file.type !== 'application/pdf') {
+                    showNotification('error', 'Invalid File', `${file.name} is not a PDF file`);
+                    return;
+                }
+
+                // Check file size (5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    showNotification('error', 'File Too Large', `${file.name} exceeds 5MB limit`);
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    currentAttachments.push({
+                        id: Date.now() + index,
+                        name: file.name,
+                        size: file.size,
+                        data: e.target.result,
+                        uploadedAt: new Date().toISOString()
+                    });
+
+                    processed++;
+                    progressBar.style.width = `${(processed / files.length) * 100}%`;
+
+                    if (processed === files.length) {
+                        setTimeout(() => {
+                            progressContainer.style.display = 'none';
+                            progressBar.style.width = '0%';
+                        }, 500);
+                        renderAttachedFiles();
+                        showNotification('success', 'Files Uploaded', `${processed} file(s) attached successfully`);
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+
+            // Reset input
+            event.target.value = '';
+        }
+
+        // Render attached files in modal
+        function renderAttachedFiles() {
+            const container = document.getElementById('attachedFilesList');
+            if (!currentAttachments || currentAttachments.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            container.innerHTML = currentAttachments.map((file, index) => `
+                <div class="attached-file-item">
+                    <div class="file-info">
+                        <span class="file-icon">📄</span>
+                        <div class="file-details">
+                            <div class="file-name">${file.name}</div>
+                            <div class="file-size">${formatFileSize(file.size)}</div>
+                        </div>
+                    </div>
+                    <div class="file-actions">
+                        <button class="file-action-btn download" onclick="downloadFile(${index})" title="${currentLang === 'en' ? 'Download' : 'تحميل'}">⬇️</button>
+                        <button class="file-action-btn delete" onclick="removeAttachment(${index})" title="${currentLang === 'en' ? 'Delete' : 'حذف'}">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Remove attachment
+        function removeAttachment(index) {
+            if (confirm(currentLang === 'en' ? 'Remove this file?' : 'إزالة هذا الملف؟')) {
+                currentAttachments.splice(index, 1);
+                renderAttachedFiles();
+            }
+        }
+
+        // Download file
+        function downloadFile(index) {
+            const file = currentAttachments[index];
+            const link = document.createElement('a');
+            link.href = file.data;
+            link.download = file.name;
+            link.click();
+        }
+
+        // View client files
+        function viewClientFiles(clientId) {
+            const client = clients.find(c => c.id === clientId);
+            if (!client || !client.attachments || client.attachments.length === 0) return;
+
+            const container = document.getElementById('filesViewerList');
+            container.innerHTML = client.attachments.map(file => `
+                <div class="attached-file-item">
+                    <div class="file-info">
+                        <span class="file-icon">📄</span>
+                        <div class="file-details">
+                            <div class="file-name">${file.name}</div>
+                            <div class="file-size">${formatFileSize(file.size)} • ${formatDate(file.uploadedAt)}</div>
+                        </div>
+                    </div>
+                    <div class="file-actions">
+                        <button class="file-action-btn download" onclick="downloadClientFile(${clientId}, '${file.id}')" title="${currentLang === 'en' ? 'Download' : 'تحميل'}">⬇️</button>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('filesModal').classList.add('active');
+            applyLanguage();
+        }
+
+        // Download client file
+        function downloadClientFile(clientId, fileId) {
+            const client = clients.find(c => c.id === clientId);
+            if (!client) return;
+
+            const file = client.attachments.find(f => f.id == fileId);
+            if (!file) return;
+
+            const link = document.createElement('a');
+            link.href = file.data;
+            link.download = file.name;
+            link.click();
+        }
+
+        // Close files modal
+        function closeFilesModal() {
+            document.getElementById('filesModal').classList.remove('active');
+        }
+
+        // Format file size
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        // Storage Management Functions
+        function openStorageManagement() {
+            updateStorageStats();
+            renderClientsWithFiles();
+            document.getElementById('storageModal').classList.add('active');
+            applyLanguage();
+        }
+
+        function closeStorageModal() {
+            document.getElementById('storageModal').classList.remove('active');
+        }
+
+        function updateStorageStats() {
+            const totalStorage = calculateStorageSize();
+            const clientData = getClientDataSize();
+            
+            document.getElementById('totalStorage').textContent = totalStorage + ' MB';
+            document.getElementById('clientDataSize').textContent = clientData.mb + ' MB';
+            document.getElementById('totalFiles').textContent = clientData.filesCount;
+            document.getElementById('totalClients').textContent = clientData.clientsCount;
+        }
+
+        function renderClientsWithFiles() {
+            const container = document.getElementById('clientsWithFiles');
+            const clientsWithFiles = clients.filter(c => c.attachments && c.attachments.length > 0);
+            
+            if (clientsWithFiles.length === 0) {
+                container.innerHTML = `<div class="backup-info" data-lang-en="No clients with files" data-lang-ar="لا يوجد عملاء لديهم ملفات">No clients with files</div>`;
+                return;
+            }
+
+            container.innerHTML = clientsWithFiles.map(client => {
+                const totalSize = client.attachments.reduce((sum, f) => sum + f.size, 0);
+                return `
+                    <div class="attached-file-item">
+                        <div class="file-info">
+                            <div class="file-details" style="flex: 1;">
+                                <div class="file-name">${client.name}</div>
+                                <div class="file-size">${client.attachments.length} file(s) • ${formatFileSize(totalSize)}</div>
+                            </div>
+                        </div>
+                        <div class="file-actions">
+                            <button class="file-action-btn delete" onclick="removeClientFiles(${client.id})" title="${currentLang === 'en' ? 'Remove Files' : 'حذف الملفات'}">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function removeAllAttachments() {
+            const filesCount = clients.reduce((sum, c) => sum + (c.attachments?.length || 0), 0);
+            if (filesCount === 0) {
+                showNotification('error', 'No Files', 'No files to remove');
+                return;
+            }
+
+            if (confirm(currentLang === 'en' 
+                ? `Remove all ${filesCount} files from all clients?\n\nClient data will be preserved.`
+                : `حذف جميع الملفات (${filesCount}) من جميع العملاء؟\n\nسيتم الحفاظ على بيانات العملاء.`)) {
+                
+                clients.forEach(client => {
+                    if (client.attachments) {
+                        client.attachments = [];
+                    }
+                });
+                
+                saveClients();
+                renderClients();
+                updateStorageStats();
+                renderClientsWithFiles();
+                showNotification('success', 'Files Removed', `Removed ${filesCount} files successfully`);
+            }
+        }
+
+        function removeClientFiles(clientId) {
+            const client = clients.find(c => c.id === clientId);
+            if (!client || !client.attachments || client.attachments.length === 0) return;
+
+            const filesCount = client.attachments.length;
+            if (confirm(currentLang === 'en'
+                ? `Remove ${filesCount} file(s) from ${client.name}?`
+                : `حذف ${filesCount} ملف من ${client.name}؟`)) {
+                
+                client.attachments = [];
+                saveClients();
+                renderClients();
+                updateStorageStats();
+                renderClientsWithFiles();
+                showNotification('success', 'Files Removed', `Removed ${filesCount} file(s) from ${client.name}`);
+            }
+        }
+
+        function compressOldFiles() {
+            const sixMonthsAgo = new Date();
+            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+            
+            let removedCount = 0;
+            clients.forEach(client => {
+                if (client.attachments && client.attachments.length > 0) {
+                    const oldFiles = client.attachments.filter(f => {
+                        const fileDate = new Date(f.uploadedAt);
+                        return fileDate < sixMonthsAgo;
+                    });
+                    
+                    if (oldFiles.length > 0) {
+                        client.attachments = client.attachments.filter(f => {
+                            const fileDate = new Date(f.uploadedAt);
+                            return fileDate >= sixMonthsAgo;
+                        });
+                        removedCount += oldFiles.length;
+                    }
+                }
+            });
+
+            if (removedCount === 0) {
+                showNotification('success', 'No Old Files', 'No files older than 6 months found');
+            } else {
+                saveClients();
+                renderClients();
+                updateStorageStats();
+                renderClientsWithFiles();
+                showNotification('success', 'Old Files Removed', `Removed ${removedCount} old file(s)`);
+            }
+        }
+
+        // Password Visibility Toggle
+        function togglePasswordVisibility(inputId) {
+            const input = document.getElementById(inputId);
+            const toggle = input.nextElementSibling;
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                toggle.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                toggle.textContent = '👁️';
+            }
+        }
+
+        // Toggle password display in card
+        function togglePasswordDisplay(clientId) {
+            const element = document.getElementById(`pwd-${clientId}`);
+            const password = element.getAttribute('data-password');
+            
+            if (element.textContent === '••••••••') {
+                element.textContent = password;
+            } else {
+                element.textContent = '••••••••';
+            }
+        }
+
+        // Authentication Functions
+        function authenticateUser(callback) {
+            authCallback = callback;
+            document.getElementById('authOverlay').classList.add('active');
+            document.getElementById('authInput').value = '';
+            document.getElementById('authError').style.display = 'none';
+            document.getElementById('authInput').focus();
+            applyLanguage();
+        }
+
+        function submitAuth() {
+            const input = document.getElementById('authInput');
+            const errorEl = document.getElementById('authError');
+            
+            if (input.value === appSettings.settingsPassword) {
+                document.getElementById('authOverlay').classList.remove('active');
+                if (authCallback) {
+                    authCallback(true);
+                    authCallback = null;
+                }
+            } else {
+                errorEl.textContent = currentLang === 'en' ? 'Incorrect password' : 'كلمة مرور خاطئة';
+                errorEl.style.display = 'block';
+                input.value = '';
+                input.focus();
+                
+                // Shake animation
+                const dialog = document.querySelector('.auth-dialog');
+                dialog.style.animation = 'none';
+                setTimeout(() => {
+                    dialog.style.animation = 'modalSlideUp 0.3s ease, shake 0.5s ease';
+                }, 10);
+            }
+        }
+
+        function cancelAuth() {
+            document.getElementById('authOverlay').classList.remove('active');
+            if (authCallback) {
+                authCallback(false);
+                authCallback = null;
+            }
+        }
+
+        // Enter key for auth
+        document.getElementById('authInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                submitAuth();
+            }
+        });
+
+        // Change Settings Password
+        function changeSettingsPassword() {
+            const current = document.getElementById('currentPassword').value;
+            const newPass = document.getElementById('newPassword').value;
+            const confirm = document.getElementById('confirmPassword').value;
+
+            if (!current || !newPass || !confirm) {
+                showNotification('error', 'Missing Fields', 'Please fill in all password fields');
+                return;
+            }
+
+            if (current !== appSettings.settingsPassword) {
+                showNotification('error', 'Incorrect Password', 'Current password is incorrect');
+                return;
+            }
+
+            if (newPass !== confirm) {
+                showNotification('error', 'Mismatch', 'New passwords do not match');
+                return;
+            }
+
+            if (newPass.length < 3) {
+                showNotification('error', 'Weak Password', 'Password must be at least 3 characters');
+                return;
+            }
+
+            appSettings.settingsPassword = newPass;
+            localStorage.setItem('futureTagSettings', JSON.stringify(appSettings));
+            
+            // Clear fields
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+
+            showNotification('success', 'Password Changed', 'Your settings password has been updated');
+        }
+
+        function togglePasswordProtection() {
+            const enabled = document.getElementById('requirePasswordForEdit').checked;
+            appSettings.requirePasswordForEdit = enabled;
+            localStorage.setItem('futureTagSettings', JSON.stringify(appSettings));
+        }
+
+        // Add shake animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+                20%, 40%, 60%, 80% { transform: translateX(10px); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
