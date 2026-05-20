@@ -631,6 +631,117 @@ textarea{resize:vertical;min-height:68px}
     </div>
   </div>
 
+  <!-- ROW 3b: Document / Print Design -->
+  <div class="ss" style="margin-top:4px">
+    <h3>🖨 Document &amp; Print Design</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+
+      <!-- Document Header -->
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid var(--border)">Document Header</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div class="form-group"><label>Header Background</label>
+            <div style="display:flex;gap:6px;align-items:center">
+              <input type="color" id="hdr-bg-color" value="#1a4fa0" style="width:38px;height:30px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="syncDesignColor('hdr-bg-color','hdr-bg-hex');previewDocDesign()"/>
+              <input id="hdr-bg-hex" placeholder="#1a4fa0" style="flex:1;font-size:11px" oninput="syncColorFromHex('hdr-bg-color','hdr-bg-hex');previewDocDesign()"/>
+            </div>
+          </div>
+          <div class="form-group"><label>Header Font Color</label>
+            <div style="display:flex;gap:6px;align-items:center">
+              <input type="color" id="hdr-font-color" value="#ffffff" style="width:38px;height:30px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="syncDesignColor('hdr-font-color','hdr-font-hex');previewDocDesign()"/>
+              <input id="hdr-font-hex" placeholder="#ffffff" style="flex:1;font-size:11px" oninput="syncColorFromHex('hdr-font-color','hdr-font-hex');previewDocDesign()"/>
+            </div>
+          </div>
+          <div class="form-group"><label>Company Name Size (px)</label>
+            <input type="number" id="hdr-text-size" value="15" min="10" max="28" style="font-size:12px" oninput="previewDocDesign()"/>
+          </div>
+          <div class="form-group"><label>Header Padding (px)</label>
+            <input type="number" id="hdr-padding" value="14" min="6" max="30" style="font-size:12px" oninput="previewDocDesign()"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- Document Body -->
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid var(--border)">Document Body &amp; Font</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div class="form-group"><label>Body Font Size (px)</label>
+            <input type="number" id="doc-font-size" value="12" min="9" max="16" style="font-size:12px" oninput="previewDocDesign()"/>
+          </div>
+          <div class="form-group"><label>Font Family</label>
+            <select id="doc-font-family" style="font-size:12px" onchange="previewDocDesign()">
+              <option value="Calibri,Arial,sans-serif">Calibri (Default)</option>
+              <option value="Arial,sans-serif">Arial</option>
+              <option value="Times New Roman,serif">Times New Roman</option>
+              <option value="Georgia,serif">Georgia</option>
+              <option value="Verdana,sans-serif">Verdana</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Page Margin (mm)</label>
+            <input type="number" id="doc-page-margin" value="14" min="6" max="30" style="font-size:12px" oninput="previewDocDesign()"/>
+          </div>
+          <div class="form-group"><label>Info Card BG</label>
+            <div style="display:flex;gap:6px;align-items:center">
+              <input type="color" id="doc-card-bg" value="#f5f8ff" style="width:38px;height:30px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="syncDesignColor('doc-card-bg','doc-card-bg-hex');previewDocDesign()"/>
+              <input id="doc-card-bg-hex" placeholder="#f5f8ff" style="flex:1;font-size:11px" oninput="syncColorFromHex('doc-card-bg','doc-card-bg-hex');previewDocDesign()"/>
+            </div>
+          </div>
+          <div class="form-group"><label>Sub-Bar BG</label>
+            <div style="display:flex;gap:6px;align-items:center">
+              <input type="color" id="doc-subbar-bg" value="#f9fafb" style="width:38px;height:30px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="syncDesignColor('doc-subbar-bg','doc-subbar-bg-hex');previewDocDesign()"/>
+              <input id="doc-subbar-bg-hex" placeholder="#f9fafb" style="flex:1;font-size:11px" oninput="syncColorFromHex('doc-subbar-bg','doc-subbar-bg-hex');previewDocDesign()"/>
+            </div>
+          </div>
+          <div class="form-group"><label>Table Border Color</label>
+            <div style="display:flex;gap:6px;align-items:center">
+              <input type="color" id="doc-table-border" value="#e2e6ef" style="width:38px;height:30px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="syncDesignColor('doc-table-border','doc-table-border-hex');previewDocDesign()"/>
+              <input id="doc-table-border-hex" placeholder="#e2e6ef" style="flex:1;font-size:11px" oninput="syncColorFromHex('doc-table-border','doc-table-border-hex');previewDocDesign()"/>
+            </div>
+          </div>
+          <div class="form-group"><label>Alt Row Color <span style="color:var(--muted);font-size:10px">(empty=transparent)</span></label>
+            <div style="display:flex;gap:6px;align-items:center">
+              <input type="color" id="doc-alt-row" value="#f5f8ff" style="width:38px;height:30px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="syncDesignColor('doc-alt-row','doc-alt-row-hex');previewDocDesign()"/>
+              <input id="doc-alt-row-hex" placeholder="transparent" style="flex:1;font-size:11px" oninput="syncColorFromHex('doc-alt-row','doc-alt-row-hex');previewDocDesign()"/>
+              <button class="btn btn-ghost btn-xs" onclick="document.getElementById('doc-alt-row-hex').value='transparent';previewDocDesign()" title="Set transparent">✕</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview + Actions -->
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid var(--border)">Live Preview</div>
+        <div id="doc-design-preview" style="border:1px solid var(--border);border-radius:8px;overflow:hidden;font-size:11px;margin-bottom:10px">
+          <div id="ddp-header" style="background:#1a4fa0;padding:10px 12px;display:flex;justify-content:space-between;align-items:center">
+            <div style="color:#fff;font-weight:800;font-size:13px">Future Tag</div>
+            <div style="color:#fff;font-size:11px;font-weight:700;opacity:.9">PURCHASE ORDER</div>
+          </div>
+          <div id="ddp-subbar" style="background:#f9fafb;padding:5px 10px;border-bottom:1px solid #e2e6ef;font-size:10px;color:#666">
+            Riyadh, Saudi Arabia &nbsp;|&nbsp; PO-001 | 2026-05-20
+          </div>
+          <div id="ddp-body" style="background:#fff;padding:8px 10px">
+            <div id="ddp-card" style="background:#f5f8ff;border:1px solid #e2e6ef;border-radius:5px;padding:6px 9px;margin-bottom:6px;font-size:10px">
+              <div style="font-weight:700;color:#1a4fa0;font-size:9px;text-transform:uppercase;margin-bottom:3px">Vendor</div>
+              <div>Company Name — Contact</div>
+            </div>
+            <div style="background:#1a4fa0;color:#fff;padding:4px 8px;font-size:9px;font-weight:700;display:flex;gap:12px">
+              <span>#</span><span>Description</span><span style="margin-left:auto">Total</span>
+            </div>
+            <div style="padding:4px 8px;font-size:10px;border-bottom:1px solid #f0f0f0">Item A — SAR 1,000</div>
+            <div style="padding:4px 8px;font-size:10px;background:#f5f8ff">Item B — SAR 2,000</div>
+            <div style="background:#e4f7f0;padding:4px 8px;font-size:10px;font-weight:700;color:#1a4fa0;text-align:right">Total: SAR 3,000</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-secondary btn-sm" style="flex:1" onclick="resetDocDesign()">↺ Reset</button>
+          <button class="btn btn-primary btn-sm" style="flex:1" onclick="saveDocDesign()">💾 Save</button>
+        </div>
+        <span id="doc-design-saved" style="font-size:11px;color:var(--accent2);display:none;margin-top:4px;display:block">✓ Saved</span>
+      </div>
+
+    </div>
+  </div>
+
   <!-- ROW 4: Cloud Sync + Cloud Backup -->
   <div class="ss">
   <h3>☁️ Cloud Sync — Supabase</h3>
@@ -1094,7 +1205,29 @@ textarea{resize:vertical;min-height:68px}
     <div class="form-group"><label>Vendor Mobile</label><input id="po-vendor-mob" placeholder="+966..."/></div>
     <div class="form-group"><label>Vendor Email</label><input id="po-vendor-email" type="email" placeholder="email@supplier.com"/></div>
     <div class="form-group"><label>Quote Ref</label><input id="po-quote" placeholder="Supplier quote ref"/></div>
-    <div class="form-group"><label>Delivery</label><input id="po-delivery" value="Immediate"/></div>
+    <!-- ── Delivery Details ── -->
+    <div class="section-sep" style="grid-column:1/-1;margin:4px 0"></div>
+    <div style="grid-column:1/-1;font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:-4px">🚚 Delivery Details</div>
+
+    <div class="form-group"><label>Delivery Terms</label>
+      <select id="po-delivery">
+        <option value="Immediate">Immediate</option>
+        <option value="Within 1 Week">Within 1 Week</option>
+        <option value="Within 2 Weeks">Within 2 Weeks</option>
+        <option value="Within 1 Month">Within 1 Month</option>
+        <option value="As Per Schedule">As Per Schedule</option>
+        <option value="Ex-Stock">Ex-Stock</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Expected Delivery Date</label>
+      <input type="date" id="po-delivery-date"/>
+    </div>
+    <div class="form-group"><label>Delivery Contact</label>
+      <input id="po-delivery-contact" placeholder="Name of receiving person"/>
+    </div>
+    <div class="form-group"><label>Contact Mobile</label>
+      <input id="po-delivery-mob" placeholder="+966 5x xxx xxxx"/>
+    </div>
     <div class="form-group full" style="grid-column:1/-1">
       <label>Payment Schedule</label>
       <div id="po-payment-rows" style="display:flex;flex-direction:column;gap:6px;margin-top:4px"></div>
@@ -1722,6 +1855,7 @@ var S={
   colorNavBg:'#1e2a45',colorNavText:'#a8b8d0',colorNavActive:'#1a4fa0',
   colorAccent:'#1a4fa0',colorAccent2:'#1a9e72',colorText:'#1a1e2e',colorBg:'#f0f2f7',
   headerBgColor:'#1a4fa0',headerFontColor:'#ffffff',headerTextSize:'15',headerPadding:'14',
+  docTableBorder:'#e2e6ef',docTableAltRow:'transparent',docTableHeaderBg:'',docCardBg:'#f5f8ff',docSubBarBg:'#f9fafb',
   pdfTableHeader:'#1a4fa0',pdfTableHeaderText:'#ffffff',
   pdfTotalRow:'#e4f7f0',pdfTotalRowText:'#1a4fa0',
   pdfAltRow:'#f5f8ff',pdfSubtotalRow:'#f5f8ff',
@@ -1749,6 +1883,8 @@ var S={
 
 // ── PDF Color helpers — read from S settings ──────────────────────
 function _pH()  { return S.pdfTableHeader     || S.headerBgColor || '#1a4fa0'; } // table header bg
+function _pTB() { return S.docTableBorder    || '#e2e6ef'; }  // table border color
+function _pAlt(){ return S.docTableAltRow||'transparent'; }   // alt row bg (transparent = none)
 function _pHT() { return S.pdfTableHeaderText || '#ffffff'; }                     // table header text
 function _pT()  { return S.pdfTotalRow        || '#e4f7f0'; }                     // total row bg
 function _pTT() { return S.pdfTotalRowText    || S.headerBgColor || '#1a4fa0'; }  // total row text
@@ -1766,7 +1902,7 @@ function _printCSS(){
   return [
     '@page{margin:14mm 12mm;size:A4 portrait}',
     '*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;box-sizing:border-box;margin:0;padding:0}',
-    'body{font-family:Calibri,Arial,sans-serif;font-size:11.5px;color:#1a1a2e;background:#fff;line-height:1.55}',
+    'body{font-family:'+(S.docFontFamily||'Calibri,Arial,sans-serif')+';font-size:'+(S.docFontSize||'11.5')+'px;color:#1a1a2e;background:#fff;line-height:1.55}',
 
     /* ── Layout ── */
     '.doc-body{padding:18px 22px}',
@@ -1790,15 +1926,15 @@ function _printCSS(){
     '.doc-meta-right b{color:#1a1a2e}',
 
     /* ── Table ── */
-    'table{width:100%;border-collapse:collapse;margin-bottom:0}',
+    'table{width:100%;border-collapse:collapse;margin-bottom:0;background:transparent}',
     'thead tr{background:'+hdr+'}',
     'th{color:'+hdrT+';padding:7px 10px;text-align:left;font-size:10.5px;font-weight:700;letter-spacing:.3px}',
     'th.r{text-align:right}',
     'th.c{text-align:center}',
     'tbody tr{border-bottom:1px solid #eef0f5}',
-    'tbody tr:nth-child(even){background:'+alt+'}',
+    'tbody tr:nth-child(even){background:'+_pAlt()+'}',
     'tbody tr:hover{background:'+_pHo(hdr,0.04)+'}',
-    'td{padding:6px 10px;font-size:11.5px;vertical-align:middle}',
+    'td{padding:6px 10px;font-size:11.5px;vertical-align:middle;background:transparent;border-bottom:1px solid '+_pTB()+'}',
     'td.r{text-align:right;font-weight:600;font-family:Calibri,monospace}',
     'td.c{text-align:center}',
     'td.muted{color:#888;font-size:10.5px}',
@@ -3655,6 +3791,19 @@ function loadHeaderControls(){
   var fcHex=document.getElementById('hdr-font-hex'); if(fcHex) fcHex.value=S.headerFontColor||'#ffffff';
   var tsEl=document.getElementById('hdr-text-size'); if(tsEl) tsEl.value=S.headerTextSize||'15';
   var padEl=document.getElementById('hdr-padding'); if(padEl) padEl.value=S.headerPadding||'14';
+  // New design fields
+  var dfs=document.getElementById('doc-font-size'); if(dfs) dfs.value=S.docFontSize||'12';
+  var dff=document.getElementById('doc-font-family'); if(dff) dff.value=S.docFontFamily||'Calibri,Arial,sans-serif';
+  var dpm=document.getElementById('doc-page-margin'); if(dpm) dpm.value=S.docPageMargin||'14';
+  var dcb=document.getElementById('doc-card-bg'); if(dcb) dcb.value=S.docCardBg||'#f5f8ff';
+  var dcbh=document.getElementById('doc-card-bg-hex'); if(dcbh) dcbh.value=S.docCardBg||'#f5f8ff';
+  var dsb=document.getElementById('doc-subbar-bg'); if(dsb) dsb.value=S.docSubBarBg||'#f9fafb';
+  var dsbh=document.getElementById('doc-subbar-bg-hex'); if(dsbh) dsbh.value=S.docSubBarBg||'#f9fafb';
+  var dtbEl=document.getElementById('doc-table-border'); if(dtbEl) dtbEl.value=S.docTableBorder||'#e2e6ef';
+  var dtbhEl=document.getElementById('doc-table-border-hex'); if(dtbhEl) dtbhEl.value=S.docTableBorder||'#e2e6ef';
+  var darEl=document.getElementById('doc-alt-row'); if(darEl) darEl.value=(S.docTableAltRow&&S.docTableAltRow!=='transparent')?S.docTableAltRow:'#f5f8ff';
+  var darhEl=document.getElementById('doc-alt-row-hex'); if(darhEl) darhEl.value=S.docTableAltRow||'transparent';
+  previewDocDesign();
   var chk=function(id,val){var el=document.getElementById(id);if(el)el.checked=val!==false;};
   chk('hdr-show-address',S.headerShowAddress);
   chk('hdr-show-phone',S.headerShowPhone);
@@ -5130,6 +5279,9 @@ function openPOModal(){
   var disc=document.getElementById('po-discount-pct'); if(disc) disc.value=0;
   var discV=document.getElementById('po-discount-val'); if(discV) discV.value=0;
   document.getElementById('po-delivery').value='Immediate';
+  var pdd=document.getElementById('po-delivery-date'); if(pdd) pdd.value='';
+  var pdc=document.getElementById('po-delivery-contact'); if(pdc) pdc.value='';
+  var pdm=document.getElementById('po-delivery-mob'); if(pdm) pdm.value='';
   document.getElementById('po-lines').innerHTML='';
   calcPO();addPOLine();
   resetPOQuotation();
@@ -5154,6 +5306,9 @@ function editPO(id){
   document.getElementById('po-vendor-email').value=po.vendorEmail||'';
   document.getElementById('po-quote').value=po.quoteRef||'';
   document.getElementById('po-delivery').value=po.delivery||'Immediate';
+  var pdEl=document.getElementById('po-delivery-date'); if(pdEl) pdEl.value=po.deliveryDate||'';
+  var pcEl=document.getElementById('po-delivery-contact'); if(pcEl) pcEl.value=po.deliveryContact||'';
+  var pmEl=document.getElementById('po-delivery-mob'); if(pmEl) pmEl.value=po.deliveryMob||'';
 
   document.getElementById('po-reqby').value=po.reqBy||getSubmittedBy();
   document.getElementById('po-location').value=po.location||S.deliveryLoc;
@@ -5224,6 +5379,9 @@ function savePO(){
     vendorEmail:document.getElementById('po-vendor-email').value,
     quoteRef:document.getElementById('po-quote').value,
     delivery:document.getElementById('po-delivery').value,
+    deliveryDate:document.getElementById('po-delivery-date')?document.getElementById('po-delivery-date').value:'',
+    deliveryContact:document.getElementById('po-delivery-contact')?document.getElementById('po-delivery-contact').value:'',
+    deliveryMob:document.getElementById('po-delivery-mob')?document.getElementById('po-delivery-mob').value:'',
     reqBy:document.getElementById('po-reqby').value,
     location:document.getElementById('po-location').value,
     quotation:_poQuotationData||null,
@@ -5323,124 +5481,101 @@ function buildSigBlock(mod, record, submittedBy){
 }
 
 function getPOHTML(po){
-  var isIntl  = (po.supplierType||'').toLowerCase()==='international';
-  var cur     = (po.currency||'SAR')+' ';
-  var exRate  = parseFloat(po.exchangeRate)||1;
-  var lines   = po.lines||[];
-  var sub     = lines.reduce(function(a,l){return a+(l.extPrice||0);},0)||po.amount/(isIntl?1:1.15);
-  var disc    = po.discountAmt||0;
-  var aftDisc = sub-disc;
-  var vat     = isIntl?0:aftDisc*0.15;
-  var total   = aftDisc+vat;
-  var hdr     = _pH(), hdrT=_pHT();
+  var isIntlPO = po.supplierType==='International';
+  var poCurr   = (po.currency||'SAR')+' ';
+  var poEx     = parseFloat(po.exchangeRate)||1;
+  var lines    = po.lines||[];
+  var sub      = lines.reduce(function(a,l){return a+(l.extPrice||0);},0) || (po.amount/(isIntlPO?1:1.15));
+  var discPctH = po.discountPct||0;
+  var discAmtH = po.discountAmt||0;
+  var afterDiscH = sub - discAmtH;
+  var vatH     = isIntlPO ? 0 : afterDiscH * 0.15;
+  var totalH   = afterDiscH + vatH;
 
-  // Line rows
-  var lineRows = lines.length ? lines.map(function(l,i){
-    return '<tr>'+
-      '<td class="muted c">'+(i+1)+'</td>'+
-      '<td class="muted" style="font-size:10.5px;font-family:monospace">'+(l.partNum||'—')+'</td>'+
-      '<td>'+esc(l.desc||'')+(l.vendor?'<div style="font-size:10px;color:#aaa;margin-top:1px">'+esc(l.vendor)+'</div>':'')+'</td>'+
-      '<td class="r">'+l.qty+'</td>'+
-      '<td class="r">'+cur+fmt(l.unitPrice)+'</td>'+
-      '<td class="r">'+cur+fmt(l.extPrice||l.qty*l.unitPrice)+'</td>'+
-    '</tr>';
-  }).join('') : '<tr><td colspan="6" style="padding:20px;text-align:center;color:#bbb">No items</td></tr>';
-
-  var submitter=(function(){var n=po.reqBy||getSubmittedBy();var u=DB.users.find(function(x){return x.name===n;});return u||{name:n,phone:'',email:''};})();
-
-  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+po.num+'</title>'+
-    '<style>'+_printCSS()+'</style></head><body>';
-
-  // Header
-  html+=getDocHeader();
-
-  // Title bar
-  html+='<div class="doc-title-bar">'+
-    '<div>'+
-      '<div class="doc-title-main">PURCHASE ORDER</div>'+
-      '<div class="doc-title-sub">أمر شراء</div>'+
-    '</div>'+
-    '<div class="doc-meta-right">'+
-      '<div><b>PO No:</b> '+po.num+'</div>'+
-      '<div><b>Date:</b> '+po.date+'</div>'+
-      '<div><b>Project:</b> '+(po.projRef||'—')+'</div>'+
-      (isIntl?'<div style="color:'+hdr+';font-weight:700">'+po.currency+' — International</div>':'')+
-    '</div>'+
-  '</div>';
-
-  html+='<div class="doc-body">';
-
-  // Info grid
-  html+='<div class="doc-grid-2">'+
-    '<div class="info-card accent">'+
-      '<div class="info-label">Vendor</div>'+
-      '<div class="info-row"><span class="info-key">Company:</span><span class="info-val">'+esc(po.vendor||'—')+'</span></div>'+
-      '<div class="info-row"><span class="info-key">Contact:</span><span class="info-val">'+(po.vendorContact||'—')+'</span></div>'+
-      '<div class="info-row"><span class="info-key">Mobile:</span><span class="info-val">'+(po.vendorMob||'—')+'</span></div>'+
-      '<div class="info-row"><span class="info-key">Email:</span><span class="info-val">'+(po.vendorEmail||'—')+'</span></div>'+
-      '<div class="info-row"><span class="info-key">Quote Ref:</span><span class="info-val">'+(po.quoteRef||'—')+'</span></div>'+
-    '</div>'+
-    '<div class="info-card gray">'+
-      '<div class="info-label">Delivery &amp; Payment</div>'+
-      '<div class="info-row"><span class="info-key">Delivery:</span><span class="info-val">'+(po.delivery||'Immediate')+'</span></div>'+
-      '<div class="info-row"><span class="info-key">Location:</span><span class="info-val">'+(po.location||S.deliveryLoc||'—')+'</span></div>'+
-      '<div class="info-row"><span class="info-key">Requested:</span><span class="info-val">'+submitter.name+'</span></div>'+
-      (submitter.phone?'<div class="info-row"><span class="info-key">Mobile:</span><span class="info-val">'+submitter.phone+'</span></div>':'')+
-    '</div>'+
-  '</div>';
-
-  // Items table
-  html+=
-    '<table>'+
-      '<thead><tr>'+
-        '<th class="c" style="width:32px">#</th>'+
-        '<th style="width:90px">Part No.</th>'+
-        '<th>Description</th>'+
-        '<th class="r" style="width:50px">Qty</th>'+
-        '<th class="r" style="width:100px">Unit Price</th>'+
-        '<th class="r" style="width:100px">Total</th>'+
-      '</tr></thead>'+
-      '<tbody>'+lineRows+'</tbody>'+
-    '</table>';
-
-  // Totals
-  html+='<div class="totals-wrap"><div class="totals-table">';
-  html+='<div class="tot-row subtotal"><span class="tot-key">Subtotal</span><span class="tot-val">'+cur+fmt(sub)+'</span></div>';
-  if(disc>0){
-    html+='<div class="tot-row discount"><span class="tot-key">Discount ('+(po.discountPct||0)+'%)</span><span class="tot-val">− '+cur+fmt(disc)+'</span></div>';
-    html+='<div class="tot-row subtotal"><span class="tot-key">After Discount</span><span class="tot-val">'+cur+fmt(aftDisc)+'</span></div>';
-  }
-  if(!isIntl) html+='<div class="tot-row vat"><span class="tot-key">VAT 15%</span><span class="tot-val">SAR '+fmt(vat)+'</span></div>';
-  html+='<div class="tot-row"><span class="tot-key">'+(isIntl?'Total':'Total incl. VAT')+'</span><span class="tot-val">'+cur+fmt(total)+(isIntl&&po.currency!=='SAR'?' <span style="font-size:10px;font-weight:400">≈ SAR '+fmt(total*exRate)+'</span>':'')+'</span></div>';
-  html+='</div></div>';
-
-  // Payment schedule
-  if(po.paymentSchedule&&po.paymentSchedule.length){
-    html+='<div style="margin-bottom:14px"><div style="font-size:9.5px;font-weight:700;color:'+hdr+';text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Payment Schedule</div>';
-    html+='<table><thead><tr><th>Milestone</th><th class="r">%</th><th class="r">Amount (SAR)</th><th class="c">Status</th></tr></thead><tbody>';
-    po.paymentSchedule.forEach(function(r,i){
-      var amt=(r.pct/100)*total;
-      var sc=r.status==='Paid'?'#1a9e72':'#a06800';
-      var sb=r.status==='Paid'?'#dcfce7':'#fff8e6';
-      html+='<tr><td>'+r.desc+'</td><td class="r">'+r.pct+'%</td><td class="r">'+fmt(amt)+'</td>'+
-        '<td class="c"><span style="background:'+sb+';color:'+sc+';padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700">'+r.status+'</span></td></tr>';
+  var lineRows = '';
+  if(lines.length){
+    lines.forEach(function(l,i){
+      lineRows += '<tr style="background:'+(i%2?_pAlt():'transparent')+'">'+
+        '<td style="padding:7px 10px">'+(i+1)+'</td>'+
+        '<td style="padding:7px 10px">'+(l.partNum||'—')+'</td>'+
+        '<td style="padding:7px 10px">'+l.desc+'</td>'+
+        '<td style="padding:7px 10px;text-align:right">'+l.qty+'</td>'+
+        '<td style="padding:7px 10px;text-align:right">'+poCurr+fmt(l.unitPrice)+'</td>'+
+        '<td style="padding:7px 10px;text-align:right;font-weight:700">'+poCurr+fmt(l.extPrice)+'</td>'+
+      '</tr>';
     });
-    html+='</tbody></table></div>';
-  } else if(po.payment){
-    html+='<div style="padding:8px 13px;background:#f7f8fc;border-radius:6px;font-size:11.5px;margin-bottom:14px"><b>Payment Terms:</b> '+po.payment+'</div>';
+  } else {
+    lineRows = '<tr><td colspan="6" style="padding:16px;text-align:center;color:#999">No line items</td></tr>';
   }
-
-  // Notes
-  if(po.notes){
-    html+='<div class="notes-box"><div class="notes-label">Notes / ملاحظات</div>'+esc(po.notes)+'</div>';
+  var body='';
+  body+='<div style="padding:16px 20px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">';
+  var _poSubmitter=(function(){var n=po.reqBy||getSubmittedBy();var u=DB.users.find(function(x){return x.name===n;});return u||{name:n,phone:'',email:''};})();
+  var _docCBg=S.docCardBg||'#f5f8ff';
+  body+='<div style="padding:11px;background:'+_docCBg+';border-radius:8px;border:1px solid #e2e6ef"><div style="font-weight:700;color:#1a4fa0;margin-bottom:5px;font-size:11px;text-transform:uppercase">'+(S.companyEn||'Company')+' Contacts</div><div><b>Name:</b> '+_poSubmitter.name+'</div>'+(_poSubmitter.phone?'<div><b>Mob:</b> '+_poSubmitter.phone+'</div>':'')+(_poSubmitter.email?'<div><b>Email:</b> '+_poSubmitter.email+'</div>':'')+'<div><b>Prj Ref:</b> '+(po.projRef||'—')+'</div></div>';
+  body+='<div style="padding:11px;background:'+(S.docSubBarBg||'#f9f9f9')+';border-radius:8px;border:1px solid '+_pTB()+'"><div style="font-weight:700;color:#1a4fa0;margin-bottom:5px;font-size:11px;text-transform:uppercase">Vendor Contact</div><div><b>Vendor:</b> '+po.vendor+'</div><div><b>Name:</b> '+(po.vendorContact||'—')+'</div><div><b>Mob:</b> '+(po.vendorMob||'—')+'</div><div><b>Email:</b> '+(po.vendorEmail||'—')+'</div><div><b>Quote:</b> '+(po.quoteRef||'—')+'</div></div></div>';
+  body+='<table style="width:100%;border-collapse:collapse;background:transparent"><thead><tr style="background:'+_pH()+';color:'+_pHT()+'">'+'<th style="padding:7px 10px;text-align:left">#</th><th style="padding:7px 10px;text-align:left">Part No.</th><th style="padding:7px 10px;text-align:left">Description</th><th style="padding:7px 10px;text-align:right">Qty</th><th style="padding:7px 10px;text-align:right">Unit Price ('+po.currency+')</th><th style="padding:7px 10px;text-align:right">Total ('+po.currency+')</th></tr></thead><tbody>'+lineRows+'</tbody>';
+  body+='<tfoot>';
+  body+='<tr style="background:#f5f8ff"><td colspan="5" style="padding:8px 10px;text-align:right;font-weight:700">Subtotal</td><td style="padding:8px 10px;text-align:right;font-weight:700">'+poCurr+fmt(sub)+'</td></tr>';
+  if(discPctH>0) body+=
+    '<tr style="background:#fce8e8"><td colspan="5" style="padding:7px 10px;text-align:right;color:#d94040">Discount ('+discPctH+'%)</td><td style="padding:7px 10px;text-align:right;color:#d94040;font-weight:700">- '+poCurr+fmt(discAmtH)+'</td></tr>'+
+    '<tr style="background:#f5f8ff"><td colspan="5" style="padding:6px 10px;text-align:right;color:#555">After Discount</td><td style="padding:6px 10px;text-align:right;font-weight:700">'+poCurr+fmt(afterDiscH)+'</td></tr>';
+  if(!isIntlPO) body+='<tr style="background:#fffde7"><td colspan="5" style="padding:7px 10px;text-align:right;color:#666">VAT 15%</td><td style="padding:7px 10px;text-align:right">SAR '+fmt(vatH)+'</td></tr>';
+  body+='<tr style="background:#e4f7f0"><td colspan="5" style="padding:9px 10px;text-align:right;font-weight:700;color:#1a4fa0">'+(isIntlPO?'Total':'Total with VAT')+'</td><td style="padding:9px 10px;text-align:right;font-weight:700;color:#1a4fa0">'+poCurr+fmt(totalH)+(isIntlPO&&po.currency!=='SAR'?'<div style="font-size:10px;color:#888;margin-top:2px">≈ SAR '+fmt(totalH*poEx)+'</div>':'')+'</td></tr></tfoot></table>';
+  var schedHTML='';
+  if(po.paymentSchedule&&po.paymentSchedule.length){
+    schedHTML='<table style="width:100%;border-collapse:collapse;margin-top:4px;font-size:12px"><thead><tr style="background:#e8f0fb"><th style="padding:5px 9px;text-align:left;color:#1a4fa0">Milestone</th><th style="padding:5px 9px;text-align:right;color:#1a4fa0">%</th><th style="padding:5px 9px;text-align:right;color:#1a4fa0">Amount (SAR)</th><th style="padding:5px 9px;text-align:center;color:#1a4fa0">Status</th></tr></thead><tbody>';
+    var discAmtH2=po.discountAmt||0; var afterDiscH2=(po.subtotal||0)-discAmtH2; var vatH2=isIntlPO?0:afterDiscH2*.15; var grandH2=afterDiscH2+vatH2;
+    po.paymentSchedule.forEach(function(r,i){
+      var amt=(r.pct/100)*grandH2;
+      var statusColor=r.status==='Paid'?'#1a9e72':'#a06800';
+      var statusBg=r.status==='Paid'?'#dcfce7':'#fff8e6';
+      schedHTML+='<tr style="background:'+(i%2?'#f5f8ff':'#fff')+'"><td style="padding:6px 9px">'+r.desc+'</td><td style="padding:6px 9px;text-align:right">'+r.pct+'%</td><td style="padding:6px 9px;text-align:right;font-weight:700">'+fmt(amt)+'</td><td style="padding:6px 9px;text-align:center"><span style="background:'+statusBg+';color:'+statusColor+';padding:2px 9px;border-radius:10px;font-size:11px;font-weight:600">'+r.status+'</span></td></tr>';
+    });
+    schedHTML+='</tbody></table>';
+  } else {
+    schedHTML='<div>'+(po.payment||'In Advanced')+'</div>';
   }
+  body+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px"><div style="padding:10px;background:#f5f8ff;border-radius:7px"><div style="font-weight:700;color:#1a4fa0;margin-bottom:6px;font-size:11px;text-transform:uppercase;letter-spacing:1px">Payment Schedule</div>'+schedHTML+'</div><div style="padding:10px;background:#f9f9f9;border-radius:7px"><div><b>Delivery:</b> '+(po.delivery||'Immediate')+(po.deliveryDate?' &amp;nbsp;|&amp;nbsp; <b>Expected:</b> '+po.deliveryDate:'')+'</div><div><b>Location:</b> '+(po.location||S.deliveryLoc||'—')+'</div>'+(po.deliveryContact?'<div><b>Attn:</b> '+po.deliveryContact+(po.deliveryMob?' | '+po.deliveryMob:'')+'</div>':'')+(_poSubmitter.name?'<div><b>Contact:</b> '+_poSubmitter.name+'</div>':'')+(_poSubmitter.phone?'<div><b>Mob:</b> '+_poSubmitter.phone+'</div>':'')+(_poSubmitter.email?'<div><b>Email:</b> '+_poSubmitter.email+'</div>':'')+'</div></div>';
+  // Signature block with actual approver stamps
+  body+=buildSigBlock('po', po, po.reqBy||getSubmittedBy())+'</div>';
+  // Build custom PO header: Logo+Company LEFT, PURCHASE ORDER title+meta RIGHT
+  var _hdrColor = S.headerBgColor||'#1a4fa0';
+  var _fontColor= S.headerFontColor||'#ffffff';
+  var _logoHTML = S.logoData
+    ? '<img src="'+S.logoData+'" style="height:50px;max-width:130px;object-fit:contain"/>'
+    : '<div style="font-size:18px;font-weight:900;color:#fff">'+S.companyEn+'</div>';
 
-  // Signature
-  html+=buildSigBlock('po',po,po.reqBy||getSubmittedBy());
+  // Sub-bar: company address + PO meta
+  var _subBar =
+    '<div style="border-top:1.5px solid '+_hdrColor+'44;padding:7px 20px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#555;background:#f9fafb">'+
+      '<div>'+[S.addressEn,S.phone,S.email].filter(Boolean).join(' &nbsp;|&nbsp; ')+'</div>'+
+      '<div style="text-align:right;font-weight:600;color:#333">'+
+        '<span>Date: '+po.date+'</span>'+
+        (isIntlPO?' &nbsp;|&nbsp; <span style="background:'+_hdrColor+';color:#fff;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:700">'+po.currency+' — International</span>':'')+
+      '</div>'+
+    '</div>';
 
-  html+='</div></body></html>';
-  return html;
+  var poHeader =
+    '<div style="background:'+_hdrColor+';padding:12px 20px;display:flex;justify-content:space-between;align-items:center;-webkit-print-color-adjust:exact;print-color-adjust:exact">'+
+      // LEFT: Logo + Company name
+      '<div style="display:flex;align-items:center;gap:10px">'+
+        '<div style="background:#fff;border-radius:6px;padding:5px 7px;display:flex;align-items:center">'+_logoHTML+'</div>'+
+        '<div>'+
+          '<div style="color:'+_fontColor+';font-size:15px;font-weight:800;letter-spacing:-.2px">'+S.companyEn+'</div>'+
+          (S.companyAr?'<div style="color:'+_fontColor+'cc;font-size:11px;direction:rtl">'+S.companyAr+'</div>':'')+
+        '</div>'+
+      '</div>'+
+      // RIGHT: PURCHASE ORDER title + PO number below
+      '<div style="text-align:right">'+
+        '<div style="font-size:35px;font-weight:900;color:'+_fontColor+';letter-spacing:.5px;line-height:1">PURCHASE ORDER</div>'+
+        '<div style="font-size:30px;font-weight:800;color:'+_fontColor+'cc;letter-spacing:1px;margin-top:2px;line-height:1">'+po.num+'</div>'+
+      '</div>'+
+    '</div>'+
+    _subBar;
+
+  return '<div style="'+getDocStyle()+'">'+poHeader+wrapBody(body)+'</div>';
 }
+
 
 
 function viewPO(id){
@@ -5642,7 +5777,42 @@ function getPettyHTML(pc){
   body+='<tfoot><tr style="background:#f5f8ff"><td colspan="6" style="padding:8px 10px;font-weight:700;text-align:right">\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a \u0628\u062f\u0648\u0646 \u0627\u0644\u0636\u0631\u064a\u0628\u0629</td><td style="padding:8px 10px;font-weight:700">'+fmt(sub)+'</td></tr><tr style="background:#fffde7"><td colspan="6" style="padding:7px 10px;text-align:right">\u0642\u064a\u0645\u0629 \u0627\u0644\u0636\u0631\u064a\u0628\u0629 15%</td><td style="padding:7px 10px">'+fmt(vat)+'</td></tr><tr style="background:'+_pT()+'"><td colspan="6" style="padding:9px 10px;font-weight:700;color:'+_pH()+';text-align:right">\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a \u0634\u0627\u0645\u0644 \u0627\u0644\u0636\u0631\u064a\u0628\u0629</td><td style="padding:9px 10px;font-weight:700;color:'+_pH()+'">'+fmt(sub+vat)+'</td></tr></tfoot></table>';
   if(pc.notes) body+='<div style="margin-top:12px;padding:8px;background:#f5f8ff;border-radius:6px"><b>\u0645\u0644\u0627\u062d\u0638\u0627\u062a:</b> '+pc.notes+'</div>';
   body+=buildSigBlock('pc', pc, pc.owner||getSubmittedBy())+'</div>';
-  return '<div style="'+getDocStyle()+'">'+getDocHeader()+wrapBody(body)+'</div>';
+  // Build custom PO header: Logo+Company LEFT, PURCHASE ORDER title+meta RIGHT
+  var _hdrColor = S.headerBgColor||'#1a4fa0';
+  var _fontColor= S.headerFontColor||'#ffffff';
+  var _logoHTML = S.logoData
+    ? '<img src="'+S.logoData+'" style="height:50px;max-width:130px;object-fit:contain"/>'
+    : '<div style="font-size:18px;font-weight:900;color:#fff">'+S.companyEn+'</div>';
+
+  // Sub-bar: company address + PO meta
+  var _subBar =
+    '<div style="border-top:1.5px solid '+_hdrColor+'44;padding:7px 20px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#555;background:#f9fafb">'+
+      '<div>'+[S.addressEn,S.phone,S.email].filter(Boolean).join(' &nbsp;|&nbsp; ')+'</div>'+
+      '<div style="text-align:right;font-weight:600;color:#333">'+
+        '<span>Date: '+po.date+'</span>'+
+        (isIntlPO?' &nbsp;|&nbsp; <span style="background:'+_hdrColor+';color:#fff;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:700">'+po.currency+' — International</span>':'')+
+      '</div>'+
+    '</div>';
+
+  var poHeader =
+    '<div style="background:'+_hdrColor+';padding:12px 20px;display:flex;justify-content:space-between;align-items:center;-webkit-print-color-adjust:exact;print-color-adjust:exact">'+
+      // LEFT: Logo + Company name
+      '<div style="display:flex;align-items:center;gap:10px">'+
+        '<div style="background:#fff;border-radius:6px;padding:5px 7px;display:flex;align-items:center">'+_logoHTML+'</div>'+
+        '<div>'+
+          '<div style="color:'+_fontColor+';font-size:15px;font-weight:800;letter-spacing:-.2px">'+S.companyEn+'</div>'+
+          (S.companyAr?'<div style="color:'+_fontColor+'cc;font-size:11px;direction:rtl">'+S.companyAr+'</div>':'')+
+        '</div>'+
+      '</div>'+
+      // RIGHT: PURCHASE ORDER title + PO number below
+      '<div style="text-align:right">'+
+        '<div style="font-size:35px;font-weight:900;color:'+_fontColor+';letter-spacing:.5px;line-height:1">PURCHASE ORDER</div>'+
+        '<div style="font-size:30px;font-weight:800;color:'+_fontColor+'cc;letter-spacing:1px;margin-top:2px;line-height:1">'+po.num+'</div>'+
+      '</div>'+
+    '</div>'+
+    _subBar;
+
+  return '<div style="'+getDocStyle()+'">'+poHeader+wrapBody(body)+'</div>';
 }
 function renderPettyTable(){
   DB.petty.forEach(function(pc){if(!pc.approvalStatus){pc.approvalStatus=pc.status==='Approved'?'Approved':'Pending';pc.paymentStatus='Pending Payment';}});
@@ -6051,14 +6221,49 @@ function getInvoiceHTML(inv){
   body+='<div style="color:#78350f;font-size:13px">Please issue an official tax invoice to <strong>'+inv.client+'</strong> based on the details below and ensure delivery before the due date of <strong>'+(inv.dueDate||'—')+'</strong>. Payment terms: <strong>'+(inv.terms||'30 days')+'</strong>.</div></div></div>';
 
   body+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">';
-  body+='<div style="padding:11px;background:#f5f8ff;border-radius:8px;border:1px solid #e2e6ef"><div style="font-weight:700;color:'+_pH()+';margin-bottom:5px;font-size:11px;text-transform:uppercase">Project Details</div>'+(function(){var p=DB.projects.find(function(x){return x.ref===inv.proj;});return p?'<div><b>Project Name:</b> '+p.name+'</div>':'';}())+'<div><b>Project Ref:</b> '+(inv.proj||'—')+'</div><div><b>Client:</b> '+inv.client+'</div><div><b>Client PO Ref:</b> '+(inv.poRef||'—')+'</div><div><b>Invoice No:</b> '+inv.num+'</div><div><b>Date:</b> '+inv.date+'</div><div><b>Due Date:</b> '+(inv.dueDate||'—')+'</div><div><b>Terms:</b> '+(inv.terms||'30 days')+'</div></div>';
-  body+='<div style="padding:11px;background:#f9f9f9;border-radius:8px;border:1px solid #e2e6ef"><div style="font-weight:700;color:'+_pH()+';margin-bottom:5px;font-size:11px;text-transform:uppercase">Requested By</div><div style="font-size:14px;font-weight:700">'+(inv.reqBy||getSubmittedBy())+'</div>'+(function(){var u=DB.users.find(function(x){return x.name===(inv.reqBy||getSubmittedBy());});return u?'<div style="margin-top:4px;font-size:12px;color:#555">'+(u.phone?'<div>📞 '+u.phone+'</div>':'')+(u.email?'<div>✉ '+u.email+'</div>':'')+'</div>':'';}())+(inv.notes?'<div style="margin-top:6px;padding:6px 8px;background:#fff;border-radius:5px;font-size:12px;color:#666;border:1px solid #e2e6ef"><b>Notes:</b> '+inv.notes+'</div>':'')+'</div></div>';
+  body+='<div style="padding:11px;background:'+(S.docCardBg||'#f5f8ff')+';border-radius:8px;border:1px solid '+_pTB()+'"><div style="font-weight:700;color:'+_pH()+';margin-bottom:5px;font-size:11px;text-transform:uppercase">Project Details</div>'+(function(){var p=DB.projects.find(function(x){return x.ref===inv.proj;});return p?'<div><b>Project Name:</b> '+p.name+'</div>':'';}())+'<div><b>Project Ref:</b> '+(inv.proj||'—')+'</div><div><b>Client:</b> '+inv.client+'</div><div><b>Client PO Ref:</b> '+(inv.poRef||'—')+'</div><div><b>Invoice No:</b> '+inv.num+'</div><div><b>Date:</b> '+inv.date+'</div><div><b>Due Date:</b> '+(inv.dueDate||'—')+'</div><div><b>Terms:</b> '+(inv.terms||'30 days')+'</div></div>';
+  body+='<div style="padding:11px;background:'+(S.docSubBarBg||'#f9f9f9')+';border-radius:8px;border:1px solid '+_pTB()+'"><div style="font-weight:700;color:'+_pH()+';margin-bottom:5px;font-size:11px;text-transform:uppercase">Requested By</div><div style="font-size:14px;font-weight:700">'+(inv.reqBy||getSubmittedBy())+'</div>'+(function(){var u=DB.users.find(function(x){return x.name===(inv.reqBy||getSubmittedBy());});return u?'<div style="margin-top:4px;font-size:12px;color:#555">'+(u.phone?'<div>📞 '+u.phone+'</div>':'')+(u.email?'<div>✉ '+u.email+'</div>':'')+'</div>':'';}())+(inv.notes?'<div style="margin-top:6px;padding:6px 8px;background:#fff;border-radius:5px;font-size:12px;color:#666;border:1px solid #e2e6ef"><b>Notes:</b> '+inv.notes+'</div>':'')+'</div></div>';
   body+='<table style="width:100%;border-collapse:collapse"><thead><tr style="background:'+_pH()+';color:'+_pHT()+'"><th style="padding:7px 10px;text-align:left">#</th><th style="padding:7px 10px;text-align:left">Description</th><th style="padding:7px 10px;text-align:right">Qty</th><th style="padding:7px 10px;text-align:right">Unit Price (SAR)</th><th style="padding:7px 10px;text-align:right">Ext Price (SAR)</th></tr></thead><tbody>'+lineRows+'</tbody>';
   body+='<tfoot><tr style="background:#f5f8ff"><td colspan="4" style="padding:8px 10px;text-align:right;font-weight:700">Subtotal</td><td style="padding:8px 10px;text-align:right;font-weight:700">'+fmt(sub)+'</td></tr><tr style="background:#fffde7"><td colspan="4" style="padding:7px 10px;text-align:right;color:#666">15% VAT</td><td style="padding:7px 10px;text-align:right">'+fmt(vat)+'</td></tr><tr style="background:'+_pT()+'"><td colspan="4" style="padding:9px 10px;text-align:right;font-weight:700;color:'+_pH()+'">Total with VAT</td><td style="padding:9px 10px;text-align:right;font-weight:700;color:'+_pH()+'">'+fmt(total)+'</td></tr></tfoot></table>';
 
   // Signature block with approval stamps
   body+=buildSigBlock('inv', inv, inv.reqBy||getSubmittedBy())+'</div>';
-  return '<div style="'+getDocStyle()+'">'+getDocHeader()+wrapBody(body)+'</div>';
+  // Build custom PO header: Logo+Company LEFT, PURCHASE ORDER title+meta RIGHT
+  var _hdrColor = S.headerBgColor||'#1a4fa0';
+  var _fontColor= S.headerFontColor||'#ffffff';
+  var _logoHTML = S.logoData
+    ? '<img src="'+S.logoData+'" style="height:50px;max-width:130px;object-fit:contain"/>'
+    : '<div style="font-size:18px;font-weight:900;color:#fff">'+S.companyEn+'</div>';
+
+  // Sub-bar: company address + PO meta
+  var _subBar =
+    '<div style="border-top:1.5px solid '+_hdrColor+'44;padding:7px 20px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#555;background:#f9fafb">'+
+      '<div>'+[S.addressEn,S.phone,S.email].filter(Boolean).join(' &nbsp;|&nbsp; ')+'</div>'+
+      '<div style="text-align:right;font-weight:600;color:#333">'+
+        '<span>Date: '+po.date+'</span>'+
+        (isIntlPO?' &nbsp;|&nbsp; <span style="background:'+_hdrColor+';color:#fff;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:700">'+po.currency+' — International</span>':'')+
+      '</div>'+
+    '</div>';
+
+  var poHeader =
+    '<div style="background:'+_hdrColor+';padding:12px 20px;display:flex;justify-content:space-between;align-items:center;-webkit-print-color-adjust:exact;print-color-adjust:exact">'+
+      // LEFT: Logo + Company name
+      '<div style="display:flex;align-items:center;gap:10px">'+
+        '<div style="background:#fff;border-radius:6px;padding:5px 7px;display:flex;align-items:center">'+_logoHTML+'</div>'+
+        '<div>'+
+          '<div style="color:'+_fontColor+';font-size:15px;font-weight:800;letter-spacing:-.2px">'+S.companyEn+'</div>'+
+          (S.companyAr?'<div style="color:'+_fontColor+'cc;font-size:11px;direction:rtl">'+S.companyAr+'</div>':'')+
+        '</div>'+
+      '</div>'+
+      // RIGHT: PURCHASE ORDER title + PO number below
+      '<div style="text-align:right">'+
+        '<div style="font-size:35px;font-weight:900;color:'+_fontColor+';letter-spacing:.5px;line-height:1">PURCHASE ORDER</div>'+
+        '<div style="font-size:30px;font-weight:800;color:'+_fontColor+'cc;letter-spacing:1px;margin-top:2px;line-height:1">'+po.num+'</div>'+
+      '</div>'+
+    '</div>'+
+    _subBar;
+
+  return '<div style="'+getDocStyle()+'">'+poHeader+wrapBody(body)+'</div>';
 }
 function viewInvoice(id){document.getElementById('invoice-preview-content').innerHTML=getInvoiceHTML(DB.invoices.find(function(x){return x.id===id;}));openModal('modal-invoice-preview');}
 function previewInvoice(){
@@ -6388,12 +6593,12 @@ function getBOQHTML(boq, hidePrices){
   body+='<div style="padding:16px 20px">';
   // Info grid
   body+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">';
-  body+='<div style="padding:11px;background:#f5f8ff;border-radius:8px;border:1px solid #e2e6ef">';
+  body+='<div style="padding:11px;background:'+(S.docCardBg||'#f5f8ff')+';border-radius:8px;border:1px solid '+_pTB()+'">';
   body+='<div style="font-weight:700;color:'+_pH()+';margin-bottom:5px;font-size:11px;text-transform:uppercase">Project Details</div>';
   body+='<div><b>Project Ref:</b> '+boq.projRef+'</div>';
   body+='<div><b>Prepared By:</b> '+(boq.preparedBy||getSubmittedBy())+'</div>';
   body+='<div><b>Date:</b> '+boq.date+'</div></div>';
-  body+='<div style="padding:11px;background:#f9f9f9;border-radius:8px;border:1px solid #e2e6ef">';
+  body+='<div style="padding:11px;background:'+(S.docSubBarBg||'#f9f9f9')+';border-radius:8px;border:1px solid '+_pTB()+'">';
   body+='<div style="font-weight:700;color:'+_pH()+';margin-bottom:5px;font-size:11px;text-transform:uppercase">Submitted To</div>';
   body+='<div style="font-size:14px;font-weight:700">'+boq.client+'</div></div></div>';
   // Table
@@ -6425,7 +6630,42 @@ function getBOQHTML(boq, hidePrices){
   body+='<div style="text-align:center"><div style="border-top:1px solid #333;padding-top:5px;margin-top:26px">Prepared By<br><em>'+(boq.preparedBy||getSubmittedBy())+'</em></div></div>';
   body+='<div style="text-align:center"><div style="border-top:1px solid #333;padding-top:5px;margin-top:26px">Received By<br>&nbsp;</div></div>';
   body+='</div></div>';
-  return '<div style="'+getDocStyle()+'">'+getDocHeader()+wrapBody(body)+'</div>';
+  // Build custom PO header: Logo+Company LEFT, PURCHASE ORDER title+meta RIGHT
+  var _hdrColor = S.headerBgColor||'#1a4fa0';
+  var _fontColor= S.headerFontColor||'#ffffff';
+  var _logoHTML = S.logoData
+    ? '<img src="'+S.logoData+'" style="height:50px;max-width:130px;object-fit:contain"/>'
+    : '<div style="font-size:18px;font-weight:900;color:#fff">'+S.companyEn+'</div>';
+
+  // Sub-bar: company address + PO meta
+  var _subBar =
+    '<div style="border-top:1.5px solid '+_hdrColor+'44;padding:7px 20px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#555;background:#f9fafb">'+
+      '<div>'+[S.addressEn,S.phone,S.email].filter(Boolean).join(' &nbsp;|&nbsp; ')+'</div>'+
+      '<div style="text-align:right;font-weight:600;color:#333">'+
+        '<span>Date: '+po.date+'</span>'+
+        (isIntlPO?' &nbsp;|&nbsp; <span style="background:'+_hdrColor+';color:#fff;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:700">'+po.currency+' — International</span>':'')+
+      '</div>'+
+    '</div>';
+
+  var poHeader =
+    '<div style="background:'+_hdrColor+';padding:12px 20px;display:flex;justify-content:space-between;align-items:center;-webkit-print-color-adjust:exact;print-color-adjust:exact">'+
+      // LEFT: Logo + Company name
+      '<div style="display:flex;align-items:center;gap:10px">'+
+        '<div style="background:#fff;border-radius:6px;padding:5px 7px;display:flex;align-items:center">'+_logoHTML+'</div>'+
+        '<div>'+
+          '<div style="color:'+_fontColor+';font-size:15px;font-weight:800;letter-spacing:-.2px">'+S.companyEn+'</div>'+
+          (S.companyAr?'<div style="color:'+_fontColor+'cc;font-size:11px;direction:rtl">'+S.companyAr+'</div>':'')+
+        '</div>'+
+      '</div>'+
+      // RIGHT: PURCHASE ORDER title + PO number below
+      '<div style="text-align:right">'+
+        '<div style="font-size:35px;font-weight:900;color:'+_fontColor+';letter-spacing:.5px;line-height:1">PURCHASE ORDER</div>'+
+        '<div style="font-size:30px;font-weight:800;color:'+_fontColor+'cc;letter-spacing:1px;margin-top:2px;line-height:1">'+po.num+'</div>'+
+      '</div>'+
+    '</div>'+
+    _subBar;
+
+  return '<div style="'+getDocStyle()+'">'+poHeader+wrapBody(body)+'</div>';
 }
 function previewBOQ(){
   currentBOQId=null; boqHidePrices=false;
@@ -7867,6 +8107,70 @@ function loadPdfColorFields(){
   set('pdf-tott-hex',  S.pdfTotalRowText||'#1a4fa0');
   set('pdf-alt-color', S.pdfAltRow||'#f5f8ff');
   set('pdf-alt-hex',   S.pdfAltRow||'#f5f8ff');
+}
+
+function syncDesignColor(colorId, hexId){
+  var c=document.getElementById(colorId);
+  var h=document.getElementById(hexId);
+  if(c&&h) h.value=c.value;
+}
+
+function previewDocDesign(){
+  var bg   = document.getElementById('hdr-bg-color')  ? document.getElementById('hdr-bg-color').value  : '#1a4fa0';
+  var fc   = document.getElementById('hdr-font-color') ? document.getElementById('hdr-font-color').value : '#ffffff';
+  var pad  = (document.getElementById('hdr-padding')   ? document.getElementById('hdr-padding').value   : '14')+'px 12px';
+  var sz   = (document.getElementById('hdr-text-size') ? document.getElementById('hdr-text-size').value : '15')+'px';
+  var cbg  = document.getElementById('doc-card-bg')    ? document.getElementById('doc-card-bg').value    : '#f5f8ff';
+  var sbbg = document.getElementById('doc-subbar-bg')  ? document.getElementById('doc-subbar-bg').value  : '#f9fafb';
+  var ff   = document.getElementById('doc-font-family') ? document.getElementById('doc-font-family').value : 'Calibri,Arial,sans-serif';
+  var hdr  = document.getElementById('ddp-header');
+  var sub  = document.getElementById('ddp-subbar');
+  var crd  = document.getElementById('ddp-card');
+  if(hdr){ hdr.style.background=bg; hdr.style.padding=pad; hdr.querySelectorAll('div').forEach(function(d){d.style.color=fc;}); }
+  if(sub){ sub.style.background=sbbg; }
+  if(crd){ crd.style.background=cbg; }
+  var body = document.getElementById('ddp-body');
+  if(body) body.style.fontFamily=ff;
+}
+
+function saveDocDesign(){
+  S.headerBgColor    = document.getElementById('hdr-bg-color')   ? document.getElementById('hdr-bg-color').value   : S.headerBgColor;
+  S.headerFontColor  = document.getElementById('hdr-font-color')  ? document.getElementById('hdr-font-color').value  : S.headerFontColor;
+  S.headerTextSize   = document.getElementById('hdr-text-size')   ? document.getElementById('hdr-text-size').value   : S.headerTextSize;
+  S.headerPadding    = document.getElementById('hdr-padding')     ? document.getElementById('hdr-padding').value     : S.headerPadding;
+  S.docFontSize      = document.getElementById('doc-font-size')   ? document.getElementById('doc-font-size').value   : '12';
+  S.docFontFamily    = document.getElementById('doc-font-family') ? document.getElementById('doc-font-family').value : 'Calibri,Arial,sans-serif';
+  S.docPageMargin    = document.getElementById('doc-page-margin') ? document.getElementById('doc-page-margin').value : '14';
+  S.docCardBg        = document.getElementById('doc-card-bg')     ? document.getElementById('doc-card-bg').value     : '#f5f8ff';
+  S.docSubBarBg      = document.getElementById('doc-subbar-bg')   ? document.getElementById('doc-subbar-bg').value   : '#f9fafb';
+  var dtb=document.getElementById('doc-table-border'); S.docTableBorder = dtb?dtb.value:'#e2e6ef';
+  var dar=document.getElementById('doc-alt-row-hex');  S.docTableAltRow = dar&&dar.value?dar.value:'transparent';
+  saveToCloud();
+  var el=document.getElementById('doc-design-saved');
+  if(el){el.style.display='block';setTimeout(function(){el.style.display='none';},2000);}
+  showToast('✅ Document design saved.');
+}
+
+function resetDocDesign(){
+  var defaults={
+    'hdr-bg-color':'#1a4fa0','hdr-bg-hex':'#1a4fa0',
+    'hdr-font-color':'#ffffff','hdr-font-hex':'#ffffff',
+    'hdr-text-size':'15','hdr-padding':'14',
+    'doc-font-size':'12','doc-font-family':'Calibri,Arial,sans-serif',
+    'doc-page-margin':'14',
+    'doc-card-bg':'#f5f8ff','doc-card-bg-hex':'#f5f8ff',
+    'doc-subbar-bg':'#f9fafb','doc-subbar-bg-hex':'#f9fafb',
+    'doc-table-border':'#e2e6ef','doc-table-border-hex':'#e2e6ef',
+    'doc-alt-row':'#f5f8ff','doc-alt-row-hex':'transparent'
+  };
+  Object.keys(defaults).forEach(function(id){
+    var el=document.getElementById(id); if(el) el.value=defaults[id];
+  });
+  var dtbEl=document.getElementById('doc-table-border'); if(dtbEl) dtbEl.value=S.docTableBorder||'#e2e6ef';
+  var dtbhEl=document.getElementById('doc-table-border-hex'); if(dtbhEl) dtbhEl.value=S.docTableBorder||'#e2e6ef';
+  var darEl=document.getElementById('doc-alt-row'); if(darEl) darEl.value=(S.docTableAltRow&&S.docTableAltRow!=='transparent')?S.docTableAltRow:'#f5f8ff';
+  var darhEl=document.getElementById('doc-alt-row-hex'); if(darhEl) darhEl.value=S.docTableAltRow||'transparent';
+  previewDocDesign();
 }
 
 function syncPdfColor(colorId, hexId){
