@@ -640,7 +640,8 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
                     <button class="btn btn-accent btn-sm" onclick="exportCostingExcel()">📊 Export BOQ (Excel)</button>
                   </div>
                   <div style="display:flex;gap:8px">
-                    <button class="btn btn-ghost btn-sm" onclick="importExcelItems()" title="Import items from Excel">📥 Import Excel</button>
+                    <button class="btn btn-ghost btn-sm" onclick="importExcelItems()" title="Import full costing (Main+Sub items with all columns)">📥 Import Full</button>
+                    <button class="btn btn-ghost btn-sm" onclick="importMainItemsOnly()" title="Import main items only: Description / Qty / Unit / Notes">📋 Import Items</button>
                     <button class="btn btn-ghost btn-sm" onclick="downloadImportTemplate()" title="Download Excel template with correct format">📋 Template</button>
                     <button class="btn btn-primary btn-sm" onclick="addMainItem()">+ Add Item</button>
                   </div>
@@ -3088,6 +3089,121 @@ function downloadImportTemplate(){
   _downloadExcel('costing_import_template.xlsx', data);
 }
 
+// ── Simple main-items-only import ───────────────────────────────
+// Format: Description | Qty | Unit | Notes (4 columns, no header required)
+function downloadMainItemsTemplate(){
+  const data=[
+    ['Main Items Import Template — Simple Format'],
+    ['Description (A)', 'Qty (B)', 'Unit (C)', 'Notes (D)'],
+    ['CCTV Camera System', 10, 'Pcs', 'Indoor Fixed Dome 4MP'],
+    ['Access Control System', 4, 'Set', 'HID Card Reader'],
+    ['Intercom System', 1, 'Lot', 'IP Video Intercom'],
+    ['Network Infrastructure', 1, 'Lot', 'Cat6 Cabling'],
+    ['Installation & Commissioning', 1, 'Lot', ''],
+  ];
+  _downloadExcel('main_items_template.xlsx', data);
+}
+
+function importMainItemsOnly(){
+  // Create a separate hidden file input for simple import
+  var inp = document.getElementById('main-items-import-input');
+  if(!inp){
+    inp = document.createElement('input');
+    inp.type = 'file'; inp.id = 'main-items-import-input';
+    inp.accept = '.xlsx,.xls,.csv'; inp.style.display = 'none';
+    inp.addEventListener('change', handleMainItemsImport);
+    document.body.appendChild(inp);
+  }
+  inp.value = ''; inp.click();
+}
+
+async function handleMainItemsImport(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  e.target.value = '';
+
+  const buf = await file.arrayBuffer().catch(err=>{ alert('Cannot read file: '+err.message); return null; });
+  if(!buf) return;
+
+  if(typeof XLSX !== 'undefined'){
+    try{
+      const wb = XLSX.read(buf);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      _processMainItemsRows(rows);
+    }catch(err){ alert('Parse error: '+err.message); }
+  } else {
+    // Ask parent portal to parse
+    try{
+      window.parent.postMessage({__zeina_excel_parse:true, buf}, '*');
+    }catch(ex){ alert('Cannot parse in this context.'); return; }
+    const handler = ev => {
+      if(!ev.data||!ev.data.__zeina_excel_parsed) return;
+      window.removeEventListener('message', handler);
+      _processMainItemsRows(ev.data.rows);
+    };
+    window.addEventListener('message', handler);
+    setTimeout(()=>window.removeEventListener('message', handler), 8000);
+  }
+}
+
+function _processMainItemsRows(rows){
+  if(!rows||!rows.length){ alert('No data in file.'); return; }
+  const q = getQ();
+  if(!q){ alert('No active quotation.'); return; }
+
+  // Skip header row(s) — detect by checking if col A contains "description" or "desc"
+  let dataStart = 0;
+  for(let i=0; i<Math.min(rows.length,5); i++){
+    const a = String(rows[i][0]||'').toLowerCase();
+    if(a.includes('desc') || a.includes('main item') || a.includes('template')){
+      dataStart = i+1; break;
+    }
+  }
+
+  const newItems = [];
+  let added = 0, skipped = 0;
+
+  rows.slice(dataStart).forEach((row)=>{
+    // Skip empty rows
+    if(row.every(c=>!String(c||'').trim())) return;
+
+    const desc  = String(row[0]||'').trim();  // Col A: Description
+    const qty   = parseFloat(row[1])||1;       // Col B: Qty
+    const unit  = String(row[2]||'Pcs').trim()||'Pcs'; // Col C: Unit
+    const notes = String(row[3]||'').trim();   // Col D: Notes
+
+    if(!desc){ skipped++; return; }
+
+    const item = blankMainItem();
+    item.desc  = desc;
+    item.qty   = qty;
+    item.unit  = unit;
+    item.notes = notes;
+    // Leave subs empty — user fills in pricing manually
+    item.subs  = [];
+
+    newItems.push(item);
+    added++;
+  });
+
+  if(!added){ alert('No valid items found. Make sure column A has the description.'); return; }
+
+  // Append or replace?
+  const mode = (q.items&&q.items.length)
+    ? confirm('Add '+added+' items to existing '+q.items.length+' items? OK=Append / Cancel=Replace')
+    : false;
+
+  if(mode){
+    q.items = (q.items||[]).concat(newItems);
+  } else {
+    q.items = newItems;
+  }
+
+  saveNow(); renderItems(); renderTotals();
+  alert('✅ Imported '+added+' main item(s).'+(skipped?' Skipped '+skipped+' empty rows.':''));
+}
+
 // ── Entry point: trigger file picker ────────────────────────────
 function importExcelItems(){
   document.getElementById('excel-import-input').click();
@@ -4600,54 +4716,77 @@ function exportCostingExcel(){
 // ── Excel/CSV Export Helper (works with or without XLSX library) ────────────────
 function _downloadExcel(filename, sheetData){
   console.log('[Excel] Attempting download:', filename, 'rows:', sheetData.length);
-  // Strategy 1: use XLSX if available (works standalone)
-  if(typeof XLSX !== 'undefined'){
-    console.log('[Excel] Using XLSX library');
+
+  const inIframe = window.parent && window.parent !== window;
+
+  // ── Always try postMessage first when in iframe ──────────────
+  // XLSX.writeFile fails silently in blob/iframe contexts even if XLSX loads
+  if(inIframe){
+    if(typeof XLSX !== 'undefined'){
+      try{
+        const ws = XLSX.utils.aoa_to_sheet(sheetData);
+        const colWidths = sheetData.reduce((acc,row)=>{
+          row.forEach((cell,i)=>{ const len=cell?String(cell).length:0; acc[i]=Math.min(60,Math.max(acc[i]||8,len+2)); });
+          return acc;
+        },[]);
+        ws['!cols'] = colWidths.map(w=>({wch:w}));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+        const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+        console.log('[Excel] Sending binary to parent, bytes:', wbout.length);
+        window.parent.postMessage({
+          __zeina_excel_binary: true,
+          filename: filename,
+          buffer: Array.from(new Uint8Array(wbout))
+        }, '*');
+        return;
+      }catch(e){ console.warn('[Excel] XLSX build failed, trying raw postMessage:', e); }
+    }
+    // Fallback: send raw rows to parent and let parent build XLSX
     try{
-      const ws=XLSX.utils.aoa_to_sheet(sheetData);
-      const colWidths=sheetData.reduce((acc,row)=>{
-        row.forEach((cell,i)=>{const len=cell?String(cell).length:0;acc[i]=Math.min(60,Math.max(acc[i]||8,len+2));});
-        return acc;
-      },[]);
-      ws['!cols']=colWidths.map(w=>({wch:w}));
-      const wb=XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb,ws,'Sheet1');
-      XLSX.writeFile(wb,filename);
+      window.parent.postMessage({ __zeina_excel: true, filename: filename, data: sheetData }, '*');
+      console.log('[Excel] Sent raw data to parent');
       return;
-    }catch(e){ console.warn('XLSX failed, trying postMessage:', e); }
+    }catch(e){ console.warn('[Excel] postMessage failed:', e); }
   }
 
-  // Strategy 2: send to parent window for download (works inside portal iframe)
-  // Parent has XLSX loaded — let it handle the file creation
-  try{
-    if(window.parent && window.parent !== window){
-      window.parent.postMessage({
-        __zeina_excel: true,
-        filename: filename,
-        data: sheetData
-      }, '*');
+  // ── Standalone (not in iframe) ───────────────────────────────
+  if(typeof XLSX !== 'undefined'){
+    try{
+      const ws = XLSX.utils.aoa_to_sheet(sheetData);
+      const colWidths = sheetData.reduce((acc,row)=>{
+        row.forEach((cell,i)=>{ const len=cell?String(cell).length:0; acc[i]=Math.min(60,Math.max(acc[i]||8,len+2)); });
+        return acc;
+      },[]);
+      ws['!cols'] = colWidths.map(w=>({wch:w}));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+      const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+      const blob = new Blob([new Uint8Array(wbout)], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
       return;
-    }
-  }catch(e){ console.warn('postMessage failed:', e); }
+    }catch(e){ console.warn('[Excel] standalone XLSX failed:', e); }
+  }
 
-  // Strategy 3: CSV download as final fallback
-  const NL=String.fromCharCode(10);
-  const csv=sheetData.map(row=>row.map(cell=>{
-    const v=cell==null?'':String(cell);
+  // ── Last resort: CSV ─────────────────────────────────────────
+  const NL = String.fromCharCode(10);
+  const csv = sheetData.map(row=>row.map(cell=>{
+    const v = cell==null?'':String(cell);
     return (v.includes(',')||v.includes('"')||v.includes(NL))?'"'+v.replace(/"/g,'""')+'"':v;
   }).join(',')).join(NL);
   try{
-    const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(blob);
-    a.download=filename.replace(/\.xlsx$/i,'.csv');
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+    const blob = new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename.replace(/\.xlsx$/i,'.csv');
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
   }catch(e){
-    console.error('[Excel] CSV data URI failed:', e);
-    alert('Export failed. Please try from the portal or a server (not file://).');
+    alert('Download failed. Try opening the app directly.');
   }
 }
 
