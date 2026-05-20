@@ -2830,6 +2830,24 @@
     }
 
     // Handle Excel download requests from apps inside the iframe
+    // Handle binary XLSX from iframe (more reliable than data arrays)
+    if (event.data && event.data.__zeina_excel_binary === true) {
+      try {
+        var filename = event.data.filename || 'export.xlsx';
+        var buffer   = new Uint8Array(event.data.buffer);
+        var blob     = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+        var a        = document.createElement('a');
+        a.href       = URL.createObjectURL(blob);
+        a.download   = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function(){ URL.revokeObjectURL(a.href); }, 2000);
+        console.log('[Portal] Excel binary download triggered:', filename);
+      } catch(e) { console.error('[Portal] Binary download failed:', e); }
+      return;
+    }
+
     if (event.data && event.data.__zeina_excel === true) {
       try {
         var filename  = event.data.filename || 'export.xlsx';
