@@ -1505,8 +1505,8 @@
                             <span>ℹ️</span>
                             <span data-lang-en="Important Note" data-lang-ar="ملاحظة مهمة">Important Note</span>
                         </div>
-                        <div class="backup-info" data-lang-en="Supabase integration requires opening this file via HTTP server (not file://). Use Live Server extension in VS Code, or host the file online. For offline use, all features work with localStorage only." data-lang-ar="يتطلب التكامل مع Supabase فتح هذا الملف عبر خادم HTTP (وليس file://). استخدم Live Server في VS Code، أو استضف الملف على الإنترنت. للاستخدام دون اتصال، جميع الميزات تعمل مع localStorage فقط.">
-                            Supabase integration requires opening this file via HTTP server (not file://). Use Live Server extension in VS Code, or host the file online. For offline use, all features work with localStorage only.
+                        <div class="backup-info" data-lang-en="Supabase integration works when hosted online (Netlify, Vercel) or via Live Server. For local file:// usage, all features work with localStorage only." data-lang-ar="يعمل التكامل مع Supabase عند الاستضافة على الإنترنت (Netlify، Vercel) أو عبر Live Server. للاستخدام المحلي file://، جميع الميزات تعمل مع localStorage فقط.">
+                            Supabase integration works when hosted online (Netlify, Vercel) or via Live Server. For local file:// usage, all features work with localStorage only.
                         </div>
                     </div>
 
@@ -1822,14 +1822,32 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
+            // Load Supabase library dynamically if on HTTP/HTTPS
+            if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+                loadSupabaseLibrary();
+            }
+            
             loadSettings();
             loadTheme();
             loadClients();
             renderClients();
             updateStats();
-            initializeSupabase();
             updateCompanyBranding();
         });
+
+        // Load Supabase library dynamically
+        function loadSupabaseLibrary() {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+            script.onload = () => {
+                console.log('Supabase library loaded successfully');
+                initializeSupabase();
+            };
+            script.onerror = () => {
+                console.error('Failed to load Supabase library');
+            };
+            document.head.appendChild(script);
+        }
 
         // Load clients from localStorage
         function loadClients() {
@@ -2411,10 +2429,15 @@
 
             // Check if Supabase library is loaded
             if (!window.supabase) {
-                statusText.textContent = currentLang === 'en' 
-                    ? 'Supabase library not loaded. Please open this file via HTTP server (e.g., Live Server)' 
-                    : 'مكتبة Supabase غير محملة. يرجى فتح الملف عبر خادم HTTP';
-                showNotification('error', 'Library Not Loaded', 'Supabase requires HTTP server. Use Live Server or host the file online.');
+                if (window.location.protocol === 'file:') {
+                    statusText.textContent = currentLang === 'en' 
+                        ? 'Supabase requires hosting. Upload to Netlify or use Live Server.' 
+                        : 'يتطلب Supabase استضافة. ارفع على Netlify أو استخدم Live Server.';
+                } else {
+                    statusText.textContent = currentLang === 'en' 
+                        ? 'Supabase library is loading... Please wait and try again.' 
+                        : 'جاري تحميل مكتبة Supabase... يرجى الانتظار والمحاولة مرة أخرى.';
+                }
                 return;
             }
 
@@ -2444,7 +2467,11 @@
 
         async function syncWithSupabase() {
             if (!window.supabase) {
-                showNotification('error', 'Library Not Loaded', 'Supabase requires HTTP server. Please use Live Server or host online.');
+                if (window.location.protocol === 'file:') {
+                    showNotification('error', 'Not Available', 'Supabase requires online hosting (Netlify, Vercel) or Live Server');
+                } else {
+                    showNotification('error', 'Loading', 'Supabase library is loading. Please wait and try again in a moment.');
+                }
                 return;
             }
 
