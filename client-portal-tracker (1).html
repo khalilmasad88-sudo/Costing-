@@ -1835,17 +1835,43 @@
             updateCompanyBranding();
         });
 
-        // Load Supabase library dynamically
+        // Load Supabase library dynamically with retry
+        let supabaseLoadAttempts = 0;
+        const MAX_SUPABASE_ATTEMPTS = 3;
+
         function loadSupabaseLibrary() {
+            // Check if Supabase is already available (from parent window like Zeina Portal)
+            if (window.supabase || (window.parent && window.parent !== window && window.parent.supabase)) {
+                if (window.parent && window.parent.supabase && !window.supabase) {
+                    window.supabase = window.parent.supabase;
+                }
+                console.log('Supabase already available');
+                initializeSupabase();
+                return;
+            }
+
+            supabaseLoadAttempts++;
+            
             const script = document.createElement('script');
             script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+            
             script.onload = () => {
                 console.log('Supabase library loaded successfully');
                 initializeSupabase();
             };
+            
             script.onerror = () => {
-                console.error('Failed to load Supabase library');
+                console.error(`Failed to load Supabase library (attempt ${supabaseLoadAttempts}/${MAX_SUPABASE_ATTEMPTS})`);
+                
+                // Retry if attempts remaining
+                if (supabaseLoadAttempts < MAX_SUPABASE_ATTEMPTS) {
+                    console.log('Retrying Supabase load in 2 seconds...');
+                    setTimeout(loadSupabaseLibrary, 2000);
+                } else {
+                    console.warn('Supabase library failed to load. App will work with localStorage only.');
+                }
             };
+            
             document.head.appendChild(script);
         }
 
@@ -2434,9 +2460,21 @@
                         ? 'Supabase requires hosting. Upload to Netlify or use Live Server.' 
                         : 'يتطلب Supabase استضافة. ارفع على Netlify أو استخدم Live Server.';
                 } else {
+                    // Give it a moment to load
                     statusText.textContent = currentLang === 'en' 
-                        ? 'Supabase library is loading... Please wait and try again.' 
-                        : 'جاري تحميل مكتبة Supabase... يرجى الانتظار والمحاولة مرة أخرى.';
+                        ? 'Checking Supabase availability...' 
+                        : 'جاري التحقق من توفر Supabase...';
+                    
+                    setTimeout(() => {
+                        if (window.supabase) {
+                            testSupabaseConnection(); // Retry
+                        } else {
+                            const statusText = document.getElementById('supabaseStatus').querySelector('.status-text');
+                            statusText.textContent = currentLang === 'en'
+                                ? 'Supabase not available. Using localStorage only.'
+                                : 'Supabase غير متوفر. استخدام localStorage فقط.';
+                        }
+                    }, 3000);
                 }
                 return;
             }
