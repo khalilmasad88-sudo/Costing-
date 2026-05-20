@@ -3115,6 +3115,12 @@ function boqToggle(colId){
   if(!el) return;
   var hidden=el.style.display==='none';
   el.style.display=hidden?'block':'none';
+  // Update arrow icon
+  var parent=el.previousElementSibling;
+  if(parent){
+    var arrow=parent.querySelector('.boq-arrow');
+    if(arrow) arrow.textContent=hidden?'▼':'▶';
+  }
 }
 
 function siteToggleCollapse(el){
@@ -4180,7 +4186,7 @@ function viewProject(id){
         var colId='boq-body-'+b.id;
         boqHTML+='<div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px">';
         boqHTML+='<div style="padding:10px 14px;display:flex;align-items:center;justify-content:space-between;background:var(--accent-lt)">';
-        boqHTML+='<div style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1" onclick="boqToggle('+JSON.stringify(colId)+')">';
+        boqHTML+='<div style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1" onclick="boqToggle('+colId+')">';
         boqHTML+='<span class="boq-arrow-'+b.id+'" style="font-size:11px;color:var(--accent)">▼</span>';
         boqHTML+='<span style="font-weight:700;color:var(--accent)">'+esc(b.num)+'</span>';
         boqHTML+='<span class="badge badge-blue">'+esc(b.rev||'')+'</span>';
@@ -4528,7 +4534,7 @@ function viewProject(id){
     (p.assigned||p.assignedUserIds&&p.assignedUserIds.length?'<div><span class="color-muted">Assigned To:</span> '+((p.assignedUserIds||[]).map(function(uid){var u=DB.users.find(function(x){return x.id===uid;});return u?u.name:'?';}).join(', ')||p.assigned||'—')+'</div>':'')+
     (p.remarks?'<div style="grid-column:1/-1"><span class="color-muted">Remarks:</span> '+p.remarks+'</div>':'')+
     '</div>'+
-    renderProjTeamInDetail(p.team||'')+reportsHTML+boqHTML+sitesHTML+dboqHTML+invHTML+poHTML+pettyHTML+docsHTML;
+    renderProjTeamInDetail(p.team||'')+reportsHTML+boqHTML+sitesHTML+poHTML+dboqHTML+invHTML+pettyHTML+docsHTML;
   openModal('modal-proj-detail');
 }
 
@@ -5584,12 +5590,14 @@ function viewPO(id){
   if(el){
     var fullHtml=getPOHTML(po);
     el.dataset.printHtml=fullHtml;
-    // Show in iframe for correct rendering
-    el.innerHTML='';
-    var iframe=document.createElement('iframe');
-    iframe.style.cssText='width:100%;height:72vh;border:none;border-radius:6px;background:#fff';
-    iframe.srcdoc=fullHtml;
-    el.appendChild(iframe);
+    // Extract body content from full HTML for inline display
+    var bodyMatch=fullHtml.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+    var bodyContent=bodyMatch?bodyMatch[1]:fullHtml;
+    // Extract styles
+    var styleMatch=fullHtml.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+    var styleContent=styleMatch?'<style>'+styleMatch[1]+'</style>':'';
+    el.innerHTML='<div class="po-preview-wrap" style="background:#fff;padding:0;border-radius:8px;overflow:auto;max-height:75vh">'+
+      styleContent+'<div style="font-family:Calibri,Arial,sans-serif;font-size:12px;color:#1a1a2e">'+bodyContent+'</div></div>';
   }
   var qBtn=document.getElementById('po-view-quot-btn');
   if(qBtn) qBtn.style.display=(po.quotation&&po.quotation.data)?'':'none';
