@@ -4180,13 +4180,19 @@ function viewProject(id){
     }
     var thStyle='padding:8px 12px;text-align:left;background:var(--panel);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase';
     // Render Main SOW BOQs
+    // Register boq toggle helper
+    window.__bt=function(bid){
+      var cid='boq-body-'+bid;
+      boqToggle(cid);
+    };
     if(mainBOQs.length){
       boqHTML+='<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">'+(isMultiSite?'Main SOW BOQ':'BOQ')+'</div>';
       mainBOQs.forEach(function(b){
         var colId='boq-body-'+b.id;
         boqHTML+='<div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px">';
         boqHTML+='<div style="padding:10px 14px;display:flex;align-items:center;justify-content:space-between;background:var(--accent-lt)">';
-        boqHTML+='<div style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1" onclick="boqToggle('+colId+')">';
+        var _boqIdx=mainBOQs.indexOf(b);
+        boqHTML+='<div style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1" onclick="window.__bt('+b.id+')">';
         boqHTML+='<span class="boq-arrow-'+b.id+'" style="font-size:11px;color:var(--accent)">▼</span>';
         boqHTML+='<span style="font-weight:700;color:var(--accent)">'+esc(b.num)+'</span>';
         boqHTML+='<span class="badge badge-blue">'+esc(b.rev||'')+'</span>';
@@ -5074,6 +5080,20 @@ function renderDailyTable(){
   });
   document.getElementById('daily-table').innerHTML=h+'</tbody>';
 }
+function saveReport(){
+  var data=getReportData();
+  if(_editingReportId!==null){
+    var idx=DB.reports.findIndex(function(x){return x.id===_editingReportId;});
+    if(idx>=0){data.id=_editingReportId;data.num=DB.reports[idx].num;DB.reports[idx]=data;}
+    _editingReportId=null;
+  } else {
+    var num=genNum('dr');
+    var r=Object.assign({},data,{id:DB.nextReport,num:num});
+    DB.nextReport++;DB.reports.push(r);
+  }
+  closeModal('modal-daily');renderDailyTable();saveToCloud();
+}
+
 function editReport(id){
   var r=DB.reports.find(function(x){return x.id===id;});
   if(!r) return;
@@ -6431,14 +6451,6 @@ function editBOQFromDetail(id){
   closeModal('modal-proj-detail');
   editBOQ(id);
 }
-function boqToggle(colId, btn){
-  var el=document.getElementById(colId);
-  if(!el) return;
-  var hidden=el.style.display==='none';
-  el.style.display=hidden?'block':'none';
-  btn.textContent=hidden?'▼':'▶';
-}
-
 function deleteBOQ(id){
   if(!confirm('Delete this BOQ?')) return;
   DB.boqs=DB.boqs.filter(function(b){return b.id!==id;});
