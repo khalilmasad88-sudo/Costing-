@@ -3317,7 +3317,7 @@ function deleteSite(projId, idx){
 // Calculate site progress from daily reports
 // Task weights for progress calculation
 var TASK_WEIGHTS = {
-  'PO': 5, 'Delivery': 15, 'Cabling': 20, 'Installation': 25,
+  'PO': 5, 'PO Issue': 5, 'Delivery': 15, 'Cabling': 20, 'Installation': 25,
   'Configuration': 20, 'Handing Over': 15
 };
 function getTaskWeight(taskName){
@@ -3344,10 +3344,12 @@ function getSiteItemProgress(projId, siteId, itemDesc){
   DB.reports.filter(function(r){return r.projRef===p.ref&&r.siteId===siteId;})
     .forEach(function(r){
       (r.tasks||[]).forEach(function(t){
-        if((t.sowItem||'').toLowerCase()!==(itemDesc||'').toLowerCase()) return;
-        if(t.done){ doneWeight=totalWeight; return; } // مكتملة = 100%
-        var tk=t.desc||'';
-        if(!tasksDone[tk]){ // كل نوع مهمة يُحسب مرة واحدة
+        var sowMatch=(t.sowItem||'').toLowerCase()===(itemDesc||'').toLowerCase();
+        var noSow=!(t.sowItem||'').trim(); // task without SOW item → applies to all items
+        if(!sowMatch&&!noSow) return;
+        if(t.done){ doneWeight=totalWeight; return; }
+        var tk=(t.desc||'').trim();
+        if(!tasksDone[tk]){
           tasksDone[tk]=true;
           doneWeight+=getTaskWeight(tk);
         }
@@ -7592,7 +7594,7 @@ function getProjectImplementation(projId, projRef, budget){
   // ── MULTIPLE SITES ────────────────────────────────────────────────────
   // إنجاز البند في المشروع = متوسط إنجازه عبر المواقع × كمية المشروع
   // إنجاز المشروع الكلي   = متوسط إنجاز جميع البنود
-  if(p&&p.siteType==='Multiple Sites'&&(p.sites||[]).length){
+  if(p&&(p.siteType==='Multiple Sites'||p.siteType==='multi')&&(p.sites||[]).length){
     var sites=p.sites;
 
     // جمع كل البنود الفريدة عبر جميع المواقع
