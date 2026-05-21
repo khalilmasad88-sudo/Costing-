@@ -1805,9 +1805,8 @@ var S={
 
 // ── PDF Color helpers — read from S settings ──────────────────────
 function _dcGet(doc, key, fallback){
-  // Get per-document color, falls back to global S setting
-  if(S.docColors && S.docColors[doc] && S.docColors[doc][key]) return S.docColors[doc][key];
-  return fallback;
+  var v = S.docColors && S.docColors[doc] && S.docColors[doc][key];
+  return (v && v.length > 2) ? v : fallback;
 }
 function _dcSet(doc, key, val){
   if(!S.docColors) S.docColors={};
@@ -1834,7 +1833,7 @@ function _pHo(hex, opacity) {
 
 // ── Shared print CSS (same as CostingAPP quotation style) ────────
 function _printCSS(){
-  var hdr=_pH(), hdrT=_pHT(), tot=_pT(), totT=_pTT(), alt=_pA();
+  var hdr=_pH(_ddCurrentDoc), hdrT=_pHT(_ddCurrentDoc), tot=_pT(_ddCurrentDoc), totT=_pTT(_ddCurrentDoc), alt=_pAlt(_ddCurrentDoc);
   return [
     '@page{margin:14mm 12mm;size:A4 portrait}',
     '*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;box-sizing:border-box;margin:0;padding:0}',
@@ -3610,18 +3609,22 @@ function _renderAfApprovers(steps){
   var list = document.getElementById('af-approvers-list');
   if(!list) return;
   if(!steps.length){
-    list.innerHTML='<div style="color:var(--muted);font-size:12px;padding:8px 0">لا يوجد موافقون. اضغط "+ إضافة موافق".</div>';
+    list.innerHTML='<div style="color:var(--muted);font-size:12px;padding:8px 0">No approvers. Click "+ Add Approver".</div>';
     return;
   }
-  list.innerHTML = steps.map(function(step, i){
-    return '<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;padding:10px;background:var(--panel);border:1px solid var(--border);border-radius:8px">'+
+  var userOpts='<option value="">— Select User —</option>'+
+    DB.users.map(function(u){return '<option value="'+esc(u.name)+'">'+esc(u.name)+(u.role?' ('+u.role+')':'')+'</option>';}).join('');
+
+  list.innerHTML=steps.map(function(step,i){
+    var opts=userOpts.replace('value="'+esc(step.name||'')+'"','value="'+esc(step.name||'')+'" selected');
+    return '<div style="display:grid;grid-template-columns:1fr 1.2fr auto;gap:10px;align-items:end;padding:10px;background:var(--panel);border:1px solid var(--border);border-radius:8px">'+
       '<div class="form-group" style="margin-bottom:0">'+
-        '<label style="font-size:11px">المسمى الوظيفي</label>'+
+        '<label style="font-size:11px">Position / الصفة</label>'+
         '<input value="'+(step.role||'')+'" placeholder="e.g. Project Manager" style="font-size:12px" onchange="afUpdateStep('+i+',\'role\',this.value)"/>'+
       '</div>'+
       '<div class="form-group" style="margin-bottom:0">'+
-        '<label style="font-size:11px">اسم الشخص</label>'+
-        '<input value="'+(step.name||'')+'" placeholder="e.g. Ahmed Ali" style="font-size:12px" onchange="afUpdateStep('+i+',\'name\',this.value)"/>'+
+        '<label style="font-size:11px">Approver / الموافق</label>'+
+        '<select style="font-size:12px;width:100%;padding:5px 8px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface)" onchange="afUpdateStep('+i+',\'name\',this.value)">'+opts+'</select>'+
       '</div>'+
       '<button onclick="afRemoveStep('+i+')" class="btn btn-danger btn-sm" style="height:36px;margin-bottom:0">✕</button>'+
     '</div>';
@@ -3652,12 +3655,20 @@ function afSaveSimple(){
   if(!_afCurrentDoc) return;
   // Collect latest values from inputs before saving
   var list=document.getElementById('af-approvers-list');
-  var inputs=list?list.querySelectorAll('input'):[];
+  var rows=list?list.querySelectorAll('div[style*="grid"]'):[];
   var steps=[];
-  for(var i=0;i<inputs.length;i+=2){
-    steps.push({role:inputs[i]?inputs[i].value:'', name:inputs[i+1]?inputs[i+1].value:''});
-  }
+  rows.forEach(function(row){
+    var roleInput=row.querySelector('input');
+    var nameSelect=row.querySelector('select');
+    var role=roleInput?roleInput.value.trim():'';
+    var name=nameSelect?nameSelect.value.trim():'';
+    if(role||name) steps.push({role:role,name:name});
+  });
   if(!S.approvalFlow) S.approvalFlow={};
+  if(!S.approvalFlow._enabled) S.approvalFlow._enabled=['po','pc','inv'];
+  if(steps.length && S.approvalFlow._enabled.indexOf(_afCurrentDoc)===-1){
+    S.approvalFlow._enabled.push(_afCurrentDoc);
+  }
   S.approvalFlow[_afCurrentDoc]={steps:steps};
   _renderAfApprovers(steps);
   saveToCloud();
@@ -3973,7 +3984,7 @@ function getProjTeam(){
 
 function renderProjTeamInDetail(team){
   if(!team||!team.length) return '';
-  var hdr=_pH();
+  var hdr=_pH(_ddCurrentDoc);
   var rows=team.map(function(m,i){
     var u=DB.users.find(function(x){return x.name===m.name;});
     var bg=i%2?'':'background:var(--surface2)';
@@ -4268,7 +4279,7 @@ function viewProject(id){
   var _dboqColId='dboq-body-'+p.id;
   var dboqHTML='<div class="section-sep"></div>';
   dboqHTML+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
-  dboqHTML+='<div style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="window.__dboqT(\''+ _dboqColId +'\''+')">';
+  dboqHTML+='<div style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="window.__dboqT(this.dataset.id)" data-id="'+_dboqColId+'">';
   dboqHTML+='<span id="dboq-arr-'+p.id+'" style="font-size:11px;color:var(--accent)">▼</span>';
   dboqHTML+='<div class="card-title" style="margin:0">📦 Inventory '+(dboqRec?'<span style="font-size:11px;color:var(--muted);font-weight:400">— '+dboqLines.length+' items · '+SAR(dboqTotal*1.15)+'</span>':'')+'</div>';
   dboqHTML+='</div>';
@@ -4505,7 +4516,7 @@ function viewProject(id){
     (p.assigned||p.assignedUserIds&&p.assignedUserIds.length?'<div><span class="color-muted">Assigned To:</span> '+((p.assignedUserIds||[]).map(function(uid){var u=DB.users.find(function(x){return x.id===uid;});return u?u.name:'?';}).join(', ')||p.assigned||'—')+'</div>':'')+
     (p.remarks?'<div style="grid-column:1/-1"><span class="color-muted">Remarks:</span> '+p.remarks+'</div>':'')+
     '</div>'+
-    renderProjTeamInDetail(p.team||'')+reportsHTML+boqHTML+sitesHTML+poHTML+invHTML+pettyHTML+docsHTML;
+    renderProjTeamInDetail(p.team||'')+reportsHTML+boqHTML+sitesHTML+poHTML+invHTML+pettyHTML+dboqHTML+docsHTML;
   openModal('modal-proj-detail');
 }
 
@@ -5479,10 +5490,13 @@ function buildSigBlock(mod, record, submittedBy){
   if(afIsEnabled(mod)){
     var steps=(getAF(mod).steps||[]);
     steps.forEach(function(step, si){
-      var posLabel=step.approverPosition||step.label||('Approver '+(si+1));
+      var posLabel=step.role||step.approverPosition||step.label||('Approver '+(si+1));
       // Configured approver names (from flow)
       var configNames=[];
-      if(step.approverIds&&step.approverIds.length){
+      // Support both approverIds (old) and name (new simple format)
+      if(step.name) {
+        configNames.push(step.name);
+      } else if(step.approverIds&&step.approverIds.length){
         step.approverIds.forEach(function(uid){var u=DB.users.find(function(x){return x.id===uid;});if(u)configNames.push(u.name);});
       }
       // Was this step actually approved?
@@ -5514,13 +5528,7 @@ function buildSigBlock(mod, record, submittedBy){
     return '<td style="padding:14px 16px;vertical-align:top;width:'+(100/cols)+'%;'+(i<cols-1?'border-right:1px solid #aaa;':'')+'">'+cell+'</td>';
   }).join('');
 
-  var manualBanner = isManualPO
-    ? '<div style="-webkit-print-color-adjust:exact;margin-bottom:8px;padding:9px 14px;background:#fffde7;border:1.5px solid #f0c030;border-radius:6px;font-size:11px;color:#856700">'+
-      '<b>📋 Manual Approval Process:</b> Print this document → Collect all required signatures → Upload signed copy → Admin confirms approval in the system.</div>'
-    : '';
-
-  return manualBanner+
-    '<table style="border:1px solid #aaa;margin-top:0;width:100%;border-collapse:collapse"><tbody><tr>'+tds+'</tr></tbody></table>';
+  return '<table style="border:1px solid #aaa;margin-top:0;width:100%;border-collapse:collapse"><tbody><tr>'+tds+'</tr></tbody></table>';
 }
 
 function getPOHTML(po){
@@ -5535,6 +5543,8 @@ function getPOHTML(po){
   var total   = aftDisc+vat;
   var hdr     = _pH('po');
   var hdrT    = _pHT('po');
+  var totBg   = _pT('po');
+  var altBg   = _pAlt('po');
 
   // Logo
   var logoHtml = (S.logoData||S.letterheadData)
@@ -5895,12 +5905,12 @@ function savePetty(){
 function getPettyHTML(pc){
   var lines=pc.lines||[];var sub=lines.reduce(function(a,l){return a+l.extPrice;},0);var vat=sub*.15;
   var lineRows='';
-  if(lines.length){lines.forEach(function(l,i){lineRows+='<tr style="background:'+(i%2?_pA():'#fff')+'"><td style="padding:7px 10px">'+(i+1)+'</td><td style="padding:7px 10px">'+l.item+'</td><td style="padding:7px 10px">'+(l.itemRef||'—')+'</td><td style="padding:7px 10px">'+(l.unit||'—')+'</td><td style="padding:7px 10px">'+l.qty+'</td><td style="padding:7px 10px">'+fmt(l.unitPrice)+'</td><td style="padding:7px 10px;font-weight:700">'+fmt(l.extPrice)+'</td></tr>';});}
+  if(lines.length){lines.forEach(function(l,i){lineRows+='<tr style="background:'+(i%2?_pAlt('pc'):'#fff')+'"><td style="padding:7px 10px">'+(i+1)+'</td><td style="padding:7px 10px">'+l.item+'</td><td style="padding:7px 10px">'+(l.itemRef||'—')+'</td><td style="padding:7px 10px">'+(l.unit||'—')+'</td><td style="padding:7px 10px">'+l.qty+'</td><td style="padding:7px 10px">'+fmt(l.unitPrice)+'</td><td style="padding:7px 10px;font-weight:700">'+fmt(l.extPrice)+'</td></tr>';});}
   else{lineRows='<tr><td colspan="7" style="padding:16px;text-align:center;color:#999">\u0644\u0627 \u062a\u0648\u062c\u062f \u0628\u0646\u0648\u062f</td></tr>';}
-  var body='<div style="padding:12px 20px;background:rgba(245,248,255,0.9);border-bottom:1px solid #e2e6ef;direction:rtl;display:flex;justify-content:space-between;align-items:center"><div style="font-size:17px;font-weight:800;color:'+_pH()+'">\u0637\u0644\u0628 \u0635\u0631\u0641 \u0639\u0647\u062f\u0629</div><div style="direction:ltr;font-size:12px;color:#555"><b>Req #:</b> '+pc.num+' <b>Date:</b> '+pc.date+' <b>Type:</b> '+pc.type+'</div></div>';
+  var body='<div style="padding:12px 20px;background:rgba(245,248,255,0.9);border-bottom:1px solid #e2e6ef;direction:rtl;display:flex;justify-content:space-between;align-items:center"><div style="font-size:17px;font-weight:800;color:'+_pH('pc')+'">\u0637\u0644\u0628 \u0635\u0631\u0641 \u0639\u0647\u062f\u0629</div><div style="direction:ltr;font-size:12px;color:#555"><b>Req #:</b> '+pc.num+' <b>Date:</b> '+pc.date+' <b>Type:</b> '+pc.type+'</div></div>';
   body+='<div style="padding:16px 20px;direction:rtl"><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px"><div><b>\u0627\u0633\u0645 \u0635\u0627\u062d\u0628 \u0627\u0644\u0639\u0647\u062f\u0629:</b> '+(pc.owner||'\u2026\u2026\u2026\u2026\u2026\u2026')+'</div><div><b>\u0631\u0642\u0645 \u0627\u0644\u0639\u0647\u062f\u0629:</b> '+(pc.ownerRef||'\u2026\u2026\u2026\u2026\u2026\u2026')+'</div><div><b>\u0627\u0644\u0645\u0634\u0631\u0648\u0639:</b> '+(pc.proj||'\u2026\u2026\u2026\u2026\u2026\u2026')+'</div><div><b>\u0631\u0642\u0645 \u0627\u0644\u0637\u0644\u0628:</b> '+pc.num+'</div></div>';
-  body+='<table style="width:100%;border-collapse:collapse"><thead><tr style="background:'+_pH()+';color:'+_pHT()+'"><th style="padding:7px 10px;text-align:right">\u0645</th><th style="padding:7px 10px;text-align:right">\u0627\u0644\u0628\u0646\u062f</th><th style="padding:7px 10px;text-align:right">\u0631\u0642\u0645 \u0627\u0644\u0628\u0646\u062f</th><th style="padding:7px 10px;text-align:right">\u0627\u0644\u0648\u062d\u062f\u0629</th><th style="padding:7px 10px;text-align:right">\u0627\u0644\u0643\u0645\u064a\u0629</th><th style="padding:7px 10px;text-align:right">\u0627\u0644\u0633\u0639\u0631</th><th style="padding:7px 10px;text-align:right">\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a</th></tr></thead><tbody>'+lineRows+'</tbody>';
-  body+='<tfoot><tr style="background:#f5f8ff"><td colspan="6" style="padding:8px 10px;font-weight:700;text-align:right">\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a \u0628\u062f\u0648\u0646 \u0627\u0644\u0636\u0631\u064a\u0628\u0629</td><td style="padding:8px 10px;font-weight:700">'+fmt(sub)+'</td></tr><tr style="background:#fffde7"><td colspan="6" style="padding:7px 10px;text-align:right">\u0642\u064a\u0645\u0629 \u0627\u0644\u0636\u0631\u064a\u0628\u0629 15%</td><td style="padding:7px 10px">'+fmt(vat)+'</td></tr><tr style="background:'+_pT()+'"><td colspan="6" style="padding:9px 10px;font-weight:700;color:'+_pH()+';text-align:right">\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a \u0634\u0627\u0645\u0644 \u0627\u0644\u0636\u0631\u064a\u0628\u0629</td><td style="padding:9px 10px;font-weight:700;color:'+_pH()+'">'+fmt(sub+vat)+'</td></tr></tfoot></table>';
+  body+='<table style="width:100%;border-collapse:collapse"><thead><tr style="background:'+_pH('pc')+';color:'+_pHT('pc')+'"><th style="padding:7px 10px;text-align:right">\u0645</th><th style="padding:7px 10px;text-align:right">\u0627\u0644\u0628\u0646\u062f</th><th style="padding:7px 10px;text-align:right">\u0631\u0642\u0645 \u0627\u0644\u0628\u0646\u062f</th><th style="padding:7px 10px;text-align:right">\u0627\u0644\u0648\u062d\u062f\u0629</th><th style="padding:7px 10px;text-align:right">\u0627\u0644\u0643\u0645\u064a\u0629</th><th style="padding:7px 10px;text-align:right">\u0627\u0644\u0633\u0639\u0631</th><th style="padding:7px 10px;text-align:right">\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a</th></tr></thead><tbody>'+lineRows+'</tbody>';
+  body+='<tfoot><tr style="background:#f5f8ff"><td colspan="6" style="padding:8px 10px;font-weight:700;text-align:right">\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a \u0628\u062f\u0648\u0646 \u0627\u0644\u0636\u0631\u064a\u0628\u0629</td><td style="padding:8px 10px;font-weight:700">'+fmt(sub)+'</td></tr><tr style="background:#fffde7"><td colspan="6" style="padding:7px 10px;text-align:right">\u0642\u064a\u0645\u0629 \u0627\u0644\u0636\u0631\u064a\u0628\u0629 15%</td><td style="padding:7px 10px">'+fmt(vat)+'</td></tr><tr style="background:'+_pT('pc')+'"><td colspan="6" style="padding:9px 10px;font-weight:700;color:'+_pH('pc')+';text-align:right">\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a \u0634\u0627\u0645\u0644 \u0627\u0644\u0636\u0631\u064a\u0628\u0629</td><td style="padding:9px 10px;font-weight:700;color:'+_pH('pc')+'">'+fmt(sub+vat)+'</td></tr></tfoot></table>';
   if(pc.notes) body+='<div style="margin-top:12px;padding:8px;background:#f5f8ff;border-radius:6px"><b>\u0645\u0644\u0627\u062d\u0638\u0627\u062a:</b> '+pc.notes+'</div>';
   body+=buildSigBlock('pc', pc, pc.owner||getSubmittedBy())+'</div>';
   // Build custom PO header: Logo+Company LEFT, PURCHASE ORDER title+meta RIGHT
@@ -6335,9 +6345,9 @@ function markCollected(id){var inv=DB.invoices.find(function(i){return i.id===id
 function getInvoiceHTML(inv){
   var lines=inv.lines||[];var sub=lines.reduce(function(a,l){return a+l.extPrice;},0)||(inv.total/1.15);var vat=sub*.15;var total=sub+vat;
   var lineRows='';
-  if(lines.length){lines.forEach(function(l,i){lineRows+='<tr style="background:'+(i%2?_pA():'#fff')+'"><td style="padding:7px 10px">'+(i+1)+'</td><td style="padding:7px 10px">'+l.desc+'</td><td style="padding:7px 10px;text-align:right">'+l.qty+'</td><td style="padding:7px 10px;text-align:right">'+fmt(l.unitPrice)+'</td><td style="padding:7px 10px;text-align:right;font-weight:700">'+fmt(l.extPrice)+'</td></tr>';});}
+  if(lines.length){lines.forEach(function(l,i){lineRows+='<tr style="background:'+(i%2?_pAlt('inv'):'#fff')+'"><td style="padding:7px 10px">'+(i+1)+'</td><td style="padding:7px 10px">'+l.desc+'</td><td style="padding:7px 10px;text-align:right">'+l.qty+'</td><td style="padding:7px 10px;text-align:right">'+fmt(l.unitPrice)+'</td><td style="padding:7px 10px;text-align:right;font-weight:700">'+fmt(l.extPrice)+'</td></tr>';});}
   else{lineRows='<tr><td colspan="5" style="padding:16px;text-align:center;color:#999">No line items</td></tr>';}
-  var body='<div style="padding:12px 20px;background:rgba(245,248,255,0.9);border-bottom:1px solid #e2e6ef;display:flex;justify-content:space-between;align-items:center"><div style="font-size:17px;font-weight:800;color:'+_pH()+'">Invoice Request</div><div style="color:#555;font-weight:600">'+inv.num+' | '+inv.date+'</div></div>';
+  var body='<div style="padding:12px 20px;background:rgba(245,248,255,0.9);border-bottom:1px solid #e2e6ef;display:flex;justify-content:space-between;align-items:center"><div style="font-size:17px;font-weight:800;color:'+_pH('inv')+'">Invoice Request</div><div style="color:#555;font-weight:600">'+inv.num+' | '+inv.date+'</div></div>';
   body+='<div style="padding:16px 20px">';
 
   // Accountant instruction banner
@@ -6347,10 +6357,10 @@ function getInvoiceHTML(inv){
   body+='<div style="color:#78350f;font-size:13px">Please issue an official tax invoice to <strong>'+inv.client+'</strong> based on the details below and ensure delivery before the due date of <strong>'+(inv.dueDate||'—')+'</strong>. Payment terms: <strong>'+(inv.terms||'30 days')+'</strong>.</div></div></div>';
 
   body+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">';
-  body+='<div style="padding:11px;background:'+(S.docCardBg||'#f5f8ff')+';border-radius:8px;border:1px solid '+_pTB()+'"><div style="font-weight:700;color:'+_pH()+';margin-bottom:5px;font-size:11px;text-transform:uppercase">Project Details</div>'+(function(){var p=DB.projects.find(function(x){return x.ref===inv.proj;});return p?'<div><b>Project Name:</b> '+p.name+'</div>':'';}())+'<div><b>Project Ref:</b> '+(inv.proj||'—')+'</div><div><b>Client:</b> '+inv.client+'</div><div><b>Client PO Ref:</b> '+(inv.poRef||'—')+'</div><div><b>Invoice No:</b> '+inv.num+'</div><div><b>Date:</b> '+inv.date+'</div><div><b>Due Date:</b> '+(inv.dueDate||'—')+'</div><div><b>Terms:</b> '+(inv.terms||'30 days')+'</div></div>';
-  body+='<div style="padding:11px;background:'+(S.docSubBarBg||'#f9f9f9')+';border-radius:8px;border:1px solid '+_pTB()+'"><div style="font-weight:700;color:'+_pH()+';margin-bottom:5px;font-size:11px;text-transform:uppercase">Requested By</div><div style="font-size:14px;font-weight:700">'+(inv.reqBy||getSubmittedBy())+'</div>'+(function(){var u=DB.users.find(function(x){return x.name===(inv.reqBy||getSubmittedBy());});return u?'<div style="margin-top:4px;font-size:12px;color:#555">'+(u.phone?'<div>📞 '+u.phone+'</div>':'')+(u.email?'<div>✉ '+u.email+'</div>':'')+'</div>':'';}())+(inv.notes?'<div style="margin-top:6px;padding:6px 8px;background:#fff;border-radius:5px;font-size:12px;color:#666;border:1px solid #e2e6ef"><b>Notes:</b> '+inv.notes+'</div>':'')+'</div></div>';
-  body+='<table style="width:100%;border-collapse:collapse"><thead><tr style="background:'+_pH()+';color:'+_pHT()+'"><th style="padding:7px 10px;text-align:left">#</th><th style="padding:7px 10px;text-align:left">Description</th><th style="padding:7px 10px;text-align:right">Qty</th><th style="padding:7px 10px;text-align:right">Unit Price (SAR)</th><th style="padding:7px 10px;text-align:right">Ext Price (SAR)</th></tr></thead><tbody>'+lineRows+'</tbody>';
-  body+='<tfoot><tr style="background:#f5f8ff"><td colspan="4" style="padding:8px 10px;text-align:right;font-weight:700">Subtotal</td><td style="padding:8px 10px;text-align:right;font-weight:700">'+fmt(sub)+'</td></tr><tr style="background:#fffde7"><td colspan="4" style="padding:7px 10px;text-align:right;color:#666">15% VAT</td><td style="padding:7px 10px;text-align:right">'+fmt(vat)+'</td></tr><tr style="background:'+_pT()+'"><td colspan="4" style="padding:9px 10px;text-align:right;font-weight:700;color:'+_pH()+'">Total with VAT</td><td style="padding:9px 10px;text-align:right;font-weight:700;color:'+_pH()+'">'+fmt(total)+'</td></tr></tfoot></table>';
+  body+='<div style="padding:11px;background:'+(S.docCardBg||'#f5f8ff')+';border-radius:8px;border:1px solid '+_pTB()+'"><div style="font-weight:700;color:'+_pH('inv')+';margin-bottom:5px;font-size:11px;text-transform:uppercase">Project Details</div>'+(function(){var p=DB.projects.find(function(x){return x.ref===inv.proj;});return p?'<div><b>Project Name:</b> '+p.name+'</div>':'';}())+'<div><b>Project Ref:</b> '+(inv.proj||'—')+'</div><div><b>Client:</b> '+inv.client+'</div><div><b>Client PO Ref:</b> '+(inv.poRef||'—')+'</div><div><b>Invoice No:</b> '+inv.num+'</div><div><b>Date:</b> '+inv.date+'</div><div><b>Due Date:</b> '+(inv.dueDate||'—')+'</div><div><b>Terms:</b> '+(inv.terms||'30 days')+'</div></div>';
+  body+='<div style="padding:11px;background:'+(S.docSubBarBg||'#f9f9f9')+';border-radius:8px;border:1px solid '+_pTB()+'"><div style="font-weight:700;color:'+_pH('inv')+';margin-bottom:5px;font-size:11px;text-transform:uppercase">Requested By</div><div style="font-size:14px;font-weight:700">'+(inv.reqBy||getSubmittedBy())+'</div>'+(function(){var u=DB.users.find(function(x){return x.name===(inv.reqBy||getSubmittedBy());});return u?'<div style="margin-top:4px;font-size:12px;color:#555">'+(u.phone?'<div>📞 '+u.phone+'</div>':'')+(u.email?'<div>✉ '+u.email+'</div>':'')+'</div>':'';}())+(inv.notes?'<div style="margin-top:6px;padding:6px 8px;background:#fff;border-radius:5px;font-size:12px;color:#666;border:1px solid #e2e6ef"><b>Notes:</b> '+inv.notes+'</div>':'')+'</div></div>';
+  body+='<table style="width:100%;border-collapse:collapse"><thead><tr style="background:'+_pH('inv')+';color:'+_pHT('inv')+'"><th style="padding:7px 10px;text-align:left">#</th><th style="padding:7px 10px;text-align:left">Description</th><th style="padding:7px 10px;text-align:right">Qty</th><th style="padding:7px 10px;text-align:right">Unit Price (SAR)</th><th style="padding:7px 10px;text-align:right">Ext Price (SAR)</th></tr></thead><tbody>'+lineRows+'</tbody>';
+  body+='<tfoot><tr style="background:#f5f8ff"><td colspan="4" style="padding:8px 10px;text-align:right;font-weight:700">Subtotal</td><td style="padding:8px 10px;text-align:right;font-weight:700">'+fmt(sub)+'</td></tr><tr style="background:#fffde7"><td colspan="4" style="padding:7px 10px;text-align:right;color:#666">15% VAT</td><td style="padding:7px 10px;text-align:right">'+fmt(vat)+'</td></tr><tr style="background:'+_pT('inv')+'"><td colspan="4" style="padding:9px 10px;text-align:right;font-weight:700;color:'+_pH('inv')+'">Total with VAT</td><td style="padding:9px 10px;text-align:right;font-weight:700;color:'+_pH('inv')+'">'+fmt(total)+'</td></tr></tfoot></table>';
 
   // Signature block with approval stamps
   body+=buildSigBlock('inv', inv, inv.reqBy||getSubmittedBy())+'</div>';
@@ -6487,7 +6497,7 @@ function printProjectProgress(projId){
   var mainBOQs=DB.boqs.filter(function(b){return b.projId===p.id&&(!b.boqType||b.boqType==='Main');});
   if(mainBOQs.length){
     mainBOQs.forEach(function(b){
-      mainBOQHTML+='<tr><td colspan="4" style="padding:6px 12px;background:#f5f8ff;font-weight:700;color:'+_pH()+'">'+esc(b.num)+'</td></tr>';
+      mainBOQHTML+='<tr><td colspan="4" style="padding:6px 12px;background:#f5f8ff;font-weight:700;color:'+_pH('ppr')+'">'+esc(b.num)+'</td></tr>';
       (b.lines||[]).forEach(function(l,li){
         var totalQty=parseFloat(l.qty)||0;
         var sitesQty=0; var avgPct=0; var pcts=[];
@@ -6514,8 +6524,8 @@ function printProjectProgress(projId){
     '.prog-fill{height:100%;border-radius:6px}'+
     '</style></head><body>';
   html+=getDocHeader();
-  html+='<div style="padding:14px 22px;border-bottom:1px solid #e2e6ef;display:flex;justify-content:space-between;align-items:center;background:'+_pHo(_pH(),0.05)+'">';
-  html+='<div><div style="font-size:20px;font-weight:900;color:'+_pH()+'">PROJECT PROGRESS REPORT</div>';
+  html+='<div style="padding:14px 22px;border-bottom:1px solid #e2e6ef;display:flex;justify-content:space-between;align-items:center;background:'+_pHo(_pH('ppr'),0.05)+'">';
+  html+='<div><div style="font-size:20px;font-weight:900;color:'+_pH('ppr')+'">PROJECT PROGRESS REPORT</div>';
   html+='<div style="font-size:12px;color:#888">'+esc(p.ref)+' — '+esc(p.name||p.client)+'</div></div>';
   html+='<div style="text-align:right"><div style="font-size:32px;font-weight:900;color:'+clr+'">'+pct+'%</div>';
   html+='<div style="font-size:11px;color:#888">Overall Progress</div></div></div>';
@@ -6525,13 +6535,13 @@ function printProjectProgress(projId){
   html+='<div style="font-size:11px;color:#888;margin-bottom:16px">'+impl.detail+'</div>';
   if(sitesRows){
     html+='<table style="width:100%;border-collapse:collapse;margin-bottom:18px;font-size:12px">';
-    html+='<thead><tr style="background:'+_pH()+';color:#fff"><th style="padding:8px 12px;text-align:left">Ref</th><th style="padding:8px 12px">Site Name</th><th style="padding:8px 12px;text-align:center">Location</th><th style="padding:8px 12px;text-align:right">Progress</th></tr></thead>';
+    html+='<thead><tr style="background:'+_pH('ppr')+';color:#fff"><th style="padding:8px 12px;text-align:left">Ref</th><th style="padding:8px 12px">Site Name</th><th style="padding:8px 12px;text-align:center">Location</th><th style="padding:8px 12px;text-align:right">Progress</th></tr></thead>';
     html+='<tbody>'+sitesRows+'</tbody></table>';
   }
   if(mainBOQHTML){
-    html+='<div style="font-size:13px;font-weight:700;color:'+_pH()+';margin-bottom:8px">SOW BOQ Item Progress</div>';
+    html+='<div style="font-size:13px;font-weight:700;color:'+_pH('ppr')+';margin-bottom:8px">SOW BOQ Item Progress</div>';
     html+='<table style="width:100%;border-collapse:collapse;font-size:12px;border:1px solid #e2e6ef">';
-    html+='<thead><tr style="background:'+_pH()+';color:#fff">'+
+    html+='<thead><tr style="background:'+_pH('ppr')+';color:#fff">'+
       '<th style="padding:7px 12px;text-align:left;width:32px">#</th>'+
       '<th style="padding:7px 12px;text-align:left">Description</th>'+
       '<th style="padding:7px 12px;text-align:right;width:70px">Total Qty</th>'+
@@ -6683,7 +6693,7 @@ function getBOQHTML(boq, hidePrices){
   var lineRows='';
   if(lines.length){
     lines.forEach(function(l,i){
-      lineRows+='<tr style="background:'+(i%2?_pA():'#fff')+'">';
+      lineRows+='<tr style="background:'+(i%2?_pAlt('boq'):'#fff')+'">';
       lineRows+='<td style="padding:7px 10px">'+(i+1)+'</td>';
       lineRows+='<td style="padding:7px 10px;color:#555;font-size:11px">'+(l.partNum||'—')+'</td>';
       lineRows+='<td style="padding:7px 10px">'+l.desc+'</td>';
@@ -6703,8 +6713,8 @@ function getBOQHTML(boq, hidePrices){
   var isSiteBOQ=boq.boqType==='Site';
   var parentBOQ=isSiteBOQ&&boq.parentBOQId?DB.boqs.find(function(x){return x.id===boq.parentBOQId;}):null;
   body+='<div style="padding:12px 20px;background:rgba(245,248,255,0.9);border-bottom:1px solid #e2e6ef;display:flex;justify-content:space-between;align-items:center">';
-  body+='<div><div style="font-size:17px;font-weight:800;color:'+_pH()+'">'+(isSiteBOQ?'Site SOW BOQ':'SOW BOQ')+(boq.siteName?' – '+boq.siteName:'')+'</div>';
-  if(isSiteBOQ&&parentBOQ) body+='<div style="font-size:11px;color:'+_pH()+';margin-top:2px;font-weight:600">Linked to Main SOW BOQ: '+parentBOQ.num+'</div>';
+  body+='<div><div style="font-size:17px;font-weight:800;color:'+_pH('boq')+'">'+(isSiteBOQ?'Site SOW BOQ':'SOW BOQ')+(boq.siteName?' – '+boq.siteName:'')+'</div>';
+  if(isSiteBOQ&&parentBOQ) body+='<div style="font-size:11px;color:'+_pH('boq')+';margin-top:2px;font-weight:600">Linked to Main SOW BOQ: '+parentBOQ.num+'</div>';
   if(boq.scope) body+='<div style="font-size:12px;color:#666;margin-top:2px">'+boq.scope+'</div>';
   body+='</div>';
   body+='<div style="text-align:right;font-size:12px;color:#555"><div><b>BOQ No:</b> '+boq.num+'</div><div><b>Date:</b> '+boq.date+'</div><div><b>Revision:</b> '+(boq.rev||'Rev 01')+'</div></div></div>';
@@ -6712,16 +6722,16 @@ function getBOQHTML(boq, hidePrices){
   // Info grid
   body+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">';
   body+='<div style="padding:11px;background:'+(S.docCardBg||'#f5f8ff')+';border-radius:8px;border:1px solid '+_pTB()+'">';
-  body+='<div style="font-weight:700;color:'+_pH()+';margin-bottom:5px;font-size:11px;text-transform:uppercase">Project Details</div>';
+  body+='<div style="font-weight:700;color:'+_pH('boq')+';margin-bottom:5px;font-size:11px;text-transform:uppercase">Project Details</div>';
   body+='<div><b>Project Ref:</b> '+boq.projRef+'</div>';
   body+='<div><b>Prepared By:</b> '+(boq.preparedBy||getSubmittedBy())+'</div>';
   body+='<div><b>Date:</b> '+boq.date+'</div></div>';
   body+='<div style="padding:11px;background:'+(S.docSubBarBg||'#f9f9f9')+';border-radius:8px;border:1px solid '+_pTB()+'">';
-  body+='<div style="font-weight:700;color:'+_pH()+';margin-bottom:5px;font-size:11px;text-transform:uppercase">Submitted To</div>';
+  body+='<div style="font-weight:700;color:'+_pH('boq')+';margin-bottom:5px;font-size:11px;text-transform:uppercase">Submitted To</div>';
   body+='<div style="font-size:14px;font-weight:700">'+boq.client+'</div></div></div>';
   // Table
   body+='<table style="width:100%;border-collapse:collapse">';
-  body+='<thead><tr style="background:'+_pH()+';color:'+_pHT()+'">';
+  body+='<thead><tr style="background:'+_pH('boq')+';color:'+_pHT('boq')+'">';
   body+='<th style="padding:7px 10px;text-align:left">#</th>';
   body+='<th style="padding:7px 10px;text-align:left">Part No.</th>';
   body+='<th style="padding:7px 10px;text-align:left">Item Description</th>';
@@ -6733,14 +6743,14 @@ function getBOQHTML(boq, hidePrices){
     body+='<tfoot>';
     body+='<tr style="background:#f5f8ff"><td colspan="6" style="padding:8px 10px;text-align:right;font-weight:700">Subtotal (excl. VAT)</td><td style="padding:8px 10px;text-align:right;font-weight:700">'+fmt(sub)+'</td></tr>';
     body+='<tr style="background:#fffde7"><td colspan="6" style="padding:7px 10px;text-align:right;color:#666">VAT 15%</td><td style="padding:7px 10px;text-align:right">'+fmt(vat)+'</td></tr>';
-    body+='<tr style="background:'+_pT()+'"><td colspan="6" style="padding:9px 10px;text-align:right;font-weight:700;color:'+_pH()+'">Grand Total (incl. VAT)</td><td style="padding:9px 10px;text-align:right;font-weight:700;color:'+_pH()+'">'+fmt(total)+'</td></tr>';
+    body+='<tr style="background:'+_pT('boq')+'"><td colspan="6" style="padding:9px 10px;text-align:right;font-weight:700;color:'+_pH('boq')+'">Grand Total (incl. VAT)</td><td style="padding:9px 10px;text-align:right;font-weight:700;color:'+_pH('boq')+'">'+fmt(total)+'</td></tr>';
     body+='</tfoot>';
   }
   body+='</table>';
   // Notes / T&C
   if(boq.notes){
     body+='<div style="margin-top:14px;padding:10px 14px;background:#f9f9f9;border-radius:7px;border:1px solid #e2e6ef;font-size:12px">';
-    body+='<div style="font-weight:700;color:'+_pH()+';margin-bottom:4px;font-size:11px;text-transform:uppercase">Terms & Conditions / Notes</div>';
+    body+='<div style="font-weight:700;color:'+_pH('boq')+';margin-bottom:4px;font-size:11px;text-transform:uppercase">Terms & Conditions / Notes</div>';
     body+=boq.notes+'</div>';
   }
   // Signatures
@@ -7507,11 +7517,25 @@ function projectDetailLevel(){
   return 'limited';
 }
 
+function getPOCostExVAT(po){
+  // Return PO cost EXCLUDING VAT for profit calculation
+  if(!po) return 0;
+  var isIntl=(po.supplierType||'').toLowerCase()==='international';
+  var sub = po.subtotal || (po.amount / (isIntl ? 1 : 1.15));
+  var disc = parseFloat(po.discountAmt)||0;
+  var aftDisc = (sub-disc);
+  if(isIntl && po.currency && po.currency!=='SAR'){
+    return aftDisc*(po.exchangeRate||1);
+  }
+  return aftDisc;
+}
+
 function getProjectCost(projRef){
+  // Cost = PO values EXCLUDING VAT (we compare ex-VAT cost vs ex-VAT revenue)
   var poCost=DB.pos.filter(function(po){
     return po.approvalStatus==='Approved' &&
       (po.projRef===projRef || (po.projRef&&po.projRef.indexOf(projRef)!==-1));
-  }).reduce(function(a,po){return a+getPOAmountSAR(po);},0);
+  }).reduce(function(a,po){return a+getPOCostExVAT(po);},0);
   var pcCost=DB.petty.filter(function(pc){
     return pc.approvalStatus==='Approved' && pc.proj===projRef;
   }).reduce(function(a,pc){return a+(pc.total||0);},0);
@@ -7532,7 +7556,48 @@ function getProjectImplementation(projId, projRef, budget){
   var weights=getImplWeights(p);
   var result={overall:0,detail:'',byTask:{}};
 
-  // 1. PO weight: approved PO cost vs budget
+  // ── MULTIPLE SITES: overall = average of all BOQ items across all sites ──
+  if(p&&p.siteType==='Multiple Sites'&&(p.sites||[]).length){
+    var sites=p.sites;
+    // Collect all unique item descriptions from all sites
+    var allItems={};
+    sites.forEach(function(site){
+      (site.items||[]).forEach(function(item){
+        if(item.desc) allItems[item.desc]=true;
+      });
+    });
+    var itemDescs=Object.keys(allItems);
+    if(itemDescs.length){
+      var totalItemPct=0;
+      itemDescs.forEach(function(desc){
+        // Item progress = average progress across all sites that have this item
+        var sitesWithItem=sites.filter(function(s){
+          return (s.items||[]).some(function(i){return i.desc===desc;});
+        });
+        var itemAvg=sitesWithItem.length?
+          sitesWithItem.reduce(function(a,s){
+            return a+getSiteItemProgress(projId,s.id,desc);
+          },0)/sitesWithItem.length : 0;
+        totalItemPct+=itemAvg;
+      });
+      var avgItemPct=totalItemPct/itemDescs.length;
+      result.overall=Math.min(avgItemPct/100,1);
+      result.detail='Average of '+itemDescs.length+' BOQ items across '+sites.length+' sites';
+
+      // Also factor in PO weight
+      var poCost=DB.pos.filter(function(po){
+        return po.approvalStatus==='Approved'&&(po.projRef===projRef||(po.projRef&&po.projRef.indexOf(projRef)!==-1));
+      }).reduce(function(a,po){return a+getPOAmountSAR(po)/1.15;},0);
+      var budgetExVAT=budget||0;
+      var poPct=budgetExVAT>0?Math.min(poCost/budgetExVAT,1):0;
+      // Blend: 80% BOQ items average, 20% PO weight
+      result.overall=Math.min(result.overall*0.8+poPct*0.2,1);
+      return result;
+    }
+  }
+
+  // ── SINGLE SITE: weighted task completion ──
+  // 1. PO weight
   var poCost=DB.pos.filter(function(po){
     return po.approvalStatus==='Approved'&&(po.projRef===projRef||(po.projRef&&po.projRef.indexOf(projRef)!==-1));
   }).reduce(function(a,po){return a+getPOAmountSAR(po)/1.15;},0);
@@ -7540,16 +7605,19 @@ function getProjectImplementation(projId, projRef, budget){
   var poPct=budgetExVAT>0?Math.min(poCost/budgetExVAT,1):0;
   result.byTask.po=poPct;
 
-  // 2. Task-type completion from daily reports (each task type = % of reports having that type)
+  // 2. Task-type completion from daily reports
   var allReports=DB.reports.filter(function(r){return r.projRef===projRef;});
   TASK_TYPES.forEach(function(t){
     if(!(t in weights)) return;
-    // Pct = count of reports containing this task type / total reports (capped at 1 once seen at least once each month or 1 instance)
-    var hasTask=allReports.some(function(r){return (r.tasks||[]).some(function(tk){return(tk.desc||'').toLowerCase().trim()===t.toLowerCase();});});
+    var hasTask=allReports.some(function(r){
+      return (r.tasks||[]).some(function(tk){
+        return (tk.desc||'').toLowerCase().trim()===t.toLowerCase();
+      });
+    });
     result.byTask[t]=hasTask?1:0;
   });
 
-  // 3. Delivery: also check delivery notes for this project
+  // 3. Delivery notes
   if(DB.deliveryNotes&&DB.deliveryNotes.some(function(dn){return dn.projRef===projRef;})){
     result.byTask['Delivery']=1;
   }
@@ -8246,13 +8314,14 @@ function ddLoadDocColors(type){
   var totBg   = dc.totBg   || S.pdfTotalRow       || '#e4f7f0';
   var altRow  = dc.altRow  || S.pdfAltRow         || '#f5f8ff';
   var accent  = dc.accent  || S.headerBgColor     || '#1a4fa0';
-  set('dc-hdr-bg', hdrBg);   set('dc-hdr-bg-hex', hdrBg);
-  set('dc-hdr-text', hdrText);set('dc-hdr-text-hex', hdrText);
-  set('dc-th-bg', thBg);     set('dc-th-bg-hex', thBg);
-  set('dc-th-text', thText); set('dc-th-text-hex', thText);
-  set('dc-tot-bg', totBg);   set('dc-tot-hex', totBg);
-  set('dc-alt-bg', altRow);  set('dc-alt-hex', altRow);
-  set('dc-accent', accent);  set('dc-accent-hex', accent);
+  var hex=function(v){return v&&v.startsWith('#')&&v.length>=4?v:'#000000';};
+  set('dc-hdr-bg',  hex(hdrBg));  set('dc-hdr-bg-hex',   hdrBg);
+  set('dc-hdr-text',hex(hdrText));set('dc-hdr-text-hex',  hdrText);
+  set('dc-th-bg',   hex(thBg));   set('dc-th-bg-hex',    thBg);
+  set('dc-th-text', hex(thText)); set('dc-th-text-hex',   thText);
+  set('dc-tot-bg',  hex(totBg));  set('dc-tot-hex',      totBg);
+  set('dc-alt-bg',  hex(altRow)); set('dc-alt-hex',      altRow);
+  set('dc-accent',  hex(accent)); set('dc-accent-hex',   accent);
 }
 
 function ddSelectDoc(type){
@@ -8346,7 +8415,7 @@ function ddGetSampleHTML(type){
 }
 
 function ddGenericPreview(title, num){
-  var hdr = _pH(); var hdrT = _pHT();
+  var hdr = _pH(type); var hdrT = _pHT(type);
   return '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>'+_printCSS()+'</style></head><body>'+
     getDocHeader()+
     '<div style="background:'+hdr+';padding:14px 20px;display:flex;justify-content:space-between;align-items:center;-webkit-print-color-adjust:exact">'+
@@ -8375,28 +8444,49 @@ function ddRefreshPreview(){
   if(!_ddCurrentDoc) return;
   var wrap = document.getElementById('dd-preview-wrap');
   if(!wrap) return;
-  // Sync per-doc colors from panel fields into S.docColors
-  var doc = _ddCurrentDoc||'';
-  if(doc){
-    if(!S.docColors) S.docColors={};
-    if(!S.docColors[doc]) S.docColors[doc]={};
-    var dc=S.docColors[doc];
-    var g=function(id){var e=document.getElementById(id);return e?e.value:'';};
-    dc.hdrBg  = g('dc-hdr-bg');   dc.hdrText = g('dc-hdr-text');
-    dc.thBg   = g('dc-th-bg');    dc.thText  = g('dc-th-text');
-    dc.totBg  = g('dc-tot-bg');   dc.altRow  = g('dc-alt-bg');
-    dc.accent = g('dc-accent');
-  }
-  var html = ddGetSampleHTML(_ddCurrentDoc);
-  // Show in scaled div to simulate A4 page
-  wrap.innerHTML = '<div style="background:#fff;margin:0 auto;width:794px;min-height:500px;box-shadow:0 2px 16px rgba(0,0,0,.15);transform-origin:top left;transform:scale(0.68);border-radius:4px;overflow:hidden">'+
-    '<style>body,html{margin:0;padding:0}'+
-    (html.match(/<style[^>]*>([\s\S]*?)<\/style>/i)||['',''])[1]+
-    '</style>'+
-    (html.match(/<body[^>]*>([\s\S]*)<\/body>/i)||['',''])[1]+
-    '</div>';
-  // Adjust container height for scale
+
+  // ── Sync field values → S.docColors ──────────────────────
+  var doc = _ddCurrentDoc;
+  if(!S.docColors) S.docColors={};
+  if(!S.docColors[doc]) S.docColors[doc]={};
+  var dc = S.docColors[doc];
+  var g  = function(id){ var e=document.getElementById(id); return (e&&e.value&&e.value.length>2)?e.value:''; };
+  var sv = function(k,v){ if(v) dc[k]=v; };
+  sv('hdrBg',  g('dc-hdr-bg'));   sv('hdrText', g('dc-hdr-text'));
+  sv('thBg',   g('dc-th-bg'));    sv('thText',  g('dc-th-text'));
+  sv('totBg',  g('dc-tot-bg'));   sv('altRow',  g('dc-alt-bg'));
+  sv('accent', g('dc-accent'));
+
+  // ── Generate full HTML with updated colors ────────────────
+  var html = ddGetSampleHTML(doc);
+
+  // ── Render in iframe (correct CSS execution, no blob URL) ─
+  wrap.innerHTML = '';
+  var outer = document.createElement('div');
+  outer.style.cssText = 'background:#e8eaed;padding:16px;overflow-y:auto;min-height:420px;border-radius:0';
+  var scaleWrap = document.createElement('div');
+  scaleWrap.style.cssText = 'background:#fff;margin:0 auto;width:794px;min-height:600px;box-shadow:0 4px 24px rgba(0,0,0,.18);border-radius:4px;overflow:hidden;transform-origin:top left;transform:scale(0.65)';
+
+  // Write HTML directly into a new document node (avoid blob URL issues)
+  var iframe = document.createElement('iframe');
+  iframe.style.cssText = 'width:794px;height:900px;border:none;display:block';
+  iframe.scrolling = 'no';
+  scaleWrap.appendChild(iframe);
+  outer.appendChild(scaleWrap);
+  wrap.appendChild(outer);
   wrap.style.minHeight = '420px';
+
+  // Write HTML into iframe document
+  try {
+    var doc2 = iframe.contentDocument || iframe.contentWindow.document;
+    doc2.open(); doc2.write(html); doc2.close();
+  } catch(e) {
+    // Fallback: inject as innerHTML with style extraction
+    var bodyM  = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+    var styleM = html.match(/<style[^>]*>([\s\S]*?)<\/style>/ig)||[];
+    var allCss = styleM.map(function(s){return s.replace(/<[/]?style[^>]*>/gi,'');}).join(' ');
+    scaleWrap.innerHTML = '<style>'+allCss+'</style>'+(bodyM?bodyM[1]:'');
+  }
 }
 
 function ddSaveDesign(){
@@ -8988,7 +9078,7 @@ function viewDN(id){
 
 function buildDNHTML(dn){
   var p   = DB.projects.find(function(x){return x.ref===dn.projRef;});
-  var hdr = _pH(), hdrT = _pHT(), alt = _pA(), tot = _pT(), totT = _pTT();
+  var hdr = _pH('ppr'), hdrT = _pHT('ppr'), alt = _pAlt('ppr'), tot = _pT('ppr'), totT = _pTT('ppr');
 
   var lineRows = (dn.items||[]).map(function(l,i){
     return '<tr'+(i%2?' style="background:'+alt+'"':'')+'>'+
