@@ -7638,13 +7638,10 @@ function getProjectImplementation(projId, projRef, budget){
           totalSiteQty+=siteQty;
         });
 
-        // نسبة إنجاز البند في المشروع = Σ(pct×siteQty) / projQty
-        var itemProjPct=0;
-        if(projQty>0&&totalSiteQty>0){
-          itemProjPct=Math.min(1, totalSiteWeightedPct/projQty);
-        } else if(totalSiteQty>0){
-          itemProjPct=Math.min(1, totalSiteWeightedPct/totalSiteQty);
-        }
+        // إنجاز البند في المشروع = متوسط الإنجاز في الموقع × (Sites Qty / Total Qty)
+        var avgSitePct = totalSiteQty>0 ? totalSiteWeightedPct/totalSiteQty : 0; // متوسط الإنجاز
+        var sitesRatio = projQty>0 ? Math.min(1, totalSiteQty/projQty) : 1;     // Sites Qty / Total Qty
+        var itemProjPct = Math.min(1, avgSitePct * sitesRatio);
 
         totalItemPct+=itemProjPct;
       });
