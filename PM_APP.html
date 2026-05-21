@@ -3325,8 +3325,45 @@ function getTaskWeight(taskName){
 }
 
 function getSiteItemProgress(projId, siteId, itemDesc){
-  // Returns 0-100% for a specific item in a site
-  // Based on: doneQty / siteQty (qty from daily reports vs site BOQ qty)
+  // إنجاز البند في الموقع = Σ(أوزان المهام المنفذة) × kمية الموقع
+  // حيث أوزان المهام = TASK_WEIGHTS (PO Issue=5, Delivery=15, Cabling=20, ...)
+  var p=DB.projects.find(function(x){return x.id===projId;});
+  if(!p) return 0;
+
+  var site=(p.sites||[]).find(function(s){return s.id===siteId;});
+  var siteItem=site&&(site.items||[]).find(function(i){
+    return (i.desc||'').toLowerCase()===(itemDesc||'').toLowerCase();
+  });
+  var siteQty=siteItem?parseFloat(siteItem.qty||0):0;
+
+  // جمع الأوزان المنفذة للبند في هذا الموقع من التقارير اليومية
+  var totalWeight=100; // مجموع الأوزان الكلية
+  var doneWeight=0;
+  var tasksDone={};
+
+  DB.reports.filter(function(r){return r.projRef===p.ref&&r.siteId===siteId;})
+    .forEach(function(r){
+      (r.tasks||[]).forEach(function(t){
+        if((t.sowItem||'').toLowerCase()!==(itemDesc||'').toLowerCase()) return;
+        if(t.done){ doneWeight=totalWeight; return; } // مكتملة = 100%
+        var tk=t.desc||'';
+        if(!tasksDone[tk]){ // كل نوع مهمة يُحسب مرة واحدة
+          tasksDone[tk]=true;
+          doneWeight+=getTaskWeight(tk);
+        }
+      });
+    });
+
+  var weightPct=Math.min(100, doneWeight); // نسبة إنجاز بالأوزان (0-100)
+  // ضرب نسبة الإنجاز × كمية الموقع = إنجاز فعلي للبند
+  // نعيد نسبة 0-100 مقارنة بكمية الموقع
+  // (الكمية المنجزة = weightPct/100 × siteQty)
+  return Math.min(100, weightPct);
+}
+
+function getSiteItemDoneQty(projId, siteId, itemDesc){
+  // الكمية المنجزة الفعلية = نسبة الإنجاز × كمية الموقع
+  var pct=getSiteItemProgress(projId, siteId, itemDesc)/100;
   var p=DB.projects.find(function(x){return x.id===projId;});
   if(!p) return 0;
   var site=(p.sites||[]).find(function(s){return s.id===siteId;});
@@ -3334,35 +3371,11 @@ function getSiteItemProgress(projId, siteId, itemDesc){
     return (i.desc||'').toLowerCase()===(itemDesc||'').toLowerCase();
   });
   var siteQty=siteItem?parseFloat(siteItem.qty||0):0;
-
-  // Sum qty reported done in daily reports for this item in this site
-  var doneQty=0;
-  var isFullyDone=false;
-  DB.reports.filter(function(r){return r.projRef===p.ref&&r.siteId===siteId;})
-    .forEach(function(r){
-      (r.tasks||[]).forEach(function(t){
-        if((t.sowItem||'').toLowerCase()!==(itemDesc||'').toLowerCase()) return;
-        if(t.done){ isFullyDone=true; return; }
-        doneQty+=parseFloat(t.qty||0);
-      });
-    });
-
-  if(isFullyDone) return 100;
-  if(siteQty>0) return Math.min(100, Math.round(doneQty/siteQty*100));
-  // Fallback: weight-based if no qty
-  var pct=0;
-  DB.reports.filter(function(r){return r.projRef===p.ref&&r.siteId===siteId;})
-    .forEach(function(r){
-      (r.tasks||[]).forEach(function(t){
-        if((t.sowItem||'').toLowerCase()!==(itemDesc||'').toLowerCase()) return;
-        pct=Math.min(100, pct+getTaskWeight(t.desc));
-      });
-    });
-  return Math.min(100, pct);
+  return pct*siteQty;
 }
 
 function getSiteProgress(projId, siteId){
-  // Site progress = average of (doneQty/siteQty) for all items in this site
+  // إنجاز الموقع = متوسط إنجاز جميع بنوده
   var p=DB.projects.find(function(x){return x.id===projId;});
   if(!p) return {pct:0, done:0, total:0};
   var site=(p.sites||[]).find(function(s){return s.id===siteId;});
@@ -7577,55 +7590,69 @@ function getProjectImplementation(projId, projRef, budget){
   var result={overall:0,detail:'',byTask:{}};
 
   // ── MULTIPLE SITES ────────────────────────────────────────────────────
-  // Overall = Σ(doneQty across ALL sites) / Σ(totalQty in Main BOQ) per item
-  // Site    = Σ(doneQty in this site) / Σ(siteQty for this site) per item
+  // إنجاز البند في المشروع = متوسط إنجازه عبر المواقع × كمية المشروع
+  // إنجاز المشروع الكلي   = متوسط إنجاز جميع البنود
   if(p&&p.siteType==='Multiple Sites'&&(p.sites||[]).length){
     var sites=p.sites;
 
-    // Get main BOQ items (from any boq with no siteId = main boq)
-    var mainBOQ=DB.boqs&&DB.boqs.find(function(b){return b.projId===projId&&!b.siteId;});
-    var mainItems=mainBOQ?(mainBOQ.lines||[]):[];
-
-    // Collect all unique BOQ items across all sites
+    // جمع كل البنود الفريدة عبر جميع المواقع
     var allItemDescs={};
-    sites.forEach(function(s){(s.items||[]).forEach(function(i){if(i.desc)allItemDescs[i.desc]=true;});});
+    sites.forEach(function(s){
+      (s.items||[]).forEach(function(i){if(i.desc)allItemDescs[i.desc]=true;});
+    });
     var itemDescs=Object.keys(allItemDescs);
 
     if(itemDescs.length){
-      var totalWeightedDone=0;
-      var totalWeightedQty=0;
+      // Main BOQ للحصول على كمية المشروع الكلية لكل بند
+      var mainBOQ=DB.boqs&&DB.boqs.find(function(b){return b.projId===projId&&!b.siteId;});
+      var mainItems=mainBOQ?(mainBOQ.lines||[]):[];
+
+      var totalItemPct=0;
 
       itemDescs.forEach(function(desc){
-        // Total project qty for this item (from main BOQ, else sum of all sites)
-        var mainLine=mainItems.find(function(l){return(l.desc||'').toLowerCase()===desc.toLowerCase();});
+        // كمية المشروع الكلية للبند
+        var mainLine=mainItems.find(function(l){
+          return (l.desc||'').toLowerCase()===desc.toLowerCase();
+        });
         var projQty=mainLine?parseFloat(mainLine.qty||0):
           sites.reduce(function(a,s){
-            var si=(s.items||[]).find(function(i){return(i.desc||'').toLowerCase()===desc.toLowerCase();});
+            var si=(s.items||[]).find(function(i){
+              return (i.desc||'').toLowerCase()===desc.toLowerCase();
+            });
             return a+parseFloat(si?si.qty||0:0);
           },0);
 
-        // Done qty = sum across all sites
-        var doneQty=0;
-        var isFullyDone=false;
+        // إنجاز البند في المشروع = متوسط وزن الإنجاز × كمية الموقع عبر المواقع
+        var totalSiteWeightedPct=0;
+        var totalSiteQty=0;
+
         sites.forEach(function(s){
-          DB.reports.filter(function(r){return r.projRef===projRef&&r.siteId===s.id;})
-            .forEach(function(r){
-              (r.tasks||[]).forEach(function(t){
-                if((t.sowItem||'').toLowerCase()!==desc.toLowerCase()) return;
-                if(t.done) isFullyDone=true;
-                else doneQty+=parseFloat(t.qty||0);
-              });
-            });
+          var si=(s.items||[]).find(function(i){
+            return (i.desc||'').toLowerCase()===desc.toLowerCase();
+          });
+          var siteQty=si?parseFloat(si.qty||0):0;
+          if(siteQty<=0) return;
+          var sitePct=getSiteItemProgress(projId,s.id,desc)/100; // 0-1
+          // الإنجاز المرجّح = نسبة × كمية الموقع
+          totalSiteWeightedPct+=sitePct*siteQty;
+          totalSiteQty+=siteQty;
         });
 
-        if(isFullyDone){ totalWeightedDone+=projQty; totalWeightedQty+=projQty; }
-        else if(projQty>0){ totalWeightedDone+=Math.min(doneQty,projQty); totalWeightedQty+=projQty; }
-        else { totalWeightedQty+=1; } // weight as 1 if no qty info
+        // نسبة إنجاز البند في المشروع = Σ(pct×siteQty) / projQty
+        var itemProjPct=0;
+        if(projQty>0&&totalSiteQty>0){
+          itemProjPct=Math.min(1, totalSiteWeightedPct/projQty);
+        } else if(totalSiteQty>0){
+          itemProjPct=Math.min(1, totalSiteWeightedPct/totalSiteQty);
+        }
+
+        totalItemPct+=itemProjPct;
       });
 
-      var itemsPct=totalWeightedQty>0?(totalWeightedDone/totalWeightedQty):0;
-      result.overall=Math.min(itemsPct,1);
-      result.detail='Items: '+Math.round(itemsPct*100)+'% ('+itemDescs.length+' BOQ items, '+sites.length+' sites)';
+      // إنجاز المشروع = متوسط إنجاز جميع البنود
+      var overallPct=itemDescs.length>0?totalItemPct/itemDescs.length:0;
+      result.overall=Math.min(overallPct,1);
+      result.detail='Avg of '+itemDescs.length+' items across '+sites.length+' sites';
       return result;
     }
   }
