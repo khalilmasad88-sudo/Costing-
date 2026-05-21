@@ -333,6 +333,8 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
     <div class="nav-item" onclick="showPage('pipeline')" data-page="pipeline"><span class="icon">🔄</span> Pipeline</div>
     <div class="nav-section">Quotation</div>
     <div class="nav-item" onclick="showPage('quotation')" data-page="quotation"><span class="icon">📄</span> Quotations</div>
+    <div class="nav-section">Value Engineering</div>
+    <div class="nav-item" onclick="showPage('ve')" data-page="ve"><span class="icon">🏗️</span> Value Engineering</div>
     <div class="nav-section">System</div>
     <div class="nav-item" onclick="showPage('settings')" data-page="settings"><span class="icon">⚙️</span> Settings</div>
     <div class="nav-section"></div>
@@ -549,7 +551,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
                       <select id="q-num" onchange="autofillFromPipeline()"></select>
                     </div>
                     <div class="field"><label>Version</label><input id="q-version" placeholder="v1.0" onchange="saveQ()"></div>
-                    <div class="field"><label>Date</label><input type="date" id="q-date" onchange="saveQ()"></div>
+                    <div class="field"><label>Submission Date</label><input type="date" id="q-date" onchange="saveQ()"></div>
                     <div class="field">
                       <label>Status</label>
                       <select id="q-status" onchange="saveQ()">
@@ -798,7 +800,111 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
 
   <!-- USERS -->
   <!-- SETTINGS -->
-  <div class="page" id="page-settings">
+  <!-- VALUE ENGINEERING PAGE -->
+<div class="page" id="page-ve">
+  <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px 0">
+    <div>
+      <div class="page-title">🏗️ Value Engineering</div>
+      <div class="page-subtitle" id="ve-subtitle">Won projects ready for implementation</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input id="ve-search" placeholder="Search projects..." style="width:220px;font-size:13px;padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface)" oninput="renderVE()"/>
+      <button class="btn btn-primary btn-sm" onclick="openVEAddModal()">+ Add Project</button>
+    </div>
+  </div>
+
+  <!-- Stats bar -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:16px 24px 0" id="ve-stats">
+    <div class="card" style="padding:14px 16px;text-align:center">
+      <div style="font-size:22px;font-weight:800;color:var(--accent)" id="ve-stat-count">0</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">Won Projects</div>
+    </div>
+    <div class="card" style="padding:14px 16px;text-align:center">
+      <div style="font-size:22px;font-weight:800;color:var(--green)" id="ve-stat-amt">SAR 0</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">Total Value</div>
+    </div>
+    <div class="card" style="padding:14px 16px;text-align:center">
+      <div style="font-size:22px;font-weight:800;color:var(--amber)" id="ve-stat-ve">0</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">VE In Progress</div>
+    </div>
+    <div class="card" style="padding:14px 16px;text-align:center">
+      <div style="font-size:22px;font-weight:800;color:var(--accent2)" id="ve-stat-ready">0</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">Ready for Implementation</div>
+    </div>
+  </div>
+
+  <!-- Projects list -->
+  <div style="padding:16px 24px">
+    <div id="ve-list" class="card" style="padding:0;overflow:hidden"></div>
+  </div>
+</div>
+
+<!-- VE ADD PROJECT MODAL -->
+<div class="modal-overlay" id="modal-ve-add" onclick="if(event.target===this)closeModal('modal-ve-add')">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <div class="modal-title">🏗️ Add Project to VE</div>
+      <button class="modal-close" onclick="closeModal('modal-ve-add')">✕</button>
+    </div>
+    <div style="padding:20px;display:flex;flex-direction:column;gap:12px">
+      <div class="form-group">
+        <label>Project Name <span style="color:var(--red)">*</span></label>
+        <input id="ve-add-name" placeholder="e.g. CCTV System - Al Olaya Tower" style="font-size:13px"/>
+      </div>
+      <div class="form-group">
+        <label>Client / Entity</label>
+        <input id="ve-add-client" placeholder="Client name" style="font-size:13px"/>
+      </div>
+      <div class="form-group">
+        <label>Project Reference</label>
+        <input id="ve-add-ref" placeholder="e.g. PRJ-2026-001" style="font-size:13px"/>
+      </div>
+      <div class="form-group">
+        <label>Location</label>
+        <input id="ve-add-loc" placeholder="e.g. Riyadh, Al Olaya" style="font-size:13px"/>
+      </div>
+      <div class="form-group">
+        <label>Contract Value (SAR)</label>
+        <input id="ve-add-value" type="number" placeholder="0.00" style="font-size:13px"/>
+      </div>
+      <div class="form-group">
+        <label>Award Date</label>
+        <input id="ve-add-date" type="date" style="font-size:13px"/>
+      </div>
+      <div class="form-group">
+        <label>System / Scope</label>
+        <input id="ve-add-system" placeholder="e.g. CCTV, Access Control, Fire Alarm..." style="font-size:13px"/>
+      </div>
+      <div class="form-group">
+        <label>Link Quotation (optional)</label>
+        <select id="ve-add-quotation" style="font-size:13px">
+          <option value="">— No linked quotation —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="ve-add-notes" rows="2" placeholder="Any notes about this project..." style="font-size:13px;resize:vertical"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-ve-add')">Cancel</button>
+      <button class="btn btn-primary" onclick="veAddManualProject()">➕ Add to VE</button>
+    </div>
+  </div>
+</div>
+
+<!-- VE DETAIL MODAL -->
+<div class="modal-overlay" id="modal-ve-detail" onclick="if(event.target===this)closeModal('modal-ve-detail')">
+  <div class="modal" style="max-width:860px;max-height:90vh;overflow-y:auto">
+    <div class="modal-header">
+      <div class="modal-title" id="ve-detail-title">Value Engineering</div>
+      <button class="modal-close" onclick="closeModal('modal-ve-detail')">✕</button>
+    </div>
+    <div style="padding:20px" id="ve-detail-body"></div>
+  </div>
+</div>
+
+<div class="page" id="page-settings">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
       <div class="card">
         <div class="card-header"><div class="card-title">Cloud Storage (Supabase)</div></div>
@@ -1958,7 +2064,361 @@ function changeMyPassword(){
 // Navigation & Pages
 const PAGE_TITLES={dashboard:'Dashboard <span>Overview</span>',pipeline:'Pipeline <span>2026</span>',quotation:'Quotations <span>per Project</span>',boq:'Bill of <span>Quantity</span>',settings:'Settings <span>& Config</span>'};
 
+// ══════════════════════════════════════════════════════════
+// VALUE ENGINEERING
+// ══════════════════════════════════════════════════════════
+
+function getVEStatus(q){
+  if(!q.ve) return 'Not Started';
+  return q.ve.status||'Not Started';
+}
+
+function veStatusBadge(s){
+  var m={
+    'Not Started':'background:#f0f0f0;color:#888',
+    'In Progress':'background:#fff3cd;color:#856404',
+    'Ready':'background:#d1fae5;color:#065f46',
+    'Submitted to PM':'background:#dbeafe;color:#1d4ed8',
+    'On Hold':'background:#fee2e2;color:#991b1b',
+  };
+  var style=m[s]||'background:#f0f0f0;color:#888';
+  return '<span style="'+style+';padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">'+s+'</span>';
+}
+
+window.__veOpen=function(pid){openVEDetail(pid);};
+
+function veOnApprove(pipelineItem){
+  // Link the quotation to this pipeline item
+  if(pipelineItem.quotationId){
+    var q=S.quotations.find(function(x){return x.id==pipelineItem.quotationId;});
+    if(q) q.pipelineId=pipelineItem.id;
+  }
+  // Link by QTN number if no direct ID
+  if(!pipelineItem.quotationId && pipelineItem.qtn){
+    var matched=S.quotations.filter(function(q){
+      return q.num===pipelineItem.qtn && (!q.companyId||q.companyId===pipelineItem.companyId);
+    });
+    matched.forEach(function(q){
+      q.pipelineId=pipelineItem.id;
+      if(!pipelineItem.quotationId) pipelineItem.quotationId=q.id;
+    });
+  }
+  // Initialize VE data if not present
+  if(!pipelineItem.ve){
+    pipelineItem.ve={status:'Not Started',notes:'',checklist:[]};
+  }
+  showToast('✅ Project moved to Value Engineering.');
+}
+
+function openVEAddModal(){
+  // Reset form
+  // Populate quotation dropdown with unlinked quotations
+  var qSel=document.getElementById('ve-add-quotation');
+  if(qSel){
+    var unlinked=(S.quotations||[]).filter(function(q){
+      return (!q.companyId||q.companyId===S.currentCompanyId)&&!q.pipelineId;
+    });
+    qSel.innerHTML='<option value="">— No linked quotation —</option>'+
+      unlinked.map(function(q){return '<option value="'+q.id+'">'+esc(q.num||q.id)+' — '+esc(q.project||q.client||'')+'</option>';}).join('');
+  }
+  ['ve-add-name','ve-add-client','ve-add-ref','ve-add-loc','ve-add-system','ve-add-notes'].forEach(function(id){
+    var e=document.getElementById(id); if(e) e.value='';
+  });
+  var v=document.getElementById('ve-add-value'); if(v) v.value='';
+  var d=document.getElementById('ve-add-date'); if(d) d.value=new Date().toISOString().slice(0,10);
+  openModal('modal-ve-add');
+}
+
+function veAddManualProject(){
+  var name=(document.getElementById('ve-add-name')||{}).value||'';
+  if(!name.trim()){ alert('Project Name is required.'); return; }
+
+  var proj = {
+    id:          Date.now(),
+    companyId:   S.currentCompanyId,
+    name:        name.trim(),
+    client:      (document.getElementById('ve-add-client')||{}).value||'',
+    ref:         (document.getElementById('ve-add-ref')||{}).value||'',
+    loc:         (document.getElementById('ve-add-loc')||{}).value||'',
+    amount:      parseFloat((document.getElementById('ve-add-value')||{}).value||0)||0,
+    date:        (document.getElementById('ve-add-date')||{}).value||new Date().toISOString().slice(0,10),
+    sys:         (document.getElementById('ve-add-system')||{}).value||'',
+    status:      'Approved',   // Won — goes directly to VE
+    veManual:    true,         // Flag: not from pipeline
+    quotationId: +(document.getElementById('ve-add-quotation')||{}).value||null,
+    ve:          {
+      status:    'Not Started',
+      notes:     (document.getElementById('ve-add-notes')||{}).value||'',
+      checklist: []
+    }
+  };
+
+  if(!S.pipeline) S.pipeline=[];
+  // Link quotation if selected
+  if(proj.quotationId){
+    var linkedQ=S.quotations.find(function(q){return q.id==proj.quotationId;});
+    if(linkedQ) linkedQ.pipelineId=proj.id;
+  }
+  S.pipeline.push(proj);
+  saveNow();
+  closeModal('modal-ve-add');
+  renderVE();
+  showToast('✅ Project "'+name+'" added to Value Engineering.');
+}
+
+function renderVE(){
+  var search = (document.getElementById('ve-search')||{}).value||'';
+  var pl = (S.pipeline||[]).filter(function(p){return !S.currentCompanyId||p.companyId===S.currentCompanyId;});
+  var won = pl.filter(function(r){ return r.status==='Approved'; });
+
+  // Update stats
+  var veIn=0, veReady=0, totalAmt=0;
+  won.forEach(function(r){
+    totalAmt += getPipelineAmount(r);
+    var vs = getVEStatus(r);
+    if(vs==='In Progress'||vs==='On Hold') veIn++;
+    if(vs==='Ready'||vs==='Submitted to PM') veReady++;
+  });
+
+  var fmt=function(n){return n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(0)+'K':n.toFixed(0);};
+  var el=function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};
+  el('ve-stat-count', won.length);
+  el('ve-stat-amt', 'SAR '+fmt(totalAmt));
+  el('ve-stat-ve', veIn);
+  el('ve-stat-ready', veReady);
+  el('ve-subtitle', won.length+' won project'+(won.length!==1?'s':'')+' ready for implementation');
+
+  // Filter by search
+  if(search) won = won.filter(function(r){
+    return (r.name||'').toLowerCase().includes(search.toLowerCase()) ||
+           (r.client||'').toLowerCase().includes(search.toLowerCase()) ||
+           (r.ref||'').toLowerCase().includes(search.toLowerCase());
+  });
+
+  var list = document.getElementById('ve-list');
+  if(!list) return;
+
+  if(!won.length){
+    list.innerHTML='<div style="padding:40px;text-align:center;color:var(--muted)">'+
+      (search?'No matching projects':'No won projects yet. Projects with status "Approved" appear here.')+
+    '</div>';
+    return;
+  }
+
+  var rows = won.map(function(r){
+    var veData = r.ve||{};
+    var vs = getVEStatus(r);
+    var amt = getPipelineAmount(r);
+    var qCount = (S.quotations||[]).filter(function(q){return q.pipelineId===r.id;}).length;
+    return '<div style="display:grid;grid-template-columns:1fr 1fr 120px 130px 160px auto;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;cursor:pointer" onclick="window.__veOpen(this.dataset.vid)" data-vid="'+r.id+'">'+
+      '<div>'+
+        '<div style="font-weight:700;color:var(--text)">'+esc(r.name||'—')+(r.veManual?'<span style="font-size:10px;background:var(--accent-lt);color:var(--accent);padding:1px 6px;border-radius:8px;margin-left:5px;font-weight:600">Direct</span>':'')+' </div>'+
+        '<div style="font-size:11px;color:var(--muted);margin-top:1px">'+(r.ref||'')+(r.ref&&r.client?' · ':'')+esc(r.client||'')+'</div>'+
+      '</div>'+
+      '<div style="font-size:12px;color:var(--muted)">'+(veData.notes?esc(veData.notes.slice(0,60))+(veData.notes.length>60?'...':''):'<span style="color:var(--muted);font-style:italic">No VE notes yet</span>')+'</div>'+
+      '<div style="font-weight:700;color:var(--accent)">SAR '+fmt(amt)+'</div>'+
+      '<div style="font-size:11px">'+qCount+' quotation'+(qCount!==1?'s':'')+'</div>'+
+      '<div>'+veStatusBadge(vs)+'</div>'+
+      '<div><button class="btn btn-primary btn-sm" onclick="event.stopPropagation();window.__veOpen(this.closest(\'[data-vid]\').dataset.vid)">Open →</button></div>'+
+    '</div>';
+  }).join('');
+
+  list.innerHTML=
+    '<div style="display:grid;grid-template-columns:1fr 1fr 120px 130px 160px auto;gap:12px;padding:10px 16px;border-bottom:2px solid var(--border);font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">'+
+      '<div>Project</div><div>VE Notes</div><div>Value</div><div>Quotations</div><div>VE Status</div><div></div>'+
+    '</div>'+rows;
+}
+
+function openVEDetail(pid){
+  pid=isNaN(pid)?pid:+pid;
+  var r = (S.pipeline||[]).find(function(x){return x.id==pid;});
+  if(!r) return;
+  var veData = r.ve||{r_ve_status:'Not Started'};
+  var quotations = (S.quotations||[]).filter(function(q){return q.pipelineId===pid;});
+  var fmt = function(n){return n?n.toLocaleString():'0';};
+  var amt = getPipelineAmount(r);
+
+  var statusOpts = ['Not Started','In Progress','Ready','Submitted to PM','On Hold']
+    .map(function(s){return '<option value="'+s+'"'+(getVEStatus(r)===s?' selected':'')+'>'+s+'</option>';}).join('');
+
+  var qRows = quotations.length ? quotations.map(function(q){
+    var qtot = (q.items||[]).reduce(function(a,it){
+      return a+(it.subs||[]).reduce(function(b,s){return b+(s.totalPrice||0);},0);
+    },0);
+    return '<tr>'+
+      '<td style="padding:7px 10px;font-weight:600">'+esc(q.num||'')+'</td>'+
+      '<td style="padding:7px 10px">'+esc(q.project||q.client||'—')+'</td>'+
+      '<td style="padding:7px 10px">'+q.date+'</td>'+
+      '<td style="padding:7px 10px;text-align:right;font-weight:700">SAR '+fmt(qtot)+'</td>'+
+      '<td style="padding:7px 10px;text-align:center">'+
+        '<button class="btn btn-secondary btn-sm" onclick="closeModal(\'modal-ve-detail\');switchToQuotation(\"'+q.id+'\");">Open</button>'+
+      '</td>'+
+    '</tr>';
+  }).join('') : '<tr><td colspan="5" style="padding:20px;text-align:center;color:var(--muted)">No quotations linked</td></tr>';
+
+  var body =
+    // Project header
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">'+
+      '<div class="card" style="padding:14px 16px">'+
+        '<div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Project Info</div>'+
+        '<div style="font-size:13px;font-weight:700;margin-bottom:4px">'+esc(r.name||'')+'</div>'+
+        '<div style="font-size:12px;color:var(--muted)">Client: '+esc(r.client||'—')+'</div>'+
+        '<div style="font-size:12px;color:var(--muted)">Ref: '+(r.ref||'—')+'</div>'+
+        '<div style="font-size:12px;color:var(--muted)">Location: '+(r.loc||'—')+'</div>'+
+        '<div style="font-size:13px;font-weight:700;color:var(--green);margin-top:8px">SAR '+fmt(amt)+'</div>'+
+      '</div>'+
+      // VE Status control
+      '<div class="card" style="padding:14px 16px">'+
+        '<div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">VE Status</div>'+
+        '<select data-pid="'+pid+'" style="width:100%;font-size:13px;padding:7px 10px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);margin-bottom:10px" onchange="veUpdateStatus(this.dataset.pid,this.value)">'+statusOpts+'</select>'+
+        '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px">VE Notes / Changes</div>'+
+        '<textarea id="ve-notes-'+pid+' data-pid="'+pid+'"" rows="3" placeholder="Describe value engineering changes, scope adjustments, cost savings..." style="width:100%;font-size:12px;padding:8px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);resize:vertical">'+esc(veData.notes||'')+'</textarea>'+
+        '<button class="btn btn-primary btn-sm" data-pid="'+pid+'" style="margin-top:8px;width:100%" onclick="veSaveNotes(this.dataset.pid)">💾 Save Notes</button>'+
+      '</div>'+
+    '</div>'+
+
+    // VE Checklist
+    '<div class="card" style="padding:14px 16px;margin-bottom:16px">'+
+      '<div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Implementation Checklist</div>'+
+      '<div id="ve-checklist-'+pid+'" style="display:flex;flex-direction:column;gap:6px">'+veRenderChecklist(r)+'</div>'+
+      '<button class="btn btn-ghost btn-sm" data-pid="'+pid+'" style="margin-top:8px" onclick="veAddCheckItem(this.dataset.pid)">+ Add Item</button>'+
+    '</div>'+
+
+    // Linked quotations
+    '<div class="card" style="padding:14px 16px">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'+
+        '<div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px">Linked Quotations ('+quotations.length+')</div>'+
+        (r.veManual?'<button class="btn btn-ghost btn-sm" onclick="veLinkQuotation('+r.id+')">+ Link Quotation</button>':'')+
+      '</div>'+
+      '<table style="width:100%;border-collapse:collapse">'+
+        '<thead><tr style="background:var(--surface2)">'+
+          '<th style="padding:7px 10px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase">QTN No.</th>'+
+          '<th style="padding:7px 10px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase">Project</th>'+
+          '<th style="padding:7px 10px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase">Date</th>'+
+          '<th style="padding:7px 10px;text-align:right;font-size:10px;color:var(--muted);text-transform:uppercase">Total</th>'+
+          '<th style="padding:7px 10px;text-align:center;font-size:10px;color:var(--muted);text-transform:uppercase">Action</th>'+
+        '</tr></thead>'+
+        '<tbody>'+qRows+'</tbody>'+
+      '</table>'+
+    '</div>';
+
+  document.getElementById('ve-detail-title').textContent = '🏗️ '+esc(r.name||'Value Engineering');
+  // Add delete button for manually added projects
+  var titleEl=document.getElementById('ve-detail-title');
+  if(titleEl&&r.veManual){
+    var delBtn=document.createElement('button');
+    delBtn.className='btn btn-danger btn-sm';
+    delBtn.style.cssText='margin-left:10px;font-size:11px';
+    delBtn.textContent='🗑 Remove';
+    delBtn.onclick=function(){if(confirm('Remove this project from VE?')){S.pipeline=S.pipeline.filter(function(x){return x.id!=r.id;});saveNow();closeModal('modal-ve-detail');renderVE();}};
+    titleEl.parentElement.appendChild(delBtn);
+  }
+  document.getElementById('ve-detail-body').innerHTML = body;
+  openModal('modal-ve-detail');
+}
+
+function veRenderChecklist(r){
+  var items = r.ve&&r.ve.checklist||[
+    {id:'scope',text:'Scope Review & Confirmation',done:false},
+    {id:'bom',text:'Bill of Materials Finalized',done:false},
+    {id:'vendors',text:'Vendors Confirmed',done:false},
+    {id:'schedule',text:'Implementation Schedule Created',done:false},
+    {id:'site',text:'Site Survey Completed',done:false},
+    {id:'handover',text:'Handover to PM',done:false},
+  ];
+  return items.map(function(item,i){
+    return '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 10px;border-radius:6px;background:'+(item.done?'var(--surface2)':'transparent')+';border:1px solid '+(item.done?'var(--accent2)33':'var(--border)')+'">' +
+      '<input type="checkbox" '+(item.done?'checked':'')+' data-pid="'+r.id+'" data-idx="'+i+'" style="accent-color:var(--accent2);width:15px;height:15px" onchange="veToggleCheck(this.dataset.pid,this.dataset.idx,this.checked)"/>'+
+      '<span style="flex:1;font-size:12px;'+(item.done?'color:var(--muted);text-decoration:line-through':'')+'">'+esc(item.text)+'</span>'+
+    '</label>';
+  }).join('');
+}
+
+function veToggleCheck(pid, idx, done){
+  pid=isNaN(pid)?pid:+pid;
+  pid=isNaN(pid)?pid:+pid;
+  var r=(S.pipeline||[]).find(function(x){return x.id==pid;});
+  if(!r) return;
+  if(!r.ve) r.ve={};
+  if(!r.ve.checklist) r.ve.checklist=[
+    {id:'scope',text:'Scope Review & Confirmation',done:false},
+    {id:'bom',text:'Bill of Materials Finalized',done:false},
+    {id:'vendors',text:'Vendors Confirmed',done:false},
+    {id:'schedule',text:'Implementation Schedule Created',done:false},
+    {id:'site',text:'Site Survey Completed',done:false},
+    {id:'handover',text:'Handover to PM',done:false},
+  ];
+  if(r.ve.checklist[idx]) r.ve.checklist[idx].done=done;
+  document.getElementById('ve-checklist-'+pid).innerHTML=veRenderChecklist(r);
+  saveNow();
+}
+
+function veAddCheckItem(pid){
+  pid=isNaN(pid)?pid:+pid;
+  pid=isNaN(pid)?pid:+pid;
+  var r=(S.pipeline||[]).find(function(x){return x.id==pid;});
+  if(!r){return;}
+  if(!r.ve) r.ve={};
+  if(!r.ve.checklist) r.ve.checklist=[];
+  var text=prompt('New checklist item:');
+  if(!text) return;
+  r.ve.checklist.push({id:'item'+Date.now(),text:text,done:false});
+  document.getElementById('ve-checklist-'+pid).innerHTML=veRenderChecklist(r);
+  saveNow();
+}
+
+function veLinkQuotation(pid){
+  pid=isNaN(pid)?pid:+pid;
+  var r=(S.pipeline||[]).find(function(x){return x.id==pid;});
+  if(!r) return;
+  var unlinked=(S.quotations||[]).filter(function(q){
+    return (!q.companyId||q.companyId===S.currentCompanyId)&&(!q.pipelineId||q.pipelineId==pid);
+  });
+  if(!unlinked.length){ showToast('No available quotations to link.','info'); return; }
+  var opts=unlinked.map(function(q){return q.id+': '+(q.num||q.id)+' — '+(q.project||q.client||'');}).join('\n');
+  var chosen=prompt('Select quotation to link:\n\n'+opts+'\n\nEnter Quotation ID:');
+  if(!chosen) return;
+  var qId=+chosen;
+  var q=S.quotations.find(function(x){return x.id==qId;});
+  if(!q){ showToast('Quotation not found.','error'); return; }
+  q.pipelineId=pid;
+  if(!r.quotationId) r.quotationId=qId;
+  saveNow(); openVEDetail(pid); renderVE();
+  showToast('✅ Quotation '+q.num+' linked to this project.');
+}
+
+function veUpdateStatus(pid, status){
+  pid=isNaN(pid)?pid:+pid;
+  var r=(S.pipeline||[]).find(function(x){return x.id==pid;});
+  if(!r) return;
+  if(!r.ve) r.ve={};
+  r.ve.status=status;
+  saveNow(); renderVE();
+}
+
+function veSaveNotes(pid){
+  pid=isNaN(pid)?pid:+pid;
+  pid=isNaN(pid)?pid:+pid;
+  var r=(S.pipeline||[]).find(function(x){return x.id==pid;});
+  if(!r) return;
+  if(!r.ve) r.ve={};
+  var notesEl=document.getElementById('ve-notes-'+pid);
+  if(notesEl) r.ve.notes=notesEl.value;
+  saveNow(); renderVE();
+  showToast('✅ VE notes saved.');
+}
+
+function switchToQuotation(qid){
+  qid=isNaN(qid)?qid:+qid;
+  var q=(S.quotations||[]).find(function(x){return x.id==qid;});
+  if(!q) return;
+  currentQId=qid;
+  showPage('quotation');
+  loadQ(q);
+}
+
 function showPage(id){
+  if(id==='ve') renderVE();
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
@@ -2257,7 +2717,16 @@ function renderPipeline(data){
   }).join('');
 }
 
-function updatePipelineStatus(id,val){const r=S.pipeline.find(p=>p.id===id);if(r){r.status=val;save();updateDashboard();}}
+function updatePipelineStatus(id,val){
+  const r=S.pipeline.find(p=>p.id===id);
+  if(!r) return;
+  r.status=val;
+  // When Approved: link quotation + add to VE
+  if(val==='Approved'){
+    veOnApprove(r);
+  }
+  save(); updateDashboard(); renderVE();
+}
 
 function filterPipeline(){
   const q=(document.getElementById('pl-search').value||'').toLowerCase();
@@ -2285,7 +2754,7 @@ function savePipelineItem(){
     }
   }
 
-  S.pipeline.push({
+  const _newItem={
     id:        Date.now(),
     companyId: co.id,
     qtn:       qtnNum,
@@ -2301,8 +2770,10 @@ function savePipelineItem(){
     status:    document.getElementById('pm-status').value,
     by:        document.getElementById('pm-by').value,
     note:      document.getElementById('pm-note').value
-  });
-  populateQNumDropdown();save();renderPipeline();updateDashboard();closeModal('plModal');
+  };
+  if(_newItem.status==='Approved') veOnApprove(_newItem);
+  S.pipeline.push(_newItem);
+  populateQNumDropdown();save();renderPipeline();updateDashboard();renderVE();closeModal('plModal');
 }
 
 function deletePipeline(id){if(!confirm('Remove?'))return;S.pipeline=S.pipeline.filter(r=>r.id!==id);save();renderPipeline();updateDashboard();}
@@ -4976,4 +5447,4 @@ if (_portalBridgePending) {
 // which will call init() itself — so we must NOT call init() again here in that case
 </script>
 </body>
-</html>
+    return '<div style="display:grid;grid-template-columns:1fr 1fr 120px 130px 160px auto;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;cursor:pointer" onclick="window.__veOpen(this.dataset.vid)" data-vid="'+r.id+'">'+
