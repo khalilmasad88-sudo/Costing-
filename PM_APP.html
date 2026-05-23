@@ -5597,6 +5597,8 @@ function savePO(){
     num:document.getElementById('po-num').value,
     projRef:document.getElementById('po-proj-ref').value,
     vendor:document.getElementById('po-vendor').value,
+    vendorIBAN:(function(){var sp=DB.suppliers.find(function(x){return x.name===document.getElementById('po-vendor').value;});return sp&&sp.iban||'';})(),
+    vendorBank:(function(){var sp=DB.suppliers.find(function(x){return x.name===document.getElementById('po-vendor').value;});return sp&&sp.bankName||'';})(),
     date:document.getElementById('po-date').value,
     amount:totalWithVAT,
     lines:lines,
@@ -8743,7 +8745,7 @@ function dpAcknowledgePayment(poId, schedIdx){
   var item=po.paymentSchedule[schedIdx];
   if(item.paid){if(!confirm('Mark as Unpaid?'))return;item.paid=false;item.paidDate='';}
   else{item.paid=true;item.paidDate=today();}
-  saveNow();renderDuePayments();
+  saveToCloud();renderDuePayments();
   showToast(item.paid?'Payment marked as Paid':'Payment marked as Unpaid');
 }
 
@@ -8751,7 +8753,7 @@ function dpAcknowledgePOSimple(poId){
   var po=DB.pos.find(function(p){return p.id===poId;});
   if(!po) return;
   po.paymentAck=!po.paymentAck;po.paidDate=po.paymentAck?today():'';
-  saveNow();renderDuePayments();
+  saveToCloud();renderDuePayments();
   showToast(po.paymentAck?'PO marked as Paid':'Removed payment acknowledgement');
 }
 
@@ -8759,7 +8761,7 @@ function dpAcknowledgePetty(pcId){
   var pc=DB.petty.find(function(p){return p.id===pcId;});
   if(!pc) return;
   pc.paymentAck=!pc.paymentAck;pc.paidDate=pc.paymentAck?today():'';
-  saveNow();renderDuePayments();
+  saveToCloud();renderDuePayments();
   showToast(pc.paymentAck?'Petty cash marked as Paid':'Removed acknowledgement');
 }
 
@@ -8889,15 +8891,19 @@ function renderDuePayments(){
         var st=sched.paid?'Paid':(sched.dueDate&&new Date(sched.dueDate)<new Date(todayStr)?'Overdue':'Pending');
         if(statusFilter&&st!==statusFilter)return;
         if(st==='Paid')totalPaid+=amt;else{totalDue+=amt;if(st==='Overdue')totalOverdue+=amt;else totalPending+=amt;}
-        var poVendorObj=DB.suppliers&&DB.suppliers.find(function(s){return s.name===po.vendor;});
-        rows.push({type:'po',id:po.id,si:si,projRef:po.projRef||'—',docNum:po.num||'PO',vendor:po.vendor||'—',iban:po.vendorIBAN||(poVendorObj&&poVendorObj.iban)||'—',bank:po.vendorBank||(poVendorObj&&poVendorObj.bankName)||'—',desc:sched.desc||('Payment '+(si+1)),dueDate:sched.dueDate||'—',amount:amt,cur:cur,status:st,paidDate:sched.paidDate||''});
+        var poVendorObj=DB.suppliers.find(function(s){return s.name===po.vendor;});
+        var poIBAN=po.vendorIBAN||(poVendorObj&&poVendorObj.iban)||'—';
+        var poBank=po.vendorBank||(poVendorObj&&poVendorObj.bankName)||'—';
+        rows.push({type:'po',id:po.id,si:si,projRef:po.projRef||'—',docNum:po.num||'PO',vendor:po.vendor||'—',iban:poIBAN,bank:poBank,desc:sched.desc||('Payment '+(si+1)),dueDate:sched.dueDate||'—',amount:amt,cur:cur,status:st,paidDate:sched.paidDate||''});
       });
     } else {
       var amt2=sub;var st2=po.paymentAck?'Paid':'Pending';
       if(statusFilter&&st2!==statusFilter)return;
       if(st2==='Paid')totalPaid+=amt2;else{totalDue+=amt2;totalPending+=amt2;}
-      var poVendorObj2=DB.suppliers&&DB.suppliers.find(function(s){return s.name===po.vendor;});
-      rows.push({type:'po_s',id:po.id,si:-1,projRef:po.projRef||'—',docNum:po.num||'PO',vendor:po.vendor||'—',iban:po.vendorIBAN||(poVendorObj2&&poVendorObj2.iban)||'—',bank:po.vendorBank||(poVendorObj2&&poVendorObj2.bankName)||'—',desc:po.payment||'Full Payment',dueDate:'—',amount:amt2,cur:cur,status:st2,paidDate:po.paidDate||''});
+      var poVendorObj2=DB.suppliers.find(function(s){return s.name===po.vendor;});
+      var po2IBAN=po.vendorIBAN||(poVendorObj2&&poVendorObj2.iban)||'—';
+      var po2Bank=po.vendorBank||(poVendorObj2&&poVendorObj2.bankName)||'—';
+      rows.push({type:'po_s',id:po.id,si:-1,projRef:po.projRef||'—',docNum:po.num||'PO',vendor:po.vendor||'—',iban:po2IBAN,bank:po2Bank,desc:po.payment||'Full Payment',dueDate:'—',amount:amt2,cur:cur,status:st2,paidDate:po.paidDate||''});
     }
   });
 
@@ -8906,8 +8912,10 @@ function renderDuePayments(){
     var amt=parseFloat(pc.total)||0;var st=pc.paymentAck?'Paid':'Pending';
     if(statusFilter&&st!==statusFilter)return;
     if(st==='Paid')totalPaid+=amt;else{totalDue+=amt;totalPending+=amt;}
-    var pcUser=DB.users&&DB.users.find(function(u){return u.name===(pc.owner||pc.by);});
-    rows.push({type:'petty',id:pc.id,projRef:pc.proj||'—',docNum:pc.num||'PC',vendor:pc.owner||pc.by||'—',iban:(pcUser&&pcUser.iban)||'—',bank:(pcUser&&pcUser.bankName)||'—',desc:'Petty Cash',dueDate:'—',amount:amt,cur:'SAR ',status:st,paidDate:pc.paidDate||''});
+    var pcUser=DB.users.find(function(u){return u.name===(pc.owner||pc.by)||u.email===(pc.owner||pc.by);});
+    var pcIBAN=(pcUser&&pcUser.iban)||'—';
+    var pcBank=(pcUser&&pcUser.bankName)||'—';
+    rows.push({type:'petty',id:pc.id,projRef:pc.proj||'—',docNum:pc.num||'PC',vendor:pc.owner||pc.by||'—',iban:pcIBAN,bank:pcBank,desc:'Petty Cash',dueDate:'—',amount:amt,cur:'SAR ',status:st,paidDate:pc.paidDate||''});
   });
 
   // Update summary
@@ -8939,6 +8947,7 @@ function renderDuePayments(){
     var ackFn=r.type==='po'?'dpAcknowledgePayment('+r.id+','+r.si+')':r.type==='po_s'?'dpAcknowledgePOSimple('+r.id+')':'dpAcknowledgePetty('+r.id+')';
     var ackLabel=r.status==='Paid'?'✓ Undo':'✓ Paid';
     var ackClass=r.status==='Paid'?'btn-secondary':'btn-primary';
+    var rowKey=r.type+'_'+r.id+(r.si!=null?'_'+r.si:'');
     var rowNum=rows.indexOf(r)+1;
     return '<tr style="border-bottom:1px solid var(--border);'+(r.status==='Overdue'?'background:#fff5f5':r.status==='Paid'?'opacity:.6':'')+'" data-rowkey="'+rowKey+'">'+
       '<td style="padding:9px 12px"><input type="checkbox" class="dp-row-cb" data-rowkey="'+rowKey+'" style="width:14px;height:14px;accent-color:var(--accent);cursor:pointer" onchange="dpSyncSelectAll()"/></td>'+
