@@ -1564,7 +1564,7 @@ textarea{resize:vertical;min-height:68px}
   <div class="form-grid cols3">
     <div class="form-group"><label>Invoice No.</label><input id="inv-num" readonly/></div>
     <div class="form-group"><label>Date</label><input id="inv-date" type="date"/></div>
-    <div class="form-group"><label>Project Ref</label><select id="inv-proj" onchange="refreshInvItemDropdowns()" onchange="invUpdateBillingSummary();invFillProjName()"></select></div>
+    <div class="form-group"><label>Project Ref</label><select id="inv-proj" onchange="refreshInvItemDropdowns()" onchange="invUpdateBillingSummary();refreshInvItemDropdowns();invFillProjName()"></select></div>
     <div class="form-group"><label>Project Name</label><input id="inv-proj-name" readonly style="background:var(--panel)"/></div>
     <div class="form-group"><label>Client</label><input id="inv-client" placeholder="Client name" list="client-datalist" autocomplete="off"/></div>
     <div class="form-group"><label>Client PO Ref</label><input id="inv-po-ref" placeholder="Client PO reference"/></div>
@@ -6251,14 +6251,22 @@ function editInvoice(id){
   openModal('modal-invoice');
 }
 function getSOWItemsForInv(){
-  // Get all SOW BOQ items for the currently selected invoice project
+  // Get Main SOW BOQ items for the currently selected invoice project
   var projRef=document.getElementById('inv-proj')?document.getElementById('inv-proj').value:'';
   var p=DB.projects.find(function(x){return x.ref===projRef;});
-  if(!p) return [];
+  if(!projRef) return [];
   var items=[];
-  DB.boqs.filter(function(b){return b.projId===p.id;}).forEach(function(b){
+  // Match BOQ by projId (loose) OR projRef — only Main BOQ (not Site)
+  DB.boqs.filter(function(b){
+    var isMain = !b.boqType || b.boqType==='Main';
+    var matchId  = p && (b.projId==p.id);
+    var matchRef = b.projRef===projRef;
+    return isMain && (matchId || matchRef);
+  }).forEach(function(b){
     (b.lines||[]).forEach(function(l){
-      if(l.desc) items.push({desc:l.desc, unitPrice:l.unitPrice||l.rate||0, unit:l.unit||'Lot'});
+      if(l.desc && !items.find(function(x){return x.desc===l.desc;})){
+        items.push({desc:l.desc, unitPrice:l.unitPrice||l.rate||0, unit:l.unit||'Lot', qty:l.qty||1});
+      }
     });
   });
   return items;
