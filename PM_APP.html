@@ -1019,38 +1019,38 @@ textarea{resize:vertical;min-height:68px}
     <div class="form-group"><label>Currency</label><select id="sp-currency"><option>SAR</option><option>USD</option><option>EUR</option></select></div>
     <div class="form-group"><label>CR / License</label><input id="sp-cr" placeholder="Registration number"/></div>
     <div class="form-group"><label>VAT Number</label><input id="sp-vat" placeholder="VAT number"/></div>
-    <div class="form-group"><label>IBAN <span style="color:var(--accent3)">*</span></label><input id="sp-iban" placeholder="SA00 0000 0000 0000 0000 0000" oninput="this.value=this.value.toUpperCase()" style="font-family:var(--num);letter-spacing:.5px"/></div>
+    <div class="form-group"><label>IBAN </label><input id="sp-iban" placeholder="SA00 0000 0000 0000 0000 0000" oninput="this.value=this.value.toUpperCase()" style="font-family:var(--num);letter-spacing:.5px"/></div>
     <div class="form-group"><label>Bank Name</label><input id="sp-bank-name" placeholder="e.g. Al Rajhi Bank, Riyad Bank"/></div>
     <div class="form-group"><label>City / Country</label><input id="sp-city" placeholder="Riyadh / Dubai / etc."/></div>
     <div class="form-group full"><label>Address</label><textarea id="sp-address" rows="2" placeholder="Full address"></textarea></div>
     <div class="form-group full"><label>Notes / Speciality</label><textarea id="sp-notes" rows="2" placeholder="Products, services, speciality..."></textarea></div>
   </div>
   <div class="section-sep"></div>
-  <div class="sec-label">📎 Attached Documents <span style="color:var(--accent3);font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">* All required for new suppliers</span></div>
+  <div class="sec-label">📎 Attached Documents <span style="color:var(--muted);font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
     <div>
-      <label style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:600;display:block;margin-bottom:5px">CR Certificate (PDF/Image) <span style="color:var(--accent3)">*</span></label>
+      <label style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:600;display:block;margin-bottom:5px">CR Certificate (PDF/Image)</label>
       <div class="doc-row" id="sp-cr-doc-row" style="grid-template-columns:1fr auto">
         <label class="doc-file-label" for="sp-cr-file" id="sp-cr-doc-label" style="cursor:pointer"><span id="sp-cr-doc-icon" style="font-size:18px">&#x1F4C1;</span><span id="sp-cr-doc-name" style="font-size:12px;color:var(--muted)">Attach CR document</span></label>
         <div style="display:flex;gap:4px"><input type="file" id="sp-cr-file" accept=".pdf,image/*" style="display:none" onchange="handleSupplierDoc('cr',this)"/><button class="btn btn-secondary btn-sm" id="sp-cr-view-btn" style="display:none" onclick="viewSupplierDoc('cr')">&#x1F441;</button><button class="btn btn-danger btn-sm" id="sp-cr-remove-btn" style="display:none" onclick="removeSupplierDoc('cr')">&#x2715;</button></div>
       </div>
     </div>
     <div>
-      <label style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:600;display:block;margin-bottom:5px">VAT Certificate (PDF/Image) <span style="color:var(--accent3)">*</span></label>
+      <label style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:600;display:block;margin-bottom:5px">VAT Certificate (PDF/Image) </label>
       <div class="doc-row" id="sp-vat-doc-row" style="grid-template-columns:1fr auto">
         <label class="doc-file-label" for="sp-vat-file" id="sp-vat-doc-label" style="cursor:pointer"><span id="sp-vat-doc-icon" style="font-size:18px">&#x1F4C1;</span><span id="sp-vat-doc-name" style="font-size:12px;color:var(--muted)">Attach VAT certificate</span></label>
         <div style="display:flex;gap:4px"><input type="file" id="sp-vat-file" accept=".pdf,image/*" style="display:none" onchange="handleSupplierDoc('vat',this)"/><button class="btn btn-secondary btn-sm" id="sp-vat-view-btn" style="display:none" onclick="viewSupplierDoc('vat')">&#x1F441;</button><button class="btn btn-danger btn-sm" id="sp-vat-remove-btn" style="display:none" onclick="removeSupplierDoc('vat')">&#x2715;</button></div>
       </div>
     </div>
     <div>
-      <label style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:600;display:block;margin-bottom:5px">Bank Certificate (PDF/Image) <span style="color:var(--accent3)">*</span></label>
+      <label style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:600;display:block;margin-bottom:5px">Bank Certificate (PDF/Image) </label>
       <div class="doc-row" id="sp-bank-doc-row" style="grid-template-columns:1fr auto">
         <label class="doc-file-label" for="sp-bank-file" id="sp-bank-doc-label" style="cursor:pointer"><span id="sp-bank-doc-icon" style="font-size:18px">&#x1F4C1;</span><span id="sp-bank-doc-name" style="font-size:12px;color:var(--muted)">Attach bank certificate</span></label>
         <div style="display:flex;gap:4px"><input type="file" id="sp-bank-file" accept=".pdf,image/*" style="display:none" onchange="handleSupplierDoc('bank',this)"/><button class="btn btn-secondary btn-sm" id="sp-bank-view-btn" style="display:none" onclick="viewSupplierDoc('bank')">&#x1F441;</button><button class="btn btn-danger btn-sm" id="sp-bank-remove-btn" style="display:none" onclick="removeSupplierDoc('bank')">&#x2715;</button></div>
       </div>
     </div>
     <div>
-      <label style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:600;display:block;margin-bottom:5px">National Address (PDF/Image) <span style="color:var(--accent3)">*</span></label>
+      <label style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:600;display:block;margin-bottom:5px">National Address (PDF/Image) </label>
       <div class="doc-row" id="sp-addr-doc-row" style="grid-template-columns:1fr auto">
         <label class="doc-file-label" for="sp-addr-file" id="sp-addr-doc-label" style="cursor:pointer"><span id="sp-addr-doc-icon" style="font-size:18px">&#x1F4C1;</span><span id="sp-addr-doc-name" style="font-size:12px;color:var(--muted)">Attach national address</span></label>
         <div style="display:flex;gap:4px"><input type="file" id="sp-addr-file" accept=".pdf,image/*" style="display:none" onchange="handleSupplierDoc('addr',this)"/><button class="btn btn-secondary btn-sm" id="sp-addr-view-btn" style="display:none" onclick="viewSupplierDoc('addr')">&#x1F441;</button><button class="btn btn-danger btn-sm" id="sp-addr-remove-btn" style="display:none" onclick="removeSupplierDoc('addr')">&#x2715;</button></div>
@@ -1075,7 +1075,7 @@ textarea{resize:vertical;min-height:68px}
   <div class="sec-label">📄 PO Details</div>
   <div class="form-grid cols3">
     <div class="form-group"><label>Quotation Ref (Amalogy)</label><input id="p-quot-ref" placeholder="e.g. AMA-QT-25001"/></div>
-    <div class="form-group"><label>Client PO Number <span style="color:var(--accent3)">*</span></label><input id="p-po-num" placeholder="e.g. PO-2025-001" required/></div>
+    <div class="form-group"><label>Client PO Number </label><input id="p-po-num" placeholder="e.g. PO-2025-001" required/></div>
     <div class="form-group"><label>Client PO Date</label><input id="p-po-date" type="date"/></div>
     <div class="form-group"><label>Budget (excl. VAT)</label><input id="p-budget" type="number" placeholder="0" oninput="calcBudgetVAT()"/></div>
     <div class="form-group"><label>Budget VAT 15%</label><input id="p-budget-vat" readonly placeholder="0.00"/></div>
@@ -1171,7 +1171,7 @@ textarea{resize:vertical;min-height:68px}
     <div class="form-group"><label>Project Ref</label><select id="po-proj-ref"><option value="">— Select project —</option></select></div>
     <div class="form-group"><label>Supplier Type</label><select id="po-supplier-type" onchange="onSupplierTypeChange()"><option value="Local">Local (Saudi)</option><option value="International">International (Foreign)</option></select></div>
     <div class="form-group"><label>Currency</label><select id="po-currency" onchange="calcPO()"><option value="SAR">SAR – Saudi Riyal</option><option value="USD">USD – US Dollar</option><option value="EUR">EUR – Euro</option></select></div>
-    <div class="form-group"><label>Supplier <span style="color:var(--accent3)">*</span></label>
+    <div class="form-group"><label>Supplier </label>
       <div style="display:flex;gap:6px">
         <select id="po-vendor-sel" style="flex:1;font-size:13px;padding:6px 10px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text)" onchange="poVendorSelChange(this.value)">
           <option value="">— Select Supplier —</option>
@@ -1513,7 +1513,7 @@ textarea{resize:vertical;min-height:68px}
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
       <div class="form-group"><label>DN Number</label><input id="dn-create-num" readonly style="background:var(--panel)"/></div>
       <div class="form-group"><label>Date</label><input id="dn-create-date" type="date"/></div>
-      <div class="form-group"><label>Project Ref <span style="color:var(--accent3)">*</span></label><select id="dn-create-proj" onchange="dnAutoFillProject()"><option value="">— Select Project —</option></select></div>
+      <div class="form-group"><label>Project Ref </label><select id="dn-create-proj" onchange="dnAutoFillProject()"><option value="">— Select Project —</option></select></div>
       <div class="form-group"><label>Project Name</label><input id="dn-create-proj-name" readonly style="background:var(--panel)"/></div>
       <div class="form-group"><label>Client</label><input id="dn-create-client" readonly style="background:var(--panel)"/></div>
       <div class="form-group"><label>Delivery Location</label><input id="dn-create-location" placeholder="Site / destination"/></div>
