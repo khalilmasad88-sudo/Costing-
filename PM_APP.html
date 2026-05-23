@@ -3972,11 +3972,13 @@ function buildForecast(ps){
   var todayD=new Date();
   // PO payments
   DB.pos.filter(function(po){return po.approvalStatus==='Approved';}).forEach(function(po){
-    var sub=parseFloat(po.subtotal)||0;
+    // Use total incl. VAT for payments
+    var sub=parseFloat(po.amount)||0;
     if(!sub && po.lines && po.lines.length){
-      sub=po.lines.reduce(function(a,l){return a+(parseFloat(l.extPrice)||parseFloat(l.qty||0)*parseFloat(l.unitPrice||0));},0);
+      var linesSub=po.lines.reduce(function(a,l){return a+(parseFloat(l.extPrice)||parseFloat(l.qty||0)*parseFloat(l.unitPrice||0));},0);
+      var isIntlPO=(po.supplierType||'').toLowerCase()==='international';
+      sub=linesSub*(isIntlPO?1:1.15);
     }
-    if(!sub) sub=parseFloat(po.amount)||0;
     if(po.paymentSchedule&&po.paymentSchedule.length){
       po.paymentSchedule.forEach(function(s){
         var amt=parseFloat(s.pct||0)/100*sub;
@@ -8878,11 +8880,13 @@ function renderDuePayments(){
 
   // PO payments
   DB.pos.filter(function(po){return (po.approvalStatus==='Approved'||po.status==='Approved')&&(!projFilter||po.projRef===projFilter);}).forEach(function(po){
-    var sub=parseFloat(po.subtotal)||0;
+    // Use total incl. VAT for payments
+    var sub=parseFloat(po.amount)||0;
     if(!sub && po.lines && po.lines.length){
-      sub=po.lines.reduce(function(a,l){return a+(parseFloat(l.extPrice)||parseFloat(l.qty||0)*parseFloat(l.unitPrice||0));},0);
+      var linesSub=po.lines.reduce(function(a,l){return a+(parseFloat(l.extPrice)||parseFloat(l.qty||0)*parseFloat(l.unitPrice||0));},0);
+      var isIntlPO=(po.supplierType||'').toLowerCase()==='international';
+      sub=linesSub*(isIntlPO?1:1.15);
     }
-    if(!sub) sub=parseFloat(po.amount)||0;
     var isIntl=(po.supplierType||'').toLowerCase()==='international';
     var cur=isIntl&&po.currency&&po.currency!=='SAR'?po.currency+' ':'SAR ';
     if(po.paymentSchedule&&po.paymentSchedule.length){
