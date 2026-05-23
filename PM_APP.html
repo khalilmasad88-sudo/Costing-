@@ -319,7 +319,7 @@ textarea{resize:vertical;min-height:68px}
 <main>
 
 <div class="page active" id="page-dashboard">
-  <div class="page-header"><div class="page-title">Executive <span>Dashboard</span></div><div class="header-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+  <div class="page-header" style="flex-wrap:wrap"><div class="page-title">Executive <span>Dashboard</span></div><div class="header-actions" style="display:flex;flex-direction:row;gap:8px;align-items:center;flex-wrap:nowrap">
     <select id="dash-year-filter" onchange="refreshDash()" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;background:var(--surface);color:var(--text);font-family:var(--font);font-weight:600;cursor:pointer"><option value="">All Years</option></select>
     <select id="dash-status-filter" onchange="refreshDash()" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;background:var(--surface);color:var(--text);font-family:var(--font);font-weight:600;cursor:pointer">
       <option value="">All Statuses</option>
@@ -3932,10 +3932,14 @@ function refreshDash(){
     ysel.innerHTML='<option value="">All Years</option>'+years.map(function(y){return '<option value="'+y+'"'+(String(y)===String(curY)?' selected':'')+'>'+y+'</option>';}).join('');
   }
   var filterYear=ysel?ysel.value:'';
+  var statusFilter=(document.getElementById('dash-status-filter')||{}).value||'';
+  var clientFilter=(document.getElementById('dash-client-filter')||{}).value||'';
+  var _sf=(typeof statusFilter!=='undefined'?statusFilter:'');
+  var _cf=(typeof clientFilter!=='undefined'?clientFilter:'');
   var ps=(DB.projects||[]).filter(function(p){
     if(filterYear&&String(p.year)!==String(filterYear)) return false;
-    if(statusFilter&&p.status!==statusFilter) return false;
-    if(clientFilter&&p.client!==clientFilter) return false;
+    if(_sf&&p.status!==_sf) return false;
+    if(_cf&&p.client!==_cf) return false;
     return canSeeProject(p);
   });
   var filteredPOs=filterYear?DB.pos.filter(function(po){
