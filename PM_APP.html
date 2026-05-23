@@ -1171,7 +1171,15 @@ textarea{resize:vertical;min-height:68px}
     <div class="form-group"><label>Project Ref</label><select id="po-proj-ref"><option value="">— Select project —</option></select></div>
     <div class="form-group"><label>Supplier Type</label><select id="po-supplier-type" onchange="onSupplierTypeChange()"><option value="Local">Local (Saudi)</option><option value="International">International (Foreign)</option></select></div>
     <div class="form-group"><label>Currency</label><select id="po-currency" onchange="calcPO()"><option value="SAR">SAR – Saudi Riyal</option><option value="USD">USD – US Dollar</option><option value="EUR">EUR – Euro</option></select></div>
-    <div class="form-group"><label>Vendor Name <span style="color:var(--accent3)">*</span></label><input id="po-vendor" placeholder="Supplier company" list="supplier-datalist" autocomplete="off" oninput="autoFillSupplier(this.value)"/></div>
+    <div class="form-group"><label>Supplier <span style="color:var(--accent3)">*</span></label>
+      <div style="display:flex;gap:6px">
+        <select id="po-vendor-sel" style="flex:1;font-size:13px;padding:6px 10px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text)" onchange="poVendorSelChange(this.value)">
+          <option value="">— Select Supplier —</option>
+        </select>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="poAddNewSupplier()" title="Add new supplier">+ New</button>
+      </div>
+      <input id="po-vendor" type="hidden"/>
+    </div>
     <div class="form-group"><label>Vendor Contact</label><input id="po-vendor-contact" placeholder="Contact name"/></div>
     <div class="form-group"><label>Vendor Mobile</label><input id="po-vendor-mob" placeholder="+966..."/></div>
     <div class="form-group"><label>Vendor Email</label><input id="po-vendor-email" type="email" placeholder="email@supplier.com"/></div>
@@ -1211,7 +1219,12 @@ textarea{resize:vertical;min-height:68px}
     </div>
     <div class="form-group" id="po-exchange-group" style="display:none"><label>Exchange Rate (to SAR)</label><input type="number" id="po-exchange-rate" placeholder="e.g. 3.75" step="0.0001" value="3.75" oninput="calcPO()"/></div>
     <div class="form-group"><label>Requested By</label><input id="po-reqby"/></div>
-    <div class="form-group"><label>Delivery Location</label><input id="po-location"/></div>
+    <div class="form-group"><label>Delivery Location</label>
+      <input id="po-location" placeholder="Delivery address"/>
+      <div style="font-size:10px;color:var(--muted);margin-top:3px">
+        From Settings: <span id="po-loc-hint" style="color:var(--accent);cursor:pointer" onclick="document.getElementById('po-location').value=S.addressEn||S.deliveryLoc||''">Click to use company address</span>
+      </div>
+    </div>
     <div class="form-group full">
       <label>Approval Type</label>
       <div style="display:flex;gap:16px;margin-top:6px">
@@ -5414,6 +5427,30 @@ function confirmManualApproval(poId){
   showToast('✅ PO '+po.num+' confirmed as Approved (Manual).');
 }
 
+function poPopulateSupplierDropdown(currentVal){
+  var sel=document.getElementById('po-vendor-sel');
+  if(!sel) return;
+  var supp=DB.suppliers||[];
+  sel.innerHTML='<option value="">— Select Supplier —</option>'+
+    supp.map(function(s){
+      return '<option value="'+esc(s.name)+'"'+(s.name===currentVal?' selected':'')+'>'+esc(s.name)+'</option>';
+    }).join('');
+}
+
+function poVendorSelChange(val){
+  // Set hidden input
+  var hidden=document.getElementById('po-vendor');
+  if(hidden) hidden.value=val;
+  // Auto-fill supplier details
+  autoFillSupplier(val);
+}
+
+function poAddNewSupplier(){
+  _poAddingSupplier=true;
+  openSupplierModal(null);
+}
+var _poAddingSupplier=false;
+
 function openPOModal(){
   editingPOId=null;
   poCnt=0;
@@ -5421,7 +5458,8 @@ function openPOModal(){
   document.getElementById('po-num').value=genNum('po');
   document.getElementById('po-date').value=today();
   document.getElementById('po-reqby').value=getSubmittedBy();
-  document.getElementById('po-location').value=S.deliveryLoc;
+  document.getElementById('po-location').value=S.addressEn||S.deliveryLoc||'';
+  var locHint=document.getElementById('po-loc-hint');if(locHint)locHint.textContent=S.addressEn||S.deliveryLoc||'—';
   // Reset approval type to Automatic (default)
   var autoRadio=document.getElementById('po-approval-auto');
   if(autoRadio){autoRadio.checked=true;onPOApprovalTypeChange();}
@@ -5429,6 +5467,7 @@ function openPOModal(){
   var dnEl=document.getElementById('po-signed-doc-name');if(dnEl)dnEl.textContent='';
   var fileEl=document.getElementById('po-signed-doc');if(fileEl)fileEl.value='';
   ['po-vendor','po-vendor-contact','po-vendor-mob','po-vendor-email','po-quote'].forEach(function(id){document.getElementById(id).value='';});
+  poPopulateSupplierDropdown('');
   document.getElementById('po-proj-ref').value='';
   var stEl=document.getElementById('po-supplier-type'); if(stEl) stEl.value='Local';
   var curEl=document.getElementById('po-currency'); if(curEl) curEl.value='SAR';
@@ -5458,6 +5497,8 @@ function editPO(id){
   document.getElementById('po-date').value=po.date;
   document.getElementById('po-proj-ref').value=po.projRef||'';
   document.getElementById('po-vendor').value=po.vendor||'';
+  poPopulateSupplierDropdown(po.vendor||'');
+  var selEl=document.getElementById('po-vendor-sel');if(selEl)selEl.value=po.vendor||'';
   document.getElementById('po-vendor-contact').value=po.vendorContact||'';
   document.getElementById('po-vendor-mob').value=po.vendorMob||'';
   document.getElementById('po-vendor-email').value=po.vendorEmail||'';
@@ -5468,7 +5509,8 @@ function editPO(id){
   var pmEl=document.getElementById('po-delivery-mob'); if(pmEl) pmEl.value=po.deliveryMob||'';
 
   document.getElementById('po-reqby').value=po.reqBy||getSubmittedBy();
-  document.getElementById('po-location').value=po.location||S.deliveryLoc;
+  document.getElementById('po-location').value=po.location||S.addressEn||S.deliveryLoc||'';
+  var locHint2=document.getElementById('po-loc-hint');if(locHint2)locHint2.textContent=S.addressEn||S.deliveryLoc||'—';
   var disc=document.getElementById('po-discount-pct'); if(disc) disc.value=po.discountPct||0;
   var discV=document.getElementById('po-discount-val'); if(discV) discV.value=po.discountAmt||0;
   var stEl2=document.getElementById('po-supplier-type'); if(stEl2) stEl2.value=po.supplierType||'Local';
@@ -8113,6 +8155,15 @@ function saveSupplier() {
   renderSuppliersTable();
   saveToCloud();
   populateSupplierDropdowns();
+  // If called from PO modal, auto-select the new supplier
+  if(_poAddingSupplier){
+    _poAddingSupplier=false;
+    poPopulateSupplierDropdown(sp.name);
+    var hidden=document.getElementById('po-vendor');if(hidden)hidden.value=sp.name;
+    var sel=document.getElementById('po-vendor-sel');if(sel)sel.value=sp.name;
+    autoFillSupplier(sp.name);
+    showToast('Supplier added & selected.');
+  }
 }
 
 function deleteSupplier(id) {
