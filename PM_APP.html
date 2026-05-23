@@ -319,7 +319,19 @@ textarea{resize:vertical;min-height:68px}
 <main>
 
 <div class="page active" id="page-dashboard">
-  <div class="page-header"><div class="page-title">Executive <span>Dashboard</span></div><div class="header-actions"><select id="dash-year-filter" onchange="refreshDash()" style="padding:6px 14px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;background:var(--surface);color:var(--text);font-family:var(--font);font-weight:600;cursor:pointer"><option value="">All Years</option></select><button class="btn btn-secondary btn-sm" onclick="refreshDash()">↻ Refresh</button></div></div>
+  <div class="page-header"><div class="page-title">Executive <span>Dashboard</span></div><div class="header-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <select id="dash-year-filter" onchange="refreshDash()" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;background:var(--surface);color:var(--text);font-family:var(--font);font-weight:600;cursor:pointer"><option value="">All Years</option></select>
+    <select id="dash-status-filter" onchange="refreshDash()" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;background:var(--surface);color:var(--text);font-family:var(--font);font-weight:600;cursor:pointer">
+      <option value="">All Statuses</option>
+      <option value="In Progress">In Progress</option>
+      <option value="Completed">Completed</option>
+      <option value="On Hold">On Hold</option>
+      <option value="Pending">Pending</option>
+      <option value="Canceled">Canceled</option>
+    </select>
+    <select id="dash-client-filter" onchange="refreshDash()" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;background:var(--surface);color:var(--text);font-family:var(--font);font-weight:600;cursor:pointer"><option value="">All Clients</option></select>
+    <button class="btn btn-secondary btn-sm" onclick="refreshDash()">↻ Refresh</button>
+  </div></div>
   <div class="kpi-row" id="kpi-row"></div>
   <div class="chart-row">
     <div class="card"><div class="card-header"><span class="card-title">Revenue by Client</span></div><div style="padding:16px" id="client-chart"></div></div>
@@ -1564,7 +1576,7 @@ textarea{resize:vertical;min-height:68px}
   <div class="form-grid cols3">
     <div class="form-group"><label>Invoice No.</label><input id="inv-num" readonly/></div>
     <div class="form-group"><label>Date</label><input id="inv-date" type="date"/></div>
-    <div class="form-group"><label>Project Ref</label><select id="inv-proj" onchange="refreshInvItemDropdowns()" onchange="invUpdateBillingSummary();refreshInvItemDropdowns();invFillProjName()"></select></div>
+    <div class="form-group"><label>Project Ref</label><select id="inv-proj" onchange="invFillProjName();invUpdateBillingSummary();refreshInvItemDropdowns()"></select></div>
     <div class="form-group"><label>Project Name</label><input id="inv-proj-name" readonly style="background:var(--panel)"/></div>
     <div class="form-group"><label>Client</label><input id="inv-client" placeholder="Client name" list="client-datalist" autocomplete="off"/></div>
     <div class="form-group"><label>Client PO Ref</label><input id="inv-po-ref" placeholder="Client PO reference"/></div>
@@ -3920,14 +3932,19 @@ function refreshDash(){
     ysel.innerHTML='<option value="">All Years</option>'+years.map(function(y){return '<option value="'+y+'"'+(String(y)===String(curY)?' selected':'')+'>'+y+'</option>';}).join('');
   }
   var filterYear=ysel?ysel.value:'';
-  var ps=filterYear?DB.projects.filter(function(p){return String(p.year)===String(filterYear);}):DB.projects;
+  var ps=(DB.projects||[]).filter(function(p){
+    if(filterYear&&String(p.year)!==String(filterYear)) return false;
+    if(statusFilter&&p.status!==statusFilter) return false;
+    if(clientFilter&&p.client!==clientFilter) return false;
+    return canSeeProject(p);
+  });
   var filteredPOs=filterYear?DB.pos.filter(function(po){
     var p=DB.projects.find(function(x){return x.ref===po.projRef||po.projRef.indexOf(x.ref)!==-1;});
     return p?String(p.year)===String(filterYear):true;
   }):DB.pos;
-  var totalRev=ps.reduce(function(a,p){var amt=DB.boqs.filter(function(b){return b.projId===p.id;}).reduce(function(x,b){return x+(b.total||0);},0)||p.amount;return a+amt;},0);
+  var totalRev=ps.reduce(function(a,p){var boqT=DB.boqs.filter(function(b){return b.projId==p.id;}).reduce(function(x,b){return x+(parseFloat(b.subtotal||0)||Math.round(parseFloat(b.total||0)/1.15*100)/100);},0);return a+(boqT||parseFloat(p.amount)||0);},0);
   var totalCost=ps.reduce(function(a,p){return a+getProjectCost(p.ref);},0);
-  var totalNet=ps.reduce(function(a,p){return a+(p.amount-getProjectCost(p.ref));},0);
+  var totalNet=ps.reduce(function(a,p){var boqT=DB.boqs.filter(function(b){return b.projId==p.id;}).reduce(function(x,b){return x+(parseFloat(b.subtotal||0)||Math.round(parseFloat(b.total||0)/1.15*100)/100);},0);var cAmt=boqT||parseFloat(p.amount)||0;return a+(cAmt-getProjectCost(p.ref));},0);
   var inProcess=ps.filter(function(p){return p.status==='In Progress'||p.status==='In Process';}).length;
   var totalPO=filteredPOs.reduce(function(a,p){return a+p.amount;},0);
   var yearLabel=filterYear?String(filterYear):'All Years';
@@ -3938,7 +3955,7 @@ function refreshDash(){
     '<div class="kpi blue"><div class="kpi-icon">⚡</div><div class="kpi-label">Active Projects</div><div class="kpi-value">'+inProcess+'</div><div class="kpi-sub">PO Total: '+SAR(totalPO)+'</div></div>';
 
   var clientMap={};
-  ps.forEach(function(p){if(p.amount>0) clientMap[p.client]=(clientMap[p.client]||0)+p.amount;});
+  ps.forEach(function(p){var bT=DB.boqs.filter(function(b){return b.projId==p.id;}).reduce(function(a,b){return a+(parseFloat(b.subtotal||0)||Math.round(parseFloat(b.total||0)/1.15*100)/100);},0);var cA=bT||parseFloat(p.amount)||0;if(cA>0)clientMap[p.client]=(clientMap[p.client]||0)+cA;});
   var clients=Object.keys(clientMap).map(function(k){return[k,clientMap[k]];}).sort(function(a,b){return b[1]-a[1];});
   var maxC=clients.length?clients[0][1]:1;
   var cc='';
@@ -4062,9 +4079,9 @@ function renderProjects(){
       h+='<td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">'+p.client+'</td>';
       h+='<td style="font-size:12px;color:var(--accent4);white-space:nowrap">'+(p.poNum||'—')+'</td>';
       h+='<td style="white-space:nowrap;color:var(--muted)" title="excl. VAT: '+SAR(p.budget)+'">'+(p.budget?SAR(p.budget*1.15):'—')+'</td>';
-      var pAmt=DB.boqs.filter(function(b){return b.projId===p.id;}).reduce(function(a,b){return a+(b.total||0);},0)||p.amount;
+      var boqTbl=DB.boqs.filter(function(b){return b.projId==p.id;}).reduce(function(a,b){return a+(parseFloat(b.subtotal||0)||Math.round(parseFloat(b.total||0)/1.15*100)/100);},0);var pAmt=boqTbl||parseFloat(p.amount)||0;
       h+='<td class="color-gold fw7" style="white-space:nowrap" title="From BOQs: '+SAR(pAmt)+'">'+SAR(pAmt)+'</td>';
-      var pCost=getProjectCost(p.ref); var pNet=p.amount-pCost;
+      var pCost=getProjectCost(p.ref); var pBoqT2=DB.boqs.filter(function(b){return b.projId==p.id;}).reduce(function(a,b){return a+(parseFloat(b.subtotal||0)||Math.round(parseFloat(b.total||0)/1.15*100)/100);},0);var pAmt2=pBoqT2||parseFloat(p.amount)||0;var pNet=pAmt2-pCost;
       h+='<td style="white-space:nowrap;color:var(--muted)" title="Manual: '+SAR(p.cost)+'">'+SAR(pCost)+'</td>';
       h+='<td class="color-green fw7" style="white-space:nowrap">'+SAR(pNet)+'</td>';
       h+='<td>'+implPctBar(impl)+'</td>';
@@ -4487,7 +4504,8 @@ function viewProject(id){
   if(invs.length){
     invs.forEach(function(inv){
       var pbtn='';
-      if(inv.paymentStatus==='Pending Collection') pbtn='<button class="btn btn-primary btn-sm" onclick="markCollected('+inv.id+')" style="margin-left:2px">Collected</button>';
+      if(inv.paymentStatus==='Pending Collection') pbtn='<button class="btn btn-primary btn-sm" onclick="markCollected('+inv.id+')" style="margin-left:2px">✓ Collected</button>';
+      if(inv.paymentStatus==='Collected') pbtn='<span style="background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600">✅ Collected'+(inv.collectedDate?' · '+inv.collectedDate:'')+'</span>';
       invRows+='<tr style="border-top:1px solid var(--border)"><td style="padding:9px 12px;font-weight:700;color:var(--accent)">'+inv.num+'</td><td style="padding:9px 12px;color:var(--muted)">'+inv.date+'</td><td style="padding:9px 12px;color:var(--muted)">'+(inv.dueDate||'—')+'</td><td style="padding:9px 12px;text-align:right;font-weight:700;color:var(--accent2)">'+SAR(inv.total||0)+'</td><td style="padding:9px 12px;text-align:center">'+invPaymentBadge(inv.paymentStatus)+'</td><td style="padding:9px 12px;white-space:nowrap;text-align:right"><button class="btn btn-secondary btn-sm" onclick="viewInvoice('+inv.id+')">View</button>'+pbtn+'</td></tr>';
     });
   } else {
@@ -6120,34 +6138,26 @@ function getPettyHTML(pc){
     : '<div style="font-size:18px;font-weight:900;color:#fff">'+S.companyEn+'</div>';
 
   // Sub-bar: company address + PO meta
-  var _subBar =
-    '<div style="border-top:1.5px solid '+_hdrColor+'44;padding:7px 20px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#555;background:#f9fafb">'+
-      '<div>'+[S.addressEn,S.phone,S.email].filter(Boolean).join(' &nbsp;|&nbsp; ')+'</div>'+
-      '<div style="text-align:right;font-weight:600;color:#333">'+
-        '<span>Date: '+po.date+'</span>'+
-        (isIntlPO?' &nbsp;|&nbsp; <span style="background:'+_hdrColor+';color:#fff;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:700">'+po.currency+' — International</span>':'')+
-      '</div>'+
-    '</div>';
-
-  var poHeader =
-    '<div style="background:'+_hdrColor+';padding:12px 20px;display:flex;justify-content:space-between;align-items:center;-webkit-print-color-adjust:exact;print-color-adjust:exact">'+
-      // LEFT: Logo + Company name
+  var invHeader =
+    '<div style="-webkit-print-color-adjust:exact;background:'+_hdrColor+';padding:12px 20px;display:flex;justify-content:space-between;align-items:center">'+
       '<div style="display:flex;align-items:center;gap:10px">'+
         '<div style="background:#fff;border-radius:6px;padding:5px 7px;display:flex;align-items:center">'+_logoHTML+'</div>'+
         '<div>'+
-          '<div style="color:'+_fontColor+';font-size:15px;font-weight:800;letter-spacing:-.2px">'+S.companyEn+'</div>'+
+          '<div style="color:'+_fontColor+';font-size:15px;font-weight:800">'+S.companyEn+'</div>'+
           (S.companyAr?'<div style="color:'+_fontColor+'cc;font-size:11px;direction:rtl">'+S.companyAr+'</div>':'')+
         '</div>'+
       '</div>'+
-      // RIGHT: PURCHASE ORDER title + PO number below
       '<div style="text-align:right">'+
-        '<div style="font-size:35px;font-weight:900;color:'+_fontColor+';letter-spacing:.5px;line-height:1">PURCHASE ORDER</div>'+
-        '<div style="font-size:30px;font-weight:800;color:'+_fontColor+'cc;letter-spacing:1px;margin-top:2px;line-height:1">'+po.num+'</div>'+
+        '<div style="font-size:22px;font-weight:900;color:'+_fontColor+'">Invoice Request</div>'+
+        '<div style="font-size:16px;font-weight:700;color:'+_fontColor+'cc">'+(inv.num||'')+'</div>'+
+        '<div style="font-size:11px;color:'+_fontColor+'99">Date: '+(inv.date||'')+'</div>'+
       '</div>'+
     '</div>'+
-    _subBar;
+    '<div style="background:#f5f7fc;border-bottom:1px solid #dde2f0;padding:5px 20px;font-size:11px;color:#555">'+
+      [S.addressEn,S.phone,S.email].filter(Boolean).join(' &nbsp;|&nbsp; ')+
+    '</div>';
 
-  return '<div style="'+getDocStyle()+'">'+poHeader+wrapBody(body)+'</div>';
+  return '<div style="'+getDocStyle()+'">'+invHeader+wrapBody(body)+'</div>';
 }
 function renderPettyTable(){
   DB.petty.forEach(function(pc){if(!pc.approvalStatus){pc.approvalStatus=pc.status==='Approved'?'Approved':'Pending';pc.paymentStatus='Pending Payment';}});
@@ -6389,6 +6399,20 @@ function invUpdateBillingSummary(){
   panel.style.display='block';
 }
 
+function invFillProjName(){
+  var projRef=(document.getElementById('inv-proj')||{}).value||'';
+  var p=DB.projects.find(function(x){return x.ref===projRef;});
+  if(!p) return;
+  // Project Name
+  var pnEl=document.getElementById('inv-proj-name');if(pnEl&&!pnEl.value)pnEl.value=p.name||'';
+  // Client
+  var clEl=document.getElementById('inv-client');if(clEl&&!clEl.value)clEl.value=p.client||'';
+  // Client PO Ref
+  var poEl=document.getElementById('inv-po-ref');if(poEl&&!poEl.value)poEl.value=p.poNum||p.tender||p.ref||'';
+  invUpdateBillingSummary();
+  refreshInvItemDropdowns();
+}
+
 function openInvoiceModal(){
   _editingInvId=null;
   invCnt=0;
@@ -6459,7 +6483,8 @@ function saveInvoice(){
       notes:document.getElementById('inv-notes').value,
       lines:lines,
       paymentStatus:'Pending Collection',
-      approvalStatus:'Pending',
+      approvalStatus:'Approved',
+      paymentStatus:'Pending Collection',
       total:sub*1.15
     });
     notifyApprovers('inv', document.getElementById('inv-num').value, getSubmittedBy());
@@ -6579,34 +6604,26 @@ function getInvoiceHTML(inv){
     : '<div style="font-size:18px;font-weight:900;color:#fff">'+S.companyEn+'</div>';
 
   // Sub-bar: company address + PO meta
-  var _subBar =
-    '<div style="border-top:1.5px solid '+_hdrColor+'44;padding:7px 20px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#555;background:#f9fafb">'+
-      '<div>'+[S.addressEn,S.phone,S.email].filter(Boolean).join(' &nbsp;|&nbsp; ')+'</div>'+
-      '<div style="text-align:right;font-weight:600;color:#333">'+
-        '<span>Date: '+po.date+'</span>'+
-        (isIntlPO?' &nbsp;|&nbsp; <span style="background:'+_hdrColor+';color:#fff;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:700">'+po.currency+' — International</span>':'')+
-      '</div>'+
-    '</div>';
-
-  var poHeader =
-    '<div style="background:'+_hdrColor+';padding:12px 20px;display:flex;justify-content:space-between;align-items:center;-webkit-print-color-adjust:exact;print-color-adjust:exact">'+
-      // LEFT: Logo + Company name
+  var invHeader =
+    '<div style="-webkit-print-color-adjust:exact;background:'+_hdrColor+';padding:12px 20px;display:flex;justify-content:space-between;align-items:center">'+
       '<div style="display:flex;align-items:center;gap:10px">'+
         '<div style="background:#fff;border-radius:6px;padding:5px 7px;display:flex;align-items:center">'+_logoHTML+'</div>'+
         '<div>'+
-          '<div style="color:'+_fontColor+';font-size:15px;font-weight:800;letter-spacing:-.2px">'+S.companyEn+'</div>'+
+          '<div style="color:'+_fontColor+';font-size:15px;font-weight:800">'+S.companyEn+'</div>'+
           (S.companyAr?'<div style="color:'+_fontColor+'cc;font-size:11px;direction:rtl">'+S.companyAr+'</div>':'')+
         '</div>'+
       '</div>'+
-      // RIGHT: PURCHASE ORDER title + PO number below
       '<div style="text-align:right">'+
-        '<div style="font-size:35px;font-weight:900;color:'+_fontColor+';letter-spacing:.5px;line-height:1">PURCHASE ORDER</div>'+
-        '<div style="font-size:30px;font-weight:800;color:'+_fontColor+'cc;letter-spacing:1px;margin-top:2px;line-height:1">'+po.num+'</div>'+
+        '<div style="font-size:22px;font-weight:900;color:'+_fontColor+'">Invoice Request</div>'+
+        '<div style="font-size:16px;font-weight:700;color:'+_fontColor+'cc">'+(inv.num||'')+'</div>'+
+        '<div style="font-size:11px;color:'+_fontColor+'99">Date: '+(inv.date||'')+'</div>'+
       '</div>'+
     '</div>'+
-    _subBar;
+    '<div style="background:#f5f7fc;border-bottom:1px solid #dde2f0;padding:5px 20px;font-size:11px;color:#555">'+
+      [S.addressEn,S.phone,S.email].filter(Boolean).join(' &nbsp;|&nbsp; ')+
+    '</div>';
 
-  return '<div style="'+getDocStyle()+'">'+poHeader+wrapBody(body)+'</div>';
+  return '<div style="'+getDocStyle()+'">'+invHeader+wrapBody(body)+'</div>';
 }
 function viewInvoice(id){document.getElementById('invoice-preview-content').innerHTML=getInvoiceHTML(DB.invoices.find(function(x){return x.id===id;}));openModal('modal-invoice-preview');}
 function previewInvoice(){
@@ -6973,34 +6990,26 @@ function getBOQHTML(boq, hidePrices){
     : '<div style="font-size:18px;font-weight:900;color:#fff">'+S.companyEn+'</div>';
 
   // Sub-bar: company address + PO meta
-  var _subBar =
-    '<div style="border-top:1.5px solid '+_hdrColor+'44;padding:7px 20px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#555;background:#f9fafb">'+
-      '<div>'+[S.addressEn,S.phone,S.email].filter(Boolean).join(' &nbsp;|&nbsp; ')+'</div>'+
-      '<div style="text-align:right;font-weight:600;color:#333">'+
-        '<span>Date: '+po.date+'</span>'+
-        (isIntlPO?' &nbsp;|&nbsp; <span style="background:'+_hdrColor+';color:#fff;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:700">'+po.currency+' — International</span>':'')+
-      '</div>'+
-    '</div>';
-
-  var poHeader =
-    '<div style="background:'+_hdrColor+';padding:12px 20px;display:flex;justify-content:space-between;align-items:center;-webkit-print-color-adjust:exact;print-color-adjust:exact">'+
-      // LEFT: Logo + Company name
+  var invHeader =
+    '<div style="-webkit-print-color-adjust:exact;background:'+_hdrColor+';padding:12px 20px;display:flex;justify-content:space-between;align-items:center">'+
       '<div style="display:flex;align-items:center;gap:10px">'+
         '<div style="background:#fff;border-radius:6px;padding:5px 7px;display:flex;align-items:center">'+_logoHTML+'</div>'+
         '<div>'+
-          '<div style="color:'+_fontColor+';font-size:15px;font-weight:800;letter-spacing:-.2px">'+S.companyEn+'</div>'+
+          '<div style="color:'+_fontColor+';font-size:15px;font-weight:800">'+S.companyEn+'</div>'+
           (S.companyAr?'<div style="color:'+_fontColor+'cc;font-size:11px;direction:rtl">'+S.companyAr+'</div>':'')+
         '</div>'+
       '</div>'+
-      // RIGHT: PURCHASE ORDER title + PO number below
       '<div style="text-align:right">'+
-        '<div style="font-size:35px;font-weight:900;color:'+_fontColor+';letter-spacing:.5px;line-height:1">PURCHASE ORDER</div>'+
-        '<div style="font-size:30px;font-weight:800;color:'+_fontColor+'cc;letter-spacing:1px;margin-top:2px;line-height:1">'+po.num+'</div>'+
+        '<div style="font-size:22px;font-weight:900;color:'+_fontColor+'">Invoice Request</div>'+
+        '<div style="font-size:16px;font-weight:700;color:'+_fontColor+'cc">'+(inv.num||'')+'</div>'+
+        '<div style="font-size:11px;color:'+_fontColor+'99">Date: '+(inv.date||'')+'</div>'+
       '</div>'+
     '</div>'+
-    _subBar;
+    '<div style="background:#f5f7fc;border-bottom:1px solid #dde2f0;padding:5px 20px;font-size:11px;color:#555">'+
+      [S.addressEn,S.phone,S.email].filter(Boolean).join(' &nbsp;|&nbsp; ')+
+    '</div>';
 
-  return '<div style="'+getDocStyle()+'">'+poHeader+wrapBody(body)+'</div>';
+  return '<div style="'+getDocStyle()+'">'+invHeader+wrapBody(body)+'</div>';
 }
 function previewBOQ(){
   currentBOQId=null; boqHidePrices=false;
