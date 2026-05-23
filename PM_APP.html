@@ -1281,7 +1281,7 @@ textarea{resize:vertical;min-height:68px}
   </div>
   <!-- Supplier Quotation Attachment -->
   <div class="section-sep"></div>
-  <div style="font-family:var(--font);font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">📎 Supplier Quotation <span style="color:var(--accent3);font-size:11px">* Required</span></div>
+  <div style="font-family:var(--font);font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">📎 Supplier Quotation <span style="color:var(--muted);font-size:11px">(optional)</span></div>
   <div id="po-quot-area" style="display:flex;flex-direction:column;gap:8px">
     <div class="doc-row" id="po-quot-row" style="grid-template-columns:1fr auto">
       <label class="doc-file-label" for="po-quot-file" id="po-quot-label" style="cursor:pointer">
@@ -5540,6 +5540,7 @@ function editPO(id){
   calcPO();
   var saveBtn=document.querySelector('#modal-po .btn-primary'); if(saveBtn) saveBtn.textContent='Update PO';
   var _poT=document.getElementById('po-modal-title');if(_poT)_poT.textContent='Edit PO – '+po.num;
+  loadPOQuotation(po.quotation||null);
   openModal('modal-po');
 }
 function savePO(){
@@ -5550,11 +5551,6 @@ function savePO(){
     document.getElementById('po-vendor').style.borderColor='var(--accent3)';
     setTimeout(function(){document.getElementById('po-vendor').style.borderColor='';},2500);
     showToast('⚠ Vendor / Supplier name is required.'); return;
-  }
-  if(!_poQuotationData){
-    var qArea=document.querySelector('.po-quot-area')||document.getElementById('po-quot-name');
-    if(qArea){qArea.style.outline='2px solid var(--accent3)';setTimeout(function(){qArea.style.outline='';},2500);}
-    showToast('⚠ Supplier quotation attachment is required.'); return;
   }
   var lines=[].slice.call(document.querySelectorAll('#po-lines tr')).map(function(tr){return{partNum:tr.querySelector('.po-part')?tr.querySelector('.po-part').value:'',desc:tr.querySelector('.po-desc')?tr.querySelector('.po-desc').value:'',vendor:(tr.querySelector('.po-line-vendor')?tr.querySelector('.po-line-vendor').value:''),qty:parseFloat(tr.querySelector('.po-qty')?tr.querySelector('.po-qty').value:0)||0,unitPrice:parseFloat(tr.querySelector('.po-uprice')?tr.querySelector('.po-uprice').value:0)||0,extPrice:(parseFloat(tr.querySelector('.po-qty')?tr.querySelector('.po-qty').value:0)||0)*(parseFloat(tr.querySelector('.po-uprice')?tr.querySelector('.po-uprice').value:0)||0)};}).filter(function(l){return l.desc||l.partNum;});
   var sub=lines.reduce(function(a,l){return a+l.extPrice;},0);
