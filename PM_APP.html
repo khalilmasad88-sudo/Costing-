@@ -8117,32 +8117,8 @@ function saveSupplier() {
   sp.doc_bank = _supplierDocs.bank || null;
   sp.doc_addr = _supplierDocs.addr || null;
   if (!sp.name) { alert('Supplier name is required'); return; }
-  if (!sp.iban) {
-    var ibanEl=document.getElementById('sp-iban');
-    if(ibanEl){ ibanEl.style.borderColor='var(--accent3)'; ibanEl.focus(); setTimeout(function(){ibanEl.style.borderColor='';},2500); }
-    showToast('⚠ IBAN is required for all suppliers.'); return;
-  }
-  // Mandatory documents — only enforced when creating a new supplier
-  if (!editSupplierId) {
-    var missing = [];
-    if (!_supplierDocs.cr)   missing.push('CR Certificate');
-    if (!_supplierDocs.vat)  missing.push('VAT Certificate');
-    if (!_supplierDocs.bank) missing.push('Bank Certificate');
-    if (!_supplierDocs.addr) missing.push('National Address');
-    if (missing.length) {
-      // Highlight missing rows
-      ['cr','vat','bank','addr'].forEach(function(t){
-        var row = document.getElementById('sp-'+t+'-doc-row');
-        if(row && !_supplierDocs[t]){
-          row.style.outline='2px solid var(--accent3)';
-          row.style.borderRadius='8px';
-          setTimeout(function(){row.style.outline='';},2500);
-        }
-      });
-      showToast('⚠ Required: '+missing.join(', '));
-      return;
-    }
-  }
+
+
   if (editSupplierId) {
     var ex = DB.suppliers.find(function(x){ return x.id === editSupplierId; });
     if (ex) Object.assign(ex, sp);
