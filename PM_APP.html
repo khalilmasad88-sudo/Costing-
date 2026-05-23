@@ -3936,8 +3936,8 @@ function refreshDash(){
   var clientFilter=(document.getElementById('dash-client-filter')||{}).value||'';
   var ps=(DB.projects||[]).filter(function(p){
     if(filterYear&&String(p.year)!==String(filterYear)) return false;
-    if(_sf&&p.status!==_sf) return false;
-    if(_cf&&p.client!==_cf) return false;
+    if(statusFilter&&p.status!==statusFilter) return false;
+    if(clientFilter&&p.client!==clientFilter) return false;
     return canSeeProject(p);
   });
   var filteredPOs=filterYear?DB.pos.filter(function(po){
