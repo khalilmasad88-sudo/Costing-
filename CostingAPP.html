@@ -186,7 +186,7 @@ td.muted{color:var(--muted);font-size:12px}
 .badge-submitted{background:rgba(59,130,246,.12);color:var(--accent);border:1px solid rgba(59,130,246,.3)}
 .badge-out{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
 .badge-pricing{background:rgba(245,158,11,.12);color:var(--amber);border:1px solid rgba(245,158,11,.3)}
-.badge-canceled{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.25)}
+.badge-canceled{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.25)}.badge-ve{background:rgba(139,92,246,.15);color:#7c3aed;font-weight:700}
 .badge-draft{background:rgba(167,139,250,.12);color:var(--purple);border:1px solid rgba(167,139,250,.3)}
 .badge-locked{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.3)}
 
@@ -493,8 +493,11 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
             <button class="btn btn-primary btn-xs" onclick="newQuotation()">+</button>
           </div>
           <div class="card-body" style="padding:0">
-            <div style="padding:10px 12px;border-bottom:1px solid var(--border)">
-              <input type="text" id="ql-search" placeholder="Search..." style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:6px 8px;font-size:12px;color:var(--text)" oninput="renderQList()">
+            <div style="padding:8px 10px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px">
+              <input type="text" id="ql-search" placeholder="🔍 Search quotations..." style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:6px 8px;font-size:12px;color:var(--text)" oninput="renderQList()">
+              <select id="ql-project-filter" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;color:var(--text)" onchange="renderQList()">
+                <option value="">All Projects</option>
+              </select>
             </div>
             <div id="q-list" style="max-height:calc(100vh - 280px);overflow-y:auto"></div>
           </div>
@@ -807,9 +810,18 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
       <div class="page-title">🏗️ Value Engineering</div>
       <div class="page-subtitle" id="ve-subtitle">Won projects ready for implementation</div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <input id="ve-search" placeholder="Search projects..." style="width:220px;font-size:13px;padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface)" oninput="renderVE()"/>
-      <button class="btn btn-primary btn-sm" onclick="openVEAddModal()">+ Add Project</button>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <input id="ve-search" placeholder="Search projects..." style="width:200px;font-size:13px;padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface)" oninput="renderVE()"/>
+      <select id="ve-filter-status" style="font-size:13px;padding:7px 10px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface)" onchange="renderVE()">
+        <option value="">All Statuses</option>
+        <option>Not Started</option>
+        <option>In Progress</option>
+        <option>Ready for Implementation</option>
+        <option>Submitted To PM</option>
+        <option>On Hold</option>
+        <option>Canceled</option>
+      </select>
+
     </div>
   </div>
 
@@ -825,7 +837,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
     </div>
     <div class="card" style="padding:14px 16px;text-align:center">
       <div style="font-size:22px;font-weight:800;color:var(--amber)" id="ve-stat-ve">0</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px">VE In Progress</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">In Progress</div>
     </div>
     <div class="card" style="padding:14px 16px;text-align:center">
       <div style="font-size:22px;font-weight:800;color:var(--accent2)" id="ve-stat-ready">0</div>
@@ -841,54 +853,67 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
 
 <!-- VE ADD PROJECT MODAL -->
 <div class="modal-overlay" id="modal-ve-add" onclick="if(event.target===this)closeModal('modal-ve-add')">
-  <div class="modal" style="max-width:500px">
-    <div class="modal-header">
-      <div class="modal-title">🏗️ Add Project to VE</div>
-      <button class="modal-close" onclick="closeModal('modal-ve-add')">✕</button>
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header" style="background:linear-gradient(135deg,var(--accent),var(--accent2));padding:16px 20px">
+      <div style="color:#fff">
+        <div class="modal-title" style="color:#fff;font-size:16px">🏗️ Add Project to Value Engineering</div>
+        <div style="font-size:11px;opacity:.8;margin-top:2px">Projects not in Pipeline can be added directly</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-ve-add')" style="color:#fff">✕</button>
     </div>
-    <div style="padding:20px;display:flex;flex-direction:column;gap:12px">
-      <div class="form-group">
-        <label>Project Name <span style="color:var(--red)">*</span></label>
-        <input id="ve-add-name" placeholder="e.g. CCTV System - Al Olaya Tower" style="font-size:13px"/>
-      </div>
-      <div class="form-group">
-        <label>Client / Entity</label>
-        <input id="ve-add-client" placeholder="Client name" style="font-size:13px"/>
-      </div>
-      <div class="form-group">
-        <label>Project Reference</label>
-        <input id="ve-add-ref" placeholder="e.g. PRJ-2026-001" style="font-size:13px"/>
-      </div>
-      <div class="form-group">
-        <label>Location</label>
-        <input id="ve-add-loc" placeholder="e.g. Riyadh, Al Olaya" style="font-size:13px"/>
-      </div>
-      <div class="form-group">
-        <label>Contract Value (SAR)</label>
-        <input id="ve-add-value" type="number" placeholder="0.00" style="font-size:13px"/>
-      </div>
-      <div class="form-group">
-        <label>Award Date</label>
-        <input id="ve-add-date" type="date" style="font-size:13px"/>
-      </div>
-      <div class="form-group">
-        <label>System / Scope</label>
-        <input id="ve-add-system" placeholder="e.g. CCTV, Access Control, Fire Alarm..." style="font-size:13px"/>
-      </div>
-      <div class="form-group">
-        <label>Link Quotation (optional)</label>
-        <select id="ve-add-quotation" style="font-size:13px">
-          <option value="">— No linked quotation —</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Notes</label>
-        <textarea id="ve-add-notes" rows="2" placeholder="Any notes about this project..." style="font-size:13px;resize:vertical"></textarea>
+    <div style="padding:20px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label>Project Name <span style="color:var(--red)">*</span></label>
+          <input id="ve-add-name" placeholder="e.g. CCTV System - Al Olaya Tower"/>
+        </div>
+        <div class="form-group">
+          <label>Client / Entity</label>
+          <input id="ve-add-client" placeholder="Client or company name"/>
+        </div>
+        <div class="form-group">
+          <label>Project Reference</label>
+          <input id="ve-add-ref" placeholder="e.g. PRJ-2026-001"/>
+        </div>
+        <div class="form-group">
+          <label>Location</label>
+          <input id="ve-add-loc" placeholder="e.g. Riyadh, Al Olaya"/>
+        </div>
+        <div class="form-group">
+          <label>Contract Value (SAR)</label>
+          <input id="ve-add-value" type="number" placeholder="0.00" min="0"/>
+        </div>
+        <div class="form-group">
+          <label>Award Date</label>
+          <input id="ve-add-date" type="date"/>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label>System / Scope</label>
+          <input id="ve-add-system" placeholder="e.g. CCTV, Access Control, Fire Alarm, IT Infrastructure..."/>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label>🔗 Link Quotation <span style="font-size:11px;color:var(--muted);font-weight:400">(optional — link an existing quotation)</span></label>
+          <select id="ve-add-quotation" style="width:100%">
+            <option value="">— No linked quotation —</option>
+          </select>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Initial VE Status</label>
+          <select id="ve-add-status" style="width:100%">
+            <option value="Not Started">Not Started</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Ready for Implementation">Ready for Implementation</option>
+          </select>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Notes / Scope Description</label>
+          <textarea id="ve-add-notes" rows="3" placeholder="Describe the project scope, value engineering notes, special requirements..." style="resize:vertical"></textarea>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-ve-add')">Cancel</button>
-      <button class="btn btn-primary" onclick="veAddManualProject()">➕ Add to VE</button>
+      <button class="btn btn-primary" onclick="veAddManualProject()">➕ Add to Value Engineering</button>
     </div>
   </div>
 </div>
@@ -1312,14 +1337,15 @@ function subTotal(si){return(si.qty||0)*(si.unitPrice||0);}
 function mainCostTotal(mi){return(mi.subItems||[]).reduce((s,si)=>s+subTotal(si),0);}
 function mainUnitPrice(mi){const q=mi.qty||1;return mainCostTotal(mi)/q;}
 function qCostTotal(q){return(q.items||[]).filter(mi=>!mi.optional).reduce((s,mi)=>s+mainCostTotal(mi),0);}
-function qSellTotal(q){const p=(q.profitPct||25)/100;return(q.items||[]).filter(mi=>!mi.optional).reduce((s,mi)=>s+mainUnitPrice(mi)*(1+p)*(mi.qty||1),0);}
+function qSellUnit(mi,q){const p=(q.profitPct||25)/100;return mi.sellUnitOverride!=null?mi.sellUnitOverride:mainUnitPrice(mi)*(1+p);}
+function qSellTotal(q){return(q.items||[]).filter(mi=>!mi.optional).reduce((s,mi)=>s+qSellUnit(mi,q)*(mi.qty||1),0);}
 function qSellWithVAT(q){return qSellTotal(q)*(1+(q.vat||15)/100);}
 function getQ(){return S.quotations.find(q=>q.id===S.activeQId);}
 function getCurrentCompany(){return S.companies.find(c=>c.id===S.currentCompanyId)||S.companies[0];}
 function getCurrentUser(){return S.users.find(u=>u.id===S.currentUser);}
 function canEdit(){const q=getQ();if(!q)return true;if(!q.locked)return true;const u=getCurrentUser();return u&&(u.role==='Admin'||u.role==='Manager');}
 
-function statusBadge(s){const m={Approved:'approved',Submitted:'submitted',out:'out','in pricing':'pricing',Canceled:'canceled',Draft:'draft'};return`<span class="badge badge-${m[s]||'out'}">${s||'—'}</span>`;}
+function statusBadge(s){const m={Approved:'approved',Submitted:'submitted',out:'out','in pricing':'pricing',Canceled:'canceled',Draft:'draft','Value Engineering':'ve'};return`<span class="badge badge-${m[s]||'out'}">${s||'—'}</span>`;}
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 
@@ -1403,6 +1429,10 @@ function init(){
   updateDashboard();
   
   // Auto-migrate existing pipeline rows to use quotationId
+  // Also ensure VE linking for all Approved items
+  (S.pipeline||[]).forEach(function(item){
+    if(item.status==='Approved') veOnApprove(item);
+  });
   migratePipelineQuotationIds();
 
   // Restore last open quotation without triggering a save
@@ -2075,39 +2105,52 @@ function getVEStatus(q){
 
 function veStatusBadge(s){
   var m={
-    'Not Started':'background:#f0f0f0;color:#888',
-    'In Progress':'background:#fff3cd;color:#856404',
-    'Ready':'background:#d1fae5;color:#065f46',
-    'Submitted to PM':'background:#dbeafe;color:#1d4ed8',
-    'On Hold':'background:#fee2e2;color:#991b1b',
+    'Not Started':          {bg:'#f0f0f0',c:'#888',   dot:'#bbb'},
+    'In Progress':          {bg:'#fff3cd',c:'#856404', dot:'#f59e0b'},
+    'Ready for Implementation': {bg:'#d1fae5',c:'#065f46', dot:'#10b981'},
+    'Submitted To PM':      {bg:'#dbeafe',c:'#1d4ed8', dot:'#3b82f6'},
+    'On Hold':              {bg:'#fee2e2',c:'#991b1b', dot:'#ef4444'},
+    'Canceled':             {bg:'#e5e7eb',c:'#6b7280', dot:'#9ca3af'},
   };
-  var style=m[s]||'background:#f0f0f0;color:#888';
-  return '<span style="'+style+';padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">'+s+'</span>';
+  var v=m[s]||{bg:'#f0f0f0',c:'#888',dot:'#bbb'};
+  return '<span style="background:'+v.bg+';color:'+v.c+';padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:5px">'+
+    '<span style="width:7px;height:7px;border-radius:50%;background:'+v.dot+';display:inline-block"></span>'+s+'</span>';
+}
+
+// Safe toast for VE (CostingAPP may use different toast API)
+function _veToast(msg){
+  if(typeof showToast==='function') showToast(msg);
+  else if(typeof toast==='function') toast(msg);
+  else console.log('[VE]', msg);
 }
 
 window.__veOpen=function(pid){openVEDetail(pid);};
 
 function veOnApprove(pipelineItem){
-  // Link the quotation to this pipeline item
+  // 1. Link by direct quotationId (most reliable)
   if(pipelineItem.quotationId){
     var q=S.quotations.find(function(x){return x.id==pipelineItem.quotationId;});
     if(q) q.pipelineId=pipelineItem.id;
   }
-  // Link by QTN number if no direct ID
-  if(!pipelineItem.quotationId && pipelineItem.qtn){
-    var matched=S.quotations.filter(function(q){
-      return q.num===pipelineItem.qtn && (!q.companyId||q.companyId===pipelineItem.companyId);
-    });
-    matched.forEach(function(q){
-      q.pipelineId=pipelineItem.id;
+  // 2. Link ALL versions with same base QTN number (NOT by client/name to avoid cross-project)
+  if(pipelineItem.qtn){
+    var baseQ=(pipelineItem.qtn||'').replace(/ v\d+$/i,'').trim();
+    S.quotations.filter(function(q){
+      if(q.companyId && pipelineItem.companyId && q.companyId!==pipelineItem.companyId) return false;
+      var qBase=(q.num||'').replace(/ v\d+$/i,'').trim();
+      return qBase===baseQ;
+    }).forEach(function(q){
+      // Only set pipelineId if not already linked to a DIFFERENT pipeline item
+      if(!q.pipelineId || q.pipelineId==pipelineItem.id){
+        q.pipelineId=pipelineItem.id;
+      }
       if(!pipelineItem.quotationId) pipelineItem.quotationId=q.id;
     });
   }
-  // Initialize VE data if not present
+  // 3. Initialize VE data
   if(!pipelineItem.ve){
     pipelineItem.ve={status:'Not Started',notes:'',checklist:[]};
   }
-  showToast('✅ Project moved to Value Engineering.');
 }
 
 function openVEAddModal(){
@@ -2121,7 +2164,8 @@ function openVEAddModal(){
     qSel.innerHTML='<option value="">— No linked quotation —</option>'+
       unlinked.map(function(q){return '<option value="'+q.id+'">'+esc(q.num||q.id)+' — '+esc(q.project||q.client||'')+'</option>';}).join('');
   }
-  ['ve-add-name','ve-add-client','ve-add-ref','ve-add-loc','ve-add-system','ve-add-notes'].forEach(function(id){
+  var stSel=document.getElementById('ve-add-status');if(stSel)stSel.value='Not Started';
+    ['ve-add-name','ve-add-client','ve-add-ref','ve-add-loc','ve-add-system','ve-add-notes'].forEach(function(id){
     var e=document.getElementById(id); if(e) e.value='';
   });
   var v=document.getElementById('ve-add-value'); if(v) v.value='';
@@ -2144,10 +2188,11 @@ function veAddManualProject(){
     date:        (document.getElementById('ve-add-date')||{}).value||new Date().toISOString().slice(0,10),
     sys:         (document.getElementById('ve-add-system')||{}).value||'',
     status:      'Approved',   // Won — goes directly to VE
+    veAddStatus: (document.getElementById('ve-add-status')||{}).value||'Not Started',
     veManual:    true,         // Flag: not from pipeline
     quotationId: +(document.getElementById('ve-add-quotation')||{}).value||null,
     ve:          {
-      status:    'Not Started',
+      status:    (document.getElementById('ve-add-status')||{}).value||'Not Started',
       notes:     (document.getElementById('ve-add-notes')||{}).value||'',
       checklist: []
     }
@@ -2160,10 +2205,10 @@ function veAddManualProject(){
     if(linkedQ) linkedQ.pipelineId=proj.id;
   }
   S.pipeline.push(proj);
-  saveNow();
+  save();
   closeModal('modal-ve-add');
   renderVE();
-  showToast('✅ Project "'+name+'" added to Value Engineering.');
+  _veToast('✅ Project added to Value Engineering.');
 }
 
 function renderVE(){
@@ -2189,11 +2234,13 @@ function renderVE(){
   el('ve-subtitle', won.length+' won project'+(won.length!==1?'s':'')+' ready for implementation');
 
   // Filter by search
+  var statusFilter = (document.getElementById('ve-filter-status')||{}).value||'';
   if(search) won = won.filter(function(r){
     return (r.name||'').toLowerCase().includes(search.toLowerCase()) ||
            (r.client||'').toLowerCase().includes(search.toLowerCase()) ||
            (r.ref||'').toLowerCase().includes(search.toLowerCase());
   });
+  if(statusFilter) won = won.filter(function(r){ return getVEStatus(r)===statusFilter; });
 
   var list = document.getElementById('ve-list');
   if(!list) return;
@@ -2225,7 +2272,7 @@ function renderVE(){
 
   list.innerHTML=
     '<div style="display:grid;grid-template-columns:1fr 1fr 120px 130px 160px auto;gap:12px;padding:10px 16px;border-bottom:2px solid var(--border);font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">'+
-      '<div>Project</div><div>VE Notes</div><div>Value</div><div>Quotations</div><div>VE Status</div><div></div>'+
+      '<div>Project</div><div>VE Notes</div><div>Value</div><div>Quotations</div><div>Value Engineering Status</div><div></div>'+
     '</div>'+rows;
 }
 
@@ -2233,32 +2280,45 @@ function openVEDetail(pid){
   pid=isNaN(pid)?pid:+pid;
   var r = (S.pipeline||[]).find(function(x){return x.id==pid;});
   if(!r) return;
+  // Re-run veOnApprove to ensure all quotation versions are linked
+  veOnApprove(r);
   var veData = r.ve||{r_ve_status:'Not Started'};
-  var quotations = (S.quotations||[]).filter(function(q){return q.pipelineId===pid;});
+  // Find ALL versions of the linked quotation (same base QTN number)
+    var baseQtn=r.qtn?(r.qtn.replace(/ v\d+$/i,'').trim()):'';
+  var rCompany = r.companyId||S.currentCompanyId;
+  var quotations = (S.quotations||[]).filter(function(q){
+    // Company filter
+    if(q.companyId && rCompany && q.companyId!==rCompany) return false;
+    // 1. Match by pipelineId — set by veOnApprove (most reliable, handles all versions)
+    if(q.pipelineId==pid) return true;
+    // 2. Match by direct quotationId
+    if(r.quotationId && q.id==r.quotationId) return true;
+    return false;
+  });
+  quotations.sort(function(a,b){return b.id-a.id;});
+  // Also set pipelineId on matched quotations for future lookups
+  quotations.forEach(function(q){ if(!q.pipelineId) q.pipelineId=pid; });
   var fmt = function(n){return n?n.toLocaleString():'0';};
   var amt = getPipelineAmount(r);
 
-  var statusOpts = ['Not Started','In Progress','Ready','Submitted to PM','On Hold']
+  var statusOpts = ['Not Started','In Progress','Ready for Implementation','Submitted To PM','On Hold','Canceled']
     .map(function(s){return '<option value="'+s+'"'+(getVEStatus(r)===s?' selected':'')+'>'+s+'</option>';}).join('');
 
-  var qRows = quotations.length ? quotations.map(function(q){
-    var qtot = (q.items||[]).reduce(function(a,it){
-      return a+(it.subs||[]).reduce(function(b,s){return b+(s.totalPrice||0);},0);
-    },0);
-    return '<tr>'+
-      '<td style="padding:7px 10px;font-weight:600">'+esc(q.num||'')+'</td>'+
-      '<td style="padding:7px 10px">'+esc(q.project||q.client||'—')+'</td>'+
-      '<td style="padding:7px 10px">'+q.date+'</td>'+
-      '<td style="padding:7px 10px;text-align:right;font-weight:700">SAR '+fmt(qtot)+'</td>'+
+    var qRows = quotations.length ? quotations.map(function(q){
+    var qtot = typeof qSellWithVAT==='function' ? qSellWithVAT(q) : 0;
+    var isLatest = quotations[0]&&q.id===quotations[0].id;
+    var statusColor={'Submitted':'#1a9e72','Value Engineering':'#7c3aed','Draft':'#888','Approved':'#1a4fa0','in pricing':'#a06800','out':'#d94040'}[q.status]||'#888';
+    return '<tr style="'+(isLatest?'background:rgba(59,130,246,.06)':'')+'">' +
+      '<td style="padding:7px 10px;font-weight:700;color:var(--accent)">'+esc((q.num||'').replace(/ v\d+$/i,''))+' <span style="color:var(--muted);font-weight:400">'+esc(q.version||'v1')+'</span>'+(isLatest?' <span style="font-size:10px;background:var(--accent);color:#fff;padding:1px 6px;border-radius:8px;margin-left:4px">latest</span>':'')+' </td>'+
+      '<td style="padding:7px 10px"><span style="background:'+statusColor+'22;color:'+statusColor+';padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">'+esc(q.status||'Draft')+'</span></td>'+
+      '<td style="padding:7px 10px;color:var(--muted);font-size:12px">'+(q.date||'—')+'</td>'+
+      '<td style="padding:7px 10px;text-align:right;font-weight:700;color:var(--green)">SAR '+fmt(qtot)+'</td>'+
       '<td style="padding:7px 10px;text-align:center">'+
-        '<button class="btn btn-secondary btn-sm" onclick="closeModal(\'modal-ve-detail\');switchToQuotation(\"'+q.id+'\");">Open</button>'+
+        '<button class="btn btn-secondary btn-sm" onclick="switchToQuotation('+q.id+')">Open →</button>'+
       '</td>'+
     '</tr>';
-  }).join('') : '<tr><td colspan="5" style="padding:20px;text-align:center;color:var(--muted)">No quotations linked</td></tr>';
-
-  var body =
-    // Project header
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">'+
+  }).join('') : '<tr><td colspan="5" style="padding:20px;text-align:center;color:var(--muted)">No quotations linked to this project</td></tr>';
+  var body ='<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">'+
       '<div class="card" style="padding:14px 16px">'+
         '<div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Project Info</div>'+
         '<div style="font-size:13px;font-weight:700;margin-bottom:4px">'+esc(r.name||'')+'</div>'+
@@ -2269,7 +2329,7 @@ function openVEDetail(pid){
       '</div>'+
       // VE Status control
       '<div class="card" style="padding:14px 16px">'+
-        '<div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">VE Status</div>'+
+        '<div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Value Engineering Status</div>'+
         '<select data-pid="'+pid+'" style="width:100%;font-size:13px;padding:7px 10px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);margin-bottom:10px" onchange="veUpdateStatus(this.dataset.pid,this.value)">'+statusOpts+'</select>'+
         '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px">VE Notes / Changes</div>'+
         '<textarea id="ve-notes-'+pid+' data-pid="'+pid+'"" rows="3" placeholder="Describe value engineering changes, scope adjustments, cost savings..." style="width:100%;font-size:12px;padding:8px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);resize:vertical">'+esc(veData.notes||'')+'</textarea>'+
@@ -2291,9 +2351,9 @@ function openVEDetail(pid){
         (r.veManual?'<button class="btn btn-ghost btn-sm" onclick="veLinkQuotation('+r.id+')">+ Link Quotation</button>':'')+
       '</div>'+
       '<table style="width:100%;border-collapse:collapse">'+
-        '<thead><tr style="background:var(--surface2)">'+
-          '<th style="padding:7px 10px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase">QTN No.</th>'+
-          '<th style="padding:7px 10px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase">Project</th>'+
+        '<thead><tr style="background:var(--panel)">'+
+          '<th style="padding:7px 10px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase">Version</th>'+
+          '<th style="padding:7px 10px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase">Status</th>'+
           '<th style="padding:7px 10px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase">Date</th>'+
           '<th style="padding:7px 10px;text-align:right;font-size:10px;color:var(--muted);text-transform:uppercase">Total</th>'+
           '<th style="padding:7px 10px;text-align:center;font-size:10px;color:var(--muted);text-transform:uppercase">Action</th>'+
@@ -2310,7 +2370,7 @@ function openVEDetail(pid){
     delBtn.className='btn btn-danger btn-sm';
     delBtn.style.cssText='margin-left:10px;font-size:11px';
     delBtn.textContent='🗑 Remove';
-    delBtn.onclick=function(){if(confirm('Remove this project from VE?')){S.pipeline=S.pipeline.filter(function(x){return x.id!=r.id;});saveNow();closeModal('modal-ve-detail');renderVE();}};
+    delBtn.onclick=function(){if(confirm('Remove this project from VE?')){S.pipeline=S.pipeline.filter(function(x){return x.id!=r.id;});save();closeModal('modal-ve-detail');renderVE();}};
     titleEl.parentElement.appendChild(delBtn);
   }
   document.getElementById('ve-detail-body').innerHTML = body;
@@ -2350,7 +2410,7 @@ function veToggleCheck(pid, idx, done){
   ];
   if(r.ve.checklist[idx]) r.ve.checklist[idx].done=done;
   document.getElementById('ve-checklist-'+pid).innerHTML=veRenderChecklist(r);
-  saveNow();
+  save();
 }
 
 function veAddCheckItem(pid){
@@ -2364,7 +2424,7 @@ function veAddCheckItem(pid){
   if(!text) return;
   r.ve.checklist.push({id:'item'+Date.now(),text:text,done:false});
   document.getElementById('ve-checklist-'+pid).innerHTML=veRenderChecklist(r);
-  saveNow();
+  save();
 }
 
 function veLinkQuotation(pid){
@@ -2383,8 +2443,8 @@ function veLinkQuotation(pid){
   if(!q){ showToast('Quotation not found.','error'); return; }
   q.pipelineId=pid;
   if(!r.quotationId) r.quotationId=qId;
-  saveNow(); openVEDetail(pid); renderVE();
-  showToast('✅ Quotation '+q.num+' linked to this project.');
+  save(); openVEDetail(pid); renderVE();
+  _veToast('✅ Quotation linked to this project.');
 }
 
 function veUpdateStatus(pid, status){
@@ -2393,7 +2453,7 @@ function veUpdateStatus(pid, status){
   if(!r) return;
   if(!r.ve) r.ve={};
   r.ve.status=status;
-  saveNow(); renderVE();
+  save(); renderVE();
 }
 
 function veSaveNotes(pid){
@@ -2404,17 +2464,18 @@ function veSaveNotes(pid){
   if(!r.ve) r.ve={};
   var notesEl=document.getElementById('ve-notes-'+pid);
   if(notesEl) r.ve.notes=notesEl.value;
-  saveNow(); renderVE();
-  showToast('✅ VE notes saved.');
+  save(); renderVE();
+  _veToast('✅ VE notes saved.');
 }
 
 function switchToQuotation(qid){
   qid=isNaN(qid)?qid:+qid;
   var q=(S.quotations||[]).find(function(x){return x.id==qid;});
-  if(!q) return;
-  currentQId=qid;
+  if(!q){ _veToast('Quotation not found'); return; }
+  closeModal('modal-ve-detail');
   showPage('quotation');
-  loadQ(q);
+  // openQuotation handles setting activeQId + rendering
+  openQuotation(qid);
 }
 
 function showPage(id){
@@ -2689,25 +2750,24 @@ function renderPipeline(data){
   
   document.getElementById('pipeline-tbody').innerHTML=rows.map((r,i)=>{
     const amt=getPipelineAmount(r);
-    const linked=!!r.quotationId&&S.quotations.some(q=>q.id===r.quotationId);
-    const linkedQ=linked?S.quotations.find(q=>q.id===r.quotationId):null;
+    const linkedQ=getLatestSubmittedQ(r);
+    const linked=!!linkedQ;
     return`<tr>
       <td class="muted">${i+1}</td>
       <td style="font-size:12px">
-        <div style="font-family:var(--mono);color:var(--accent);font-weight:700">${esc(r.printRef||r.qtn||'—')}</div>
-        ${r.printRef&&r.qtn&&r.printRef!==r.qtn?`<div style="font-size:10px;color:var(--muted)">${esc(r.qtn)}</div>`:''}
-        ${linked?`<div style="font-size:10px;color:var(--accent)">🔗 ${esc(linkedQ?.version||'v1')} · ${esc(linkedQ?.status||'')}</div>`:''}
+        <div style="font-family:var(--mono);color:var(--accent);font-weight:700">${esc((r.printRef||r.qtn||'—').replace(/ v\d+$/i,''))}</div>
+        ${linkedQ?`<div style="font-size:10px;color:var(--accent)">🔗 ${esc(linkedQ.version||'v1')} · <b>${esc(linkedQ.status||'')}</b></div>`:''}
       </td>
       <td style="max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(r.name)}">${esc(r.name||'—')}</td>
       <td class="muted">${esc(r.type||'—')}</td><td class="muted">${esc(r.sys||'—')}</td>
       <td style="max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.client||'—')}</td>
       <td class="muted">${esc(r.loc||'—')}</td>
-      <td class="muted">${getDeliveryAlert(r.date)} ${esc(r.date||'—')}</td>
+      <td class="muted">${getDeliveryAlert(getPipelineDate(r))} ${esc(getPipelineDate(r)||'—')}</td>
       <td class="num">
         <div style="color:${amt>0?'var(--green)':'var(--muted)'};font-weight:700">${fmtN(amt)}</div>
         ${linked?'<div style="font-size:9px;color:var(--accent)">● live</div>':'<div style="font-size:9px;color:var(--muted)">manual</div>'}
       </td>
-      <td><select onchange="updatePipelineStatus(${r.id},this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);padding:3px 6px;font-size:12px;outline:none;cursor:pointer">${['Approved','Submitted','in pricing','out','Canceled'].map(s=>`<option ${r.status===s?'selected':''}>${s}</option>`).join('')}</select></td>
+      <td>${pipelineStatusBadge(r.status)}</td>
       <td class="no-print" style="white-space:nowrap">
         <button class="btn btn-ghost btn-xs" onclick="openQFromPipeline(${r.id})" title="Open Quotation">📄</button>
         <button class="btn btn-ghost btn-xs" onclick="editPipelineItem(${r.id})" title="Edit">✏️</button>
@@ -2715,6 +2775,19 @@ function renderPipeline(data){
       </td>
     </tr>`;
   }).join('');
+}
+
+function pipelineStatusBadge(s){
+  var m={
+    'Approved':   {bg:'#d1fae5',c:'#065f46',dot:'#10b981'},
+    'Submitted':  {bg:'#dbeafe',c:'#1d4ed8',dot:'#3b82f6'},
+    'in pricing': {bg:'#fef3c7',c:'#92400e',dot:'#f59e0b'},
+    'out':        {bg:'#fee2e2',c:'#991b1b',dot:'#ef4444'},
+    'Canceled':   {bg:'#e5e7eb',c:'#6b7280',dot:'#9ca3af'},
+  };
+  var v=m[s]||{bg:'#f3f4f6',c:'#6b7280',dot:'#d1d5db'};
+  return '<span style="background:'+v.bg+';color:'+v.c+';padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:5px">'+
+    '<span style="width:7px;height:7px;border-radius:50%;background:'+v.dot+';display:inline-block;flex-shrink:0"></span>'+s+'</span>';
 }
 
 function updatePipelineStatus(id,val){
@@ -2744,10 +2817,13 @@ function savePipelineItem(){
   let amount=+document.getElementById('pm-amount').value||0;
 
   if(qtnNum&&qtnNum!=='__custom'&&qtnNum!==''){
-    const qs=S.quotations.filter(q=>q.num===qtnNum&&(!q.companyId||q.companyId===co.id));
+    const baseQtn2=(qtnNum||'').replace(/ v\d+$/i,'').trim();
+    const qs=S.quotations.filter(q=>(!q.companyId||q.companyId===co.id)&&((q.num||'').replace(/ v\d+$/i,'').trim()===baseQtn2));
     if(qs.length){
-      const active=qs.filter(q=>q.status==='Draft'||q.status==='in pricing');
-      const pool=active.length?active:qs;
+      // Always link to latest Submitted version
+      const submitted=qs.filter(q=>q.status==='Submitted');
+      const draft=qs.filter(q=>q.status==='Draft'||q.status==='in pricing');
+      const pool=submitted.length?submitted:draft.length?draft:qs;
       const best=pool.reduce((a,b)=>a.id>b.id?a:b);
       quotationId=best.id;
       amount=Math.round(qSellWithVAT(best));
@@ -2780,30 +2856,50 @@ function deletePipeline(id){if(!confirm('Remove?'))return;S.pipeline=S.pipeline.
 
 // Get live amount for a pipeline row
 // Priority: quotationId (direct link) → qtn name match → stored amount
+function getLatestSubmittedQ(row){
+  // Find ALL quotations for this pipeline project
+  // Match ALL versions with same QTN number (versions share the same num)
+  // Strip version suffix from qtn for matching (e.g. "QTN-26038 v2" → "QTN-26038")
+  var baseQtn=(row.qtn||'').replace(/ v\d+$/i,'').trim();
+  var qs=S.quotations.filter(function(q){
+    if(q.companyId && q.companyId!==row.companyId) return false;
+    // Match by exact num OR base num (stripping version suffix)
+    var baseNum=(q.num||'').replace(/ v\d+$/i,'').trim();
+    if(baseQtn && (q.num===row.qtn || baseNum===baseQtn)) return true;
+    if(row.quotationId && q.id==row.quotationId) return true;
+    return false;
+  });
+  if(!qs.length) return null;
+  // Priority 1: Submitted (latest)
+  var submitted=qs.filter(function(q){return q.status==='Submitted';});
+  if(submitted.length) return submitted.reduce(function(a,b){return a.id>b.id?a:b;});
+  // Priority 2: Draft/in pricing (latest)
+  var draft=qs.filter(function(q){return q.status==='Draft'||q.status==='in pricing';});
+  if(draft.length) return draft.reduce(function(a,b){return a.id>b.id?a:b;});
+  // Priority 3: any latest
+  return qs.reduce(function(a,b){return a.id>b.id?a:b;});
+}
+
 function getPipelineAmount(row){
-  // 1. Direct link by quotationId
-  if(row.quotationId){
-    const q=S.quotations.find(o=>o.id===row.quotationId);
-    if(q){
-      const live=qSellWithVAT(q);
-      if(Math.abs(live-(+row.amount||0))>1) row.amount=live;
-      return live;
-    }
+  var q=getLatestSubmittedQ(row);
+  if(q){
+    var live=qSellWithVAT(q);
+    // Always update stored amount to latest submitted
+    row.amount=live;
+    // Update date to latest submitted quotation's date
+    if(q.date) row.date=q.date;
+    // Update quotationId to point to latest submitted version
+    row.quotationId=q.id;
+    return live;
   }
-  // 2. Fallback: match by qtn name (legacy rows without quotationId)
-  if(row.qtn){
-    const qs=S.quotations.filter(q=>q.num===row.qtn&&(!q.companyId||q.companyId===row.companyId));
-    if(qs.length){
-      const latest=qs.reduce((a,b)=>a.id>b.id?a:b);
-      const live=qSellWithVAT(latest);
-      if(Math.abs(live-(+row.amount||0))>1) row.amount=live;
-      // Auto-migrate: set quotationId now that we found the match
-      row.quotationId=latest.id;
-      return live;
-    }
-  }
-  // 3. No linked quotation — use stored manual amount
   return +row.amount||0;
+}
+
+function getPipelineDate(row){
+  // Date = submission date of latest Submitted version
+  var q=getLatestSubmittedQ(row);
+  if(q && q.date) return q.date;
+  return row.date||'';
 }
 
 // Migration: run once to set quotationId on all existing pipeline rows
@@ -2815,8 +2911,9 @@ function migratePipelineQuotationIds(){
     const qs=S.quotations.filter(q=>q.num===row.qtn&&(!q.companyId||q.companyId===row.companyId));
     if(!qs.length) return;
     // Pick active version: Draft/in pricing preferred, else latest
-    const active=qs.filter(q=>q.status==='Draft'||q.status==='in pricing');
-    const pool=active.length?active:qs;
+    const submitted=qs.filter(q=>q.status==='Submitted');
+    const draft=qs.filter(q=>q.status==='Draft'||q.status==='in pricing');
+    const pool=submitted.length?submitted:draft.length?draft:qs;
     const best=pool.reduce((a,b)=>a.id>b.id?a:b);
     row.quotationId=best.id;
     // Set printRef from qtn if not set
@@ -2854,7 +2951,8 @@ function onPmQtnChange(){
 
   // Find matching quotations
   const co=getCurrentCompany();
-  const qs=S.quotations.filter(q=>q.num===val&&(!q.companyId||q.companyId===co.id));
+  const baseVal=(val||'').replace(/ v\d+$/i,'').trim();
+  const qs=S.quotations.filter(q=>(!q.companyId||q.companyId===co.id)&&((q.num||'').replace(/ v\d+$/i,'').trim()===baseVal));
 
   if(!qs.length){
     if(indicator) indicator.style.display='none';
@@ -2862,9 +2960,10 @@ function onPmQtnChange(){
     return;
   }
 
-  // Best match: active (Draft/in pricing) else latest id
-  const active=qs.filter(q=>q.status==='Draft'||q.status==='in pricing');
-  const pool=active.length?active:qs;
+  // Always use latest Submitted version; fallback to Draft/in pricing; fallback to latest
+  const submitted=qs.filter(q=>q.status==='Submitted');
+  const draft=qs.filter(q=>q.status==='Draft'||q.status==='in pricing');
+  const pool=submitted.length?submitted:draft.length?draft:qs;
   const best=pool.reduce((a,b)=>a.id>b.id?a:b);
 
   // ── Show live indicator ───────────────────────────────────────
@@ -2928,7 +3027,7 @@ function openAddPipelineModal(){
 function editPipelineItem(pId){
   const r=S.pipeline.find(p=>p.id===pId); if(!r) return;
   // Pre-fill modal
-  populateQNumDropdown();
+  populateQNumDropdown(r.id);
   const el=document.getElementById('pm-qtn');
   if(el) el.value=r.qtn||'';
   document.getElementById('pm-print-ref').value=r.printRef||r.qtn||'';
@@ -2943,7 +3042,7 @@ function editPipelineItem(pId){
   document.getElementById('pm-note').value=r.note||'';
   const byEl=document.getElementById('pm-by'); if(byEl) byEl.value=r.by||'';
   // Show link indicator if linked
-  if(r.qtn) onPmQtnChange();
+  const pmEl=document.getElementById('pm-qtn'); if(pmEl&&r.qtn){pmEl.value=r.qtn;} if(r.qtn) onPmQtnChange();
   // Change Save button to update existing row
   const saveBtn=document.querySelector('#plModal .btn-primary');
   if(saveBtn){
@@ -2981,47 +3080,105 @@ function editPipelineItem(pId){
 }
 
 function openQFromPipeline(pId){
-  const p=S.pipeline.find(r=>r.id===pId);if(!p)return;
-  if(!p.qtn){showPage('quotation');return;}
+  const p=S.pipeline.find(r=>r.id===pId);
+  if(!p) return;
 
-  // Find ALL quotations matching this QTN number + company
-  const matches=S.quotations.filter(q=>
-    q.num===p.qtn && (!q.companyId||q.companyId===p.companyId)
-  );
+  let q=null;
 
-  let q;
-  if(matches.length===0){
-    // No quotation exists yet — create one
-    q=blankQ({companyId:p.companyId,num:p.qtn,project:p.name,client:p.client,
-               addr:p.loc,system:p.sys||'CCTV',date:p.date||'',
-               status:p.status||'Draft',by:p.by||''});
-    S.quotations.push(q);
-    save();
-  } else if(matches.length===1){
-    // Exactly one match — open it
-    q=matches[0];
-  } else {
-    // Multiple versions — open the one being actively worked on:
-    // Priority: 1) Draft/in pricing (latest id), 2) otherwise latest id
-    const active=matches.filter(x=>x.status==='Draft'||x.status==='in pricing');
-    const pool=active.length?active:matches;
-    q=pool.reduce((a,b)=>a.id>b.id?a:b);
+  // 1. Direct link by quotationId (most reliable)
+  if(p.quotationId){
+    q=S.quotations.find(x=>x.id==p.quotationId);
   }
 
-  showPage('quotation');renderQList();openQuotation(q.id);
+  // 2. Link by pipelineId stored in quotation
+  if(!q){
+    q=S.quotations.find(x=>x.pipelineId==pId);
+  }
+
+  // 3. Match by QTN number + company (same as before, as fallback)
+  if(!q && p.qtn){
+    const matches=S.quotations.filter(q=>
+      q.num===p.qtn && (!q.companyId||q.companyId===p.companyId)
+    );
+    if(matches.length===1){
+      q=matches[0];
+    } else if(matches.length>1){
+      // Prefer the one with matching pipelineId, then latest
+      const linked=matches.find(x=>x.pipelineId==pId);
+      if(linked) q=linked;
+      else {
+        const active=matches.filter(x=>x.status==='Draft'||x.status==='in pricing');
+        const pool=active.length?active:matches;
+        q=pool.reduce((a,b)=>a.id>b.id?a:b);
+      }
+    }
+  }
+
+  if(!q){
+    // No quotation linked — show message instead of auto-creating
+    alert('No quotation linked to this pipeline item yet.\nPlease create a quotation and link it via the QTN number in the pipeline form.');
+    return;
+  }
+
+  // Set pipelineId for future lookups
+  if(!q.pipelineId) q.pipelineId=pId;
+  if(!p.quotationId) p.quotationId=q.id;
+
+  showPage('quotation');
+  // Pre-filter sidebar to show only this project's quotations
+  var projFilter=document.getElementById('ql-project-filter');
+  if(projFilter){
+    var projName=q.project||q.client||'';
+    projFilter.innerHTML='<option value="">All Projects</option>';
+    if(projName){
+      var opt=document.createElement('option');
+      opt.value=projName; opt.textContent=projName; opt.selected=true;
+      projFilter.appendChild(opt);
+    }
+  }
+  renderQList();
+  openQuotation(q.id);
 }
 
 // Quotation Dropdown
-function populateQNumDropdown(){
+function populateQNumDropdown(editingPipelineId){
   const el=document.getElementById('q-num');
   const pmEl=document.getElementById('pm-qtn');
-  const q=getQ();const cur=q?q.num:'';
-  const nums=[...new Set([...S.pipeline.filter(p=>p.companyId===S.currentCompanyId).map(p=>p.qtn).filter(Boolean),...S.quotations.filter(q=>!q.companyId||q.companyId===S.currentCompanyId).map(q=>q.num).filter(Boolean)])].sort();
-  const dropdownHTML=`<option value="">— Select —</option>`+nums.map(n=>`<option value="${esc(n)}" ${n===cur?'selected':''}>${esc(n)}</option>`).join('')+`<option value="__custom">+ Enter custom…</option>`;
-  
-  if(el)el.innerHTML=dropdownHTML;
-  if(pmEl)pmEl.innerHTML=dropdownHTML;
-  
+  const q=getQ(); const cur=q?q.num:'';
+
+  // All quotation numbers for q-num (quotation page dropdown)
+  const allNums=[...new Set([
+    ...S.pipeline.filter(p=>p.companyId===S.currentCompanyId).map(p=>p.qtn).filter(Boolean),
+    ...S.quotations.filter(q=>!q.companyId||q.companyId===S.currentCompanyId).map(q=>q.num).filter(Boolean)
+  ])].sort();
+  const dropdownHTML=`<option value="">— Select —</option>`+
+    allNums.map(n=>`<option value="${esc(n)}" ${n===cur?'selected':''}>${esc(n)}</option>`).join('')+
+    `<option value="__custom">+ Enter custom…</option>`;
+  if(el) el.innerHTML=dropdownHTML;
+
+  // Pipeline pm-qtn: only show quotations NOT already linked to another pipeline item
+  // + quotations that belong to current company
+  const linkedQtns=new Set(
+    S.pipeline
+      .filter(p=>p.companyId===S.currentCompanyId && p.id!=editingPipelineId)
+      .map(p=>p.qtn).filter(Boolean)
+  );
+
+  // Available quotations = company quotations not linked to other pipeline items
+  const availableQuots=S.quotations.filter(q=>
+    (!q.companyId||q.companyId===S.currentCompanyId) && !linkedQtns.has(q.num)
+  );
+  const availableNums=[...new Set(availableQuots.map(q=>q.num).filter(Boolean))].sort();
+
+  if(pmEl){
+    pmEl.innerHTML=`<option value="">— Select Quotation —</option>`+
+      availableQuots.sort((a,b)=>b.id-a.id).map(q=>{
+        var label=esc(q.num||'')+(q.project?' · '+esc(q.project):'')+(q.client?' ('+esc(q.client)+')':'');
+        return `<option value="${esc(q.num||'')}" data-qid="${q.id}">${label}</option>`;
+      }).join('')+
+      `<option value="__custom">+ Custom number…</option>`;
+  }
+
   const byEl=document.getElementById('pm-by');
   if(byEl){
     byEl.innerHTML=`<option>unassigned</option>`+S.users.map(u=>`<option>${esc(u.email||u.name)}</option>`).join('');
@@ -3041,7 +3198,7 @@ function autofillFromPipeline(){
     // Rebuild dropdown with new value included, then select it
     populateQNumDropdown();
     el.value=q.num;
-    document.getElementById('qf-title').textContent=q.num;
+    document.getElementById('qf-title').textContent=(q.num||'').replace(/ v\d+$/i,'').trim();
     renderQList();
     return;
   }
@@ -3049,29 +3206,48 @@ function autofillFromPipeline(){
   q.num=el.value;
   const p=S.pipeline.find(p=>p.qtn===el.value&&p.companyId===S.currentCompanyId);
   if(p){q.project=p.name;q.client=p.client;q.addr=p.loc;q.system=p.sys||'CCTV';q.date=p.date||q.date;q.by=p.by||q.by;syncQFields(q);}
-  save();renderQList();document.getElementById('qf-title').textContent=q.num||'Untitled';
+  save();renderQList();document.getElementById('qf-title').textContent=((q.num||'').replace(/ v\d+$/i,'').trim())||'Untitled';
 }
 
 // Quotation List
 function renderQList(){
   const user=getCurrentUser();
   const search=(document.getElementById('ql-search')||{}).value||'';
+  const projFilter=(document.getElementById('ql-project-filter')||{}).value||'';
+
   let list=S.quotations.filter(q=>!q.companyId||q.companyId===S.currentCompanyId);
-  
-  // Pre-sales users see only their own quotations (based on "by" field) + unassigned
+
+  // Role-based filtering
   if(user&&user.role==='Pre-sales'){
     list=list.filter(q=>q.by===user.name||q.by===user.email||q.by==='unassigned');
-  }
-  // Other non-admin/manager users filtered by assigned projects
-  else if(user&&user.role!=='Admin'&&user.role!=='Manager'&&user.assignedProjects&&user.assignedProjects.length>0){
+  } else if(user&&user.role!=='Admin'&&user.role!=='Manager'&&user.assignedProjects&&user.assignedProjects.length>0){
     list=list.filter(q=>user.assignedProjects.includes(q.num));
   }
-  
-  if(search)list=list.filter(q=>(q.num+q.project+q.client).toLowerCase().includes(search.toLowerCase()));
+
+  // Populate project filter dropdown
+  const projSel=document.getElementById('ql-project-filter');
+  if(projSel){
+    const projects=[...new Set(list.map(q=>q.project||q.client||'').filter(Boolean))].sort();
+    const curProj=projSel.value;
+    projSel.innerHTML='<option value="">All Projects</option>'+
+      projects.map(p=>`<option value="${esc(p)}" ${p===curProj?'selected':''}>${esc(p)}</option>`).join('');
+  }
+
+  // Apply filters
+  if(projFilter) list=list.filter(q=>(q.project||q.client||'')===projFilter);
+  if(search) list=list.filter(q=>(q.num+q.project+q.client).toLowerCase().includes(search.toLowerCase()));
+
+  // Sort: active project first, then by date desc
+  if(projFilter) list.sort((a,b)=>String(b.id).localeCompare(String(a.id)));
+
   document.getElementById('q-list').innerHTML=list.length?list.map(q=>`
     <div class="q-list-item ${q.id===S.activeQId?'active':''}" onclick="openQuotation(${q.id})">
-      <div class="ql-num">${esc(q.num||'No #')} <span style="font-weight:400">${esc(q.version||'v1')}</span> ${q.locked?'🔒':''}</div>
-      <div class="ql-name">${esc(q.project||q.client||'Untitled')}</div>
+      <div class="ql-num">${esc((q.num||'No #').replace(/ v\d+$/i,''))} <span style="font-weight:400">${esc(q.version||'v1')}</span> ${q.locked?'🔒':''}</div>
+      <div class="ql-name">${(function(){
+        var name=q.client||'';
+        if(!name){var p=q.project||'';name=(/^QTN/i.test(p))?'':p;}
+        return esc(name||q.project||'Untitled');
+      })()}</div>
       <div class="ql-meta">${statusBadge(q.status)}<span class="ql-total">${fmt(qSellWithVAT(q))}</span></div>
     </div>`).join(''):`<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">No quotations</div>`;
 }
@@ -3199,8 +3375,23 @@ function newVersion(){
   const base=q.num.replace(/ v\d+$/,'');
   const n=S.quotations.filter(o=>o.num.replace(/ v\d+$/,'')=== base).length+1;
   const verSuffix=generateVersionSuffix(n);
-  const copy=JSON.parse(JSON.stringify(q));copy.id=Date.now()+Math.random();copy.version=verSuffix.trim();copy.num=base+verSuffix;copy.status='Draft';copy.locked=false;
-  S.quotations.push(copy);save();renderQList();openQuotation(copy.id);
+  const copy=JSON.parse(JSON.stringify(q));
+  copy.id=Date.now()+Math.random();
+  copy.version=verSuffix.trim();
+  copy.num=base+verSuffix;
+  copy.locked=false;
+  // Check if this project is Approved (Won) in Pipeline → mark as VE
+  const baseQtn=base.trim();
+  const pipelineItem=S.pipeline.find(function(r){
+    return r.status==='Approved' && (r.qtn===q.num||r.qtn===baseQtn||
+      (r.qtn||'').replace(/ v\d+$/i,'').trim()===baseQtn);
+  });
+  copy.status = pipelineItem ? 'Value Engineering' : 'Draft';
+  copy.pipelineId = pipelineItem ? pipelineItem.id : (q.pipelineId||null);
+  S.quotations.push(copy);
+  // Link new version to pipeline
+  if(pipelineItem && !pipelineItem.quotationId) pipelineItem.quotationId=copy.id;
+  save();renderQList();openQuotation(copy.id);
 }
 
 function duplicateQ(){
@@ -3315,7 +3506,7 @@ function syncQFields(q){
   const pp=document.getElementById('profit-pct');if(pp)pp.value=q.profitPct||25;
   populateQNumDropdown();
   const numEl=document.getElementById('q-num');if(numEl&&q.num)numEl.value=q.num;
-  document.getElementById('qf-title').textContent=q.num||'Untitled';
+  document.getElementById('qf-title').textContent=((q.num||'').replace(/ v\d+$/i,'').trim())||'Untitled';
   document.getElementById('qf-subtitle').textContent=(q.project||'No project')+(q.client?' · '+q.client:'');
   document.getElementById('qf-version-badge').textContent=q.version||'v1';
   
@@ -3354,7 +3545,7 @@ function saveQ(){
     openQuotation(q.id);
   }
   
-  document.getElementById('qf-title').textContent=q.num||'Untitled';
+  document.getElementById('qf-title').textContent=((q.num||'').replace(/ v\d+$/i,'').trim())||'Untitled';
   document.getElementById('qf-subtitle').textContent=(q.project||'No project')+(q.client?' · '+q.client:'');
   document.getElementById('qf-version-badge').textContent=q.version||'v1';
   save();
@@ -3437,6 +3628,22 @@ function deleteMainItem(mid){const q=getQ();if(!q||!canEdit())return;q.items=q.i
 function addSubItem(mid){const q=getQ();if(!q||!canEdit())return;const m=q.items.find(m=>m.id===mid);if(!m)return;m.subItems.push(blankSubItem());save();renderCostingTab();}
 function deleteSubItem(mid,sid){const q=getQ();if(!q||!canEdit())return;const m=q.items.find(m=>m.id===mid);if(!m)return;m.subItems=m.subItems.filter(s=>s.id!==sid);save();renderCostingTab();}
 function updateMainItem(mid,key,val){const q=getQ();if(!q||!canEdit())return;const m=q.items.find(m=>m.id===mid);if(!m)return;m[key]=key==='qty'?+val:(key==='priced'?val:val);save();renderCostingTab();}
+
+function setSellUnitOverride(idx, val, useIndex){
+  const q=getQ(); if(!q||!canEdit()) return;
+  const m=q.items[idx];
+  if(!m) return;
+  const profit=1+(q.profitPct||25)/100;
+  const autoCost=mainUnitPrice(m)*profit;
+  if(!val || val<=0 || Math.abs(val-autoCost)<0.01){
+    delete m.sellUnitOverride;
+  } else {
+    m.sellUnitOverride=val;
+  }
+  save();
+  renderPricingTab();
+  renderQList(); // update sidebar total
+}
 function updateSubItem(mid,sid,key,val){
   const q=getQ();if(!q||!canEdit())return;const m=q.items.find(m=>m.id===mid);if(!m)return;
   const s=m.subItems.find(s=>s.id===sid);if(!s)return;
@@ -3671,7 +3878,7 @@ function _processMainItemsRows(rows){
     q.items = newItems;
   }
 
-  saveNow(); renderItems(); renderTotals();
+  save(); renderItems(); renderTotals();
   alert('✅ Imported '+added+' main item(s).'+(skipped?' Skipped '+skipped+' empty rows.':''));
 }
 
@@ -3856,9 +4063,12 @@ function renderPricingTab(){
   let draggedItemIndex=null;
   
   document.getElementById('pricing-tbody').innerHTML=q.items.map((mi,i)=>{
-    const cu=mainUnitPrice(mi),ct=mainCostTotal(mi),su=cu*(1+profit),st=su*(mi.qty||1);
+    const cu=mainUnitPrice(mi),ct=mainCostTotal(mi);
+    const su=qSellUnit(mi,q);
+    const st=su*(mi.qty||1);
     const pn=mi.subItems&&mi.subItems[0]?mi.subItems[0].partno:'';
     // For optional items: show unit price normally, but total as "Optional"
+    const isOverridden=mi.sellUnitOverride!=null;
     const displaySellUnit=showP?fmtN(su):'●●●';
     const displaySellTotal=mi.optional?'<span style="color:var(--muted);font-weight:600">اختياري</span>':(showP?fmtN(st):'●●●');
     return `<tr draggable="${!locked}" data-index="${i}" 
@@ -3874,7 +4084,15 @@ function renderPricingTab(){
       <td class="muted">${mi.qty||1}</td>
       <td class="num" style="color:var(--red)">${showP?fmtN(cu):'●●●'}</td>
       <td class="num" style="color:var(--red)">${showP?fmtN(ct):'●●●'}</td>
-      <td class="num" style="color:var(--green)">${displaySellUnit}</td>
+      <td class="num" style="color:var(--green)">
+        ${showP?`<input type="number" value="${su.toFixed(2)}" step="0.01" min="0"
+          class="sell-unit-input" data-idx="${i}"
+          style="width:90px;text-align:right;background:transparent;border:none;border-bottom:1.5px dashed var(--green);color:var(--green);font-weight:700;font-size:13px;padding:2px 4px;outline:none;cursor:text"
+          title="Edit sell unit price — press Enter to confirm"
+          onblur="setSellUnitOverride(+this.dataset.idx,+this.value,true)"
+          onkeydown="if(event.key==='Enter'){setSellUnitOverride(+this.dataset.idx,+this.value,true);this.blur();}"
+          onfocus="this.select()">`:'●●●'}
+      </td>
       <td class="num" style="color:var(--green)">${displaySellTotal}</td>
       <td><input type="checkbox" ${mi.optional?'checked':''} ${locked?'disabled':''} onchange="updateMainItem(${mi.id},'optional',this.checked)"></td>
     </tr>`;
@@ -3883,7 +4101,7 @@ function renderPricingTab(){
   // Calculate totals excluding optional items
   const nonOptionalItems=q.items.filter(mi=>!mi.optional);
   const tc=nonOptionalItems.reduce((s,mi)=>s+mainCostTotal(mi),0);
-  const ts=nonOptionalItems.reduce((s,mi)=>{const cu=mainUnitPrice(mi);return s+(cu*(1+profit)*(mi.qty||1))},0);
+  const ts=nonOptionalItems.reduce((s,mi)=>s+qSellUnit(mi,q)*(mi.qty||1),0);
   const vat=ts*(q.vat||15)/100,grand=ts+vat;
   
   document.getElementById('pricing-totals').innerHTML=`
@@ -4608,7 +4826,7 @@ function exportPricingPDF(isArabic=false){
   
   // Build table rows
   const rows=validItems.map((mi,i)=>{
-    const cu=mainUnitPrice(mi),su=cu*(1+profit),st=su*(mi.qty||1);
+    const cu=mainUnitPrice(mi),su=qSellUnit(mi,q),st=su*(mi.qty||1);
     const pn=mi.subItems&&mi.subItems[0]?mi.subItems[0].partno:'';
     const optionalText=isArabic?'اختياري':'Optional';
     // For optional items: show unit price normally, but total as "Optional"
@@ -4627,7 +4845,7 @@ function exportPricingPDF(isArabic=false){
   
   // Calculate totals excluding optional items
   const nonOptionalItems=validItems.filter(mi=>!mi.optional);
-  const ts=nonOptionalItems.reduce((s,mi)=>{const cu=mainUnitPrice(mi);return s+(cu*(1+profit)*(mi.qty||1))},0);
+  const ts=nonOptionalItems.reduce((s,mi)=>{const cu=mainUnitPrice(mi);return s+(qSellUnit(mi,q)*(mi.qty||1))},0);
   const vat=ts*(q.vat||15)/100,grand=ts+vat;
   
   // Build payment schedule section if user wants to show it
