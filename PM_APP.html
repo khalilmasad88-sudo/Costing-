@@ -3934,8 +3934,6 @@ function refreshDash(){
   var filterYear=ysel?ysel.value:'';
   var statusFilter=(document.getElementById('dash-status-filter')||{}).value||'';
   var clientFilter=(document.getElementById('dash-client-filter')||{}).value||'';
-  var _sf=(typeof statusFilter!=='undefined'?statusFilter:'');
-  var _cf=(typeof clientFilter!=='undefined'?clientFilter:'');
   var ps=(DB.projects||[]).filter(function(p){
     if(filterYear&&String(p.year)!==String(filterYear)) return false;
     if(_sf&&p.status!==_sf) return false;
