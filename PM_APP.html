@@ -3934,10 +3934,12 @@ function refreshDash(){
   var filterYear=ysel?ysel.value:'';
   var statusFilter=(document.getElementById('dash-status-filter')||{}).value||'';
   var clientFilter=(document.getElementById('dash-client-filter')||{}).value||'';
+  var _dashStatusF=statusFilter||'';
+  var _dashClientF=clientFilter||'';
   var ps=(DB.projects||[]).filter(function(p){
     if(filterYear&&String(p.year)!==String(filterYear)) return false;
-    if(statusFilter&&p.status!==statusFilter) return false;
-    if(clientFilter&&p.client!==clientFilter) return false;
+    if(_dashStatusF&&p.status!==_dashStatusF) return false;
+    if(_dashClientF&&p.client!==_dashClientF) return false;
     return canSeeProject(p);
   });
   var filteredPOs=filterYear?DB.pos.filter(function(po){
