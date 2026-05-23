@@ -3972,7 +3972,11 @@ function buildForecast(ps){
   var todayD=new Date();
   // PO payments
   DB.pos.filter(function(po){return po.approvalStatus==='Approved';}).forEach(function(po){
-    var sub=parseFloat(po.subtotal)||parseFloat(po.amount)/1.15||0;
+    var sub=parseFloat(po.subtotal)||0;
+    if(!sub && po.lines && po.lines.length){
+      sub=po.lines.reduce(function(a,l){return a+(parseFloat(l.extPrice)||parseFloat(l.qty||0)*parseFloat(l.unitPrice||0));},0);
+    }
+    if(!sub) sub=parseFloat(po.amount)||0;
     if(po.paymentSchedule&&po.paymentSchedule.length){
       po.paymentSchedule.forEach(function(s){
         var amt=parseFloat(s.pct||0)/100*sub;
@@ -4229,9 +4233,38 @@ function viewProject(id){
   document.getElementById('proj-detail-title').textContent=p.ref+' \u2013 Project Detail';
   var relR=DB.reports.filter(function(r){return r.projRef===p.ref;});
   var budgetVAT=(p.budget||0)*.15;
-  var computedAmount=DB.boqs.filter(function(b){return b.projId===p.id;}).reduce(function(a,b){return a+(b.total||0);},0)||p.amount;
-  var computedCost=getProjectCost(p.ref);
-  var computedNet=computedAmount-computedCost;
+  // Contract Amount = Sum of Main SOW BOQs EXCLUDING VAT
+  var computedAmount = (function(){
+    var boqTotal = DB.boqs.filter(function(b){return b.projId===p.id;})
+      .reduce(function(a,b){
+        // Use subtotal (ex-VAT) if available, else total/1.15
+        var exVat = parseFloat(b.subtotal||0) || Math.round((parseFloat(b.total||0)/1.15)*100)/100;
+        return a + exVat;
+      }, 0);
+    // Fallback to p.amount (already ex-VAT from form)
+    return boqTotal || parseFloat(p.amount) || 0;
+  })();
+
+  // Budget = already stored ex-VAT (p.budget from form)
+  var computedBudget = parseFloat(p.budget) || 0;
+
+  // Cost = Approved POs (ex-VAT) + Petty Cash expenses from Daily Reports
+  var computedCost = (function(){
+    // PO cost ex-VAT
+    var poCost = DB.pos.filter(function(po){
+      return (po.approvalStatus==='Approved'||po.status==='Approved') &&
+        (po.projRef===p.ref||(po.projRef&&po.projRef.indexOf(p.ref)!==-1));
+    }).reduce(function(a,po){ return a + getPOCostExVAT(po); }, 0);
+
+    // Petty cash from approved petty cash (not daily reports — approved PC total)
+    var pcCost = DB.petty.filter(function(pc){
+      return (pc.approvalStatus==='Approved'||pc.status==='Approved') && pc.proj===p.ref;
+    }).reduce(function(a,pc){ return a + (parseFloat(pc.total)||0); }, 0);
+
+    return poCost + pcCost;
+  })();
+
+  var computedNet = computedAmount - computedCost;
   var docs=p.docs||[];
 
   var reportsHTML='';
@@ -4563,10 +4596,10 @@ function viewProject(id){
   document.getElementById('proj-detail-content').innerHTML=
     '<div class="kpi-row" style="margin-bottom:14px">'+
     (projectDetailLevel()==='full'?
-      '<div class="kpi blue"><div class="kpi-label">Budget (incl. VAT)</div><div class="kpi-value" style="font-size:17px">'+(p.budget?SAR(p.budget+budgetVAT):'—')+'</div><div class="kpi-sub">'+(p.budget?'excl. VAT: '+SAR(p.budget):'')+'</div></div>'+
-      '<div class="kpi gold"><div class="kpi-label">Contract Amount</div><div class="kpi-value" style="font-size:17px">'+(function(){var a=DB.boqs.filter(function(b){return b.projId===p.id;}).reduce(function(x,b){return x+(b.total||0);},0);return SAR(a||p.amount);})()+'</div><div class="kpi-sub">'+(DB.boqs.filter(function(b){return b.projId===p.id;}).length?'From '+DB.boqs.filter(function(b){return b.projId===p.id;}).length+' BOQ(s)':'Manual: '+SAR(p.amount))+'</div></div>'+
+      '<div class="kpi blue"><div class="kpi-label">Budget (excl. VAT)</div><div class="kpi-value" style="font-size:17px">'+SAR(computedBudget)+'</div><div class="kpi-sub">'+(p.budget?'excl. VAT: '+SAR(p.budget):'')+'</div></div>'+
+      '<div class="kpi gold"><div class="kpi-label">Contract Amount (excl.VAT)</div><div class="kpi-value" style="font-size:17px">'+SAR(computedAmount)+'</div><div class="kpi-sub">'+(DB.boqs.filter(function(b){return b.projId===p.id;}).length?'From '+DB.boqs.filter(function(b){return b.projId===p.id;}).length+' BOQ(s)':'Manual: '+SAR(p.amount))+'</div></div>'+
       '<div class="kpi green"><div class="kpi-label">Net Profit</div><div class="kpi-value" style="font-size:17px">'+SAR(computedNet)+'</div><div class="kpi-sub">Margin '+(p.amount>0?pct(computedNet/p.amount):'—')+'</div></div>'+
-      '<div class="kpi red"><div class="kpi-label">Cost (POs + Petty)</div><div class="kpi-value" style="font-size:17px">'+SAR(computedCost)+'</div><div class="kpi-sub">Manual: '+SAR(p.cost)+'</div></div>'
+      '<div class="kpi red"><div class="kpi-label">Cost excl. VAT</div><div class="kpi-value" style="font-size:17px">'+SAR(computedCost)+'</div><div class="kpi-sub">Manual: '+SAR(p.cost)+'</div></div>'
     :
       '<div class="kpi blue"><div class="kpi-label">Project</div><div class="kpi-value" style="font-size:16px">'+p.ref+'</div><div class="kpi-sub">'+p.client+'</div></div>'+
       '<div class="kpi" style="background:var(--panel)"><div class="kpi-label">Status</div><div class="kpi-value" style="font-size:16px">'+p.status+'</div><div class="kpi-sub">'+p.duration+'</div></div>'
@@ -5541,6 +5574,7 @@ function editPO(id){
   var saveBtn=document.querySelector('#modal-po .btn-primary'); if(saveBtn) saveBtn.textContent='Update PO';
   var _poT=document.getElementById('po-modal-title');if(_poT)_poT.textContent='Edit PO – '+po.num;
   loadPOQuotation(po.quotation||null);
+  loadPaymentRows(po.paymentSchedule&&po.paymentSchedule.length?po.paymentSchedule:null);
   openModal('modal-po');
 }
 function savePO(){
@@ -5580,7 +5614,15 @@ function savePO(){
     reqBy:document.getElementById('po-reqby').value,
     location:document.getElementById('po-location').value,
     quotation:_poQuotationData||null,
-    paymentSchedule:getPaymentRows(),
+    paymentSchedule:(function(){
+      var rows=getPaymentRows();
+      // Preserve paid status from existing schedule
+      var existing=(editingPOId?((DB.pos.find(function(p){return p.id===editingPOId;})||{}).paymentSchedule||[]):[]);
+      return rows.map(function(r,i){
+        var ex=existing[i]||{};
+        return {desc:r.desc,pct:r.pct,status:ex.paid?'Paid':'Pending Payment',paid:ex.paid||false,paidDate:ex.paidDate||'',dueDate:r.dueDate||ex.dueDate||''};
+      });
+    })(),
     supplierType:(document.getElementById('po-supplier-type')?document.getElementById('po-supplier-type').value:'Local'),
     currency:(document.getElementById('po-currency')?document.getElementById('po-currency').value:'SAR'),
     exchangeRate:parseFloat(document.getElementById('po-exchange-rate')?document.getElementById('po-exchange-rate').value:3.75)||3.75,
@@ -8817,6 +8859,7 @@ function dpPrintSelected(){
 }
 
 function renderDuePayments(){
+  if(!DB||!DB.pos) return; // DB not loaded yet
   var projFilter=(document.getElementById('dp-proj-filter')||{}).value||'';
   var statusFilter=(document.getElementById('dp-status-filter')||{}).value||'';
   var todayStr=today();
@@ -8832,8 +8875,12 @@ function renderDuePayments(){
   }
 
   // PO payments
-  DB.pos.filter(function(po){return po.approvalStatus==='Approved'&&(!projFilter||po.projRef===projFilter);}).forEach(function(po){
-    var sub=parseFloat(po.subtotal)||parseFloat(po.amount)/1.15||0;
+  DB.pos.filter(function(po){return (po.approvalStatus==='Approved'||po.status==='Approved')&&(!projFilter||po.projRef===projFilter);}).forEach(function(po){
+    var sub=parseFloat(po.subtotal)||0;
+    if(!sub && po.lines && po.lines.length){
+      sub=po.lines.reduce(function(a,l){return a+(parseFloat(l.extPrice)||parseFloat(l.qty||0)*parseFloat(l.unitPrice||0));},0);
+    }
+    if(!sub) sub=parseFloat(po.amount)||0;
     var isIntl=(po.supplierType||'').toLowerCase()==='international';
     var cur=isIntl&&po.currency&&po.currency!=='SAR'?po.currency+' ':'SAR ';
     if(po.paymentSchedule&&po.paymentSchedule.length){
@@ -8855,7 +8902,7 @@ function renderDuePayments(){
   });
 
   // Petty cash
-  DB.petty.filter(function(pc){return pc.approvalStatus==='Approved'&&(!projFilter||pc.proj===projFilter);}).forEach(function(pc){
+  DB.petty.filter(function(pc){return (pc.approvalStatus==='Approved'||pc.status==='Approved')&&(!projFilter||pc.proj===projFilter);}).forEach(function(pc){
     var amt=parseFloat(pc.total)||0;var st=pc.paymentAck?'Paid':'Pending';
     if(statusFilter&&st!==statusFilter)return;
     if(st==='Paid')totalPaid+=amt;else{totalDue+=amt;totalPending+=amt;}
