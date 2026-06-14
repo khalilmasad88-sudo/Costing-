@@ -216,7 +216,8 @@ td.muted{color:var(--muted);font-size:12px}
 .ql-meta{font-size:11px;color:var(--muted);margin-top:2px;display:flex;gap:6px;align-items:center}
 .ql-total{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--green);margin-left:auto}
 
-.sub-table-wrap{background:var(--surface3);border:1px solid var(--border);border-radius:0 0 6px 6px;overflow-x:auto}
+.sub-table-wrap{background:var(--surface3);border:1px solid var(--border);border-radius:0 0 6px 6px;overflow-x:auto;display:none}
+.sub-table-wrap.expanded{display:block}
 .sub-table-wrap table thead tr{background:var(--surface3)}
 .sub-table-wrap table thead th{font-size:10px;color:var(--muted);padding:5px 8px}
 .sub-table-wrap table tbody td{padding:5px 8px;font-size:12px}
@@ -561,6 +562,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
                         <option>Draft</option><option>Submitted</option><option>Approved</option><option>in pricing</option><option>out</option><option>Canceled</option>
                       </select>
                     </div>
+                    <div class="field"><label>Quoted By</label><select id="q-by" onchange="saveQ()"></select></div>
                   </div>
                 </div>
 
@@ -596,7 +598,6 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
                     <div class="field"><label>VAT %</label><input type="number" id="q-vat" value="15" min="0" max="100" onchange="saveQ()"></div>
                     <div class="field"><label>Project Value (incl. VAT)</label><input type="number" id="q-project-value" placeholder="Enter or auto-calculated" onchange="saveQ()"></div>
                     <div class="field"><label>Payment Terms</label><input id="q-payment-terms" placeholder="As per schedule" onchange="saveQ()"></div>
-                    <div class="field"><label>Quoted By</label><select id="q-by" onchange="saveQ()"></select></div>
                   </div>
                 </div>
 
@@ -931,6 +932,16 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
 
 <div class="page" id="page-settings">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+      <div class="card">
+        <div class="card-header"><div class="card-title">📝 Quotation Editors</div>
+          <button class="btn btn-primary btn-sm" onclick="addQuotationEditor()">+ Add Person</button>
+        </div>
+        <div class="card-body">
+          <div id="qe-list" style="display:flex;flex-direction:column;gap:10px"></div>
+          <div id="qe-empty" style="text-align:center;color:var(--muted);padding:16px;font-size:13px;display:none">No editors added yet.</div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-header"><div class="card-title">Cloud Storage (Supabase)</div></div>
         <div class="card-body">
@@ -2521,6 +2532,7 @@ function showPage(id){
     document.getElementById('supabase-key').value=S.settings.supabase.key||'';
     document.getElementById('supabase-table-shared').value=S.settings.supabase.tableShared||'';
     document.getElementById('supabase-table-backups').value=S.settings.supabase.tableBackups||'';
+    loadQuotationEditor();
     // Load backups list
     if(supabaseClient){
       loadBackupsList();
@@ -3485,9 +3497,9 @@ function syncQFields(q){
   const byEl=document.getElementById('q-by');
   if(byEl){
     const currentUser=getCurrentUser();
-    byEl.innerHTML=`<option ${q.by==='unassigned'?'selected':''}>unassigned</option>`+S.users.map(u=>{
-      const userEmail=u.email||u.name;
-      return `<option ${userEmail===q.by?'selected':''}>${esc(userEmail)}</option>`;
+    const editors=(S.settings.quotationEditors||[]).filter(e=>e.name);
+    byEl.innerHTML=`<option ${q.by==='unassigned'?'selected':''}>unassigned</option>`+editors.map(p=>{
+      return `<option ${p.name===q.by?'selected':''}>${esc(p.name)}</option>`;
     }).join('');
     
     // Only Admin can change Quoted By
@@ -4359,6 +4371,53 @@ function importData(e){
   r.readAsText(f);
 }
 
+function loadQuotationEditor(){
+  if(!S.settings.quotationEditors) S.settings.quotationEditors=[];
+  renderQuotationEditors();
+}
+
+function renderQuotationEditors(){
+  var list=S.settings.quotationEditors||[];
+  var wrap=document.getElementById('qe-list');
+  var empty=document.getElementById('qe-empty');
+  if(!wrap) return;
+  if(!list.length){
+    wrap.innerHTML='';
+    if(empty)empty.style.display='block';
+    return;
+  }
+  if(empty)empty.style.display='none';
+  wrap.innerHTML=list.map(function(p,i){
+    return '<div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:end;padding:10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">'+
+      '<div class="field" style="margin:0"><label style="font-size:10px">Name</label><input value="'+esc(p.name||'')+'" oninput="updateQuotationEditor('+i+',\'name\',this.value)"></div>'+
+      '<div class="field" style="margin:0"><label style="font-size:10px">E-mail</label><input type="email" value="'+esc(p.email||'')+'" oninput="updateQuotationEditor('+i+',\'email\',this.value)"></div>'+
+      '<div class="field" style="margin:0"><label style="font-size:10px">Phone</label><input value="'+esc(p.phone||'')+'" oninput="updateQuotationEditor('+i+',\'phone\',this.value)"></div>'+
+      '<button class="btn btn-danger btn-sm" onclick="removeQuotationEditor('+i+')" title="Remove">✕</button>'+
+    '</div>';
+  }).join('');
+}
+
+function addQuotationEditor(){
+  if(!S.settings.quotationEditors) S.settings.quotationEditors=[];
+  S.settings.quotationEditors.push({name:'',email:'',phone:''});
+  save();
+  renderQuotationEditors();
+}
+
+function updateQuotationEditor(idx,field,val){
+  if(!S.settings.quotationEditors||!S.settings.quotationEditors[idx]) return;
+  S.settings.quotationEditors[idx][field]=val;
+  save();
+}
+
+function removeQuotationEditor(idx){
+  if(!S.settings.quotationEditors) return;
+  if(!confirm('Remove this person?')) return;
+  S.settings.quotationEditors.splice(idx,1);
+  save();
+  renderQuotationEditors();
+}
+
 function getTableShared(){return S.settings.supabase.tableShared||'ftag_shared';}
 function getTableBackups(){return S.settings.supabase.tableBackups||'ftag_backups';}
 
@@ -4808,8 +4867,8 @@ function exportPricingPDF(isArabic=false){
   
   const co=getCurrentCompany();
   
-  // Get creator info from users table
-  const creator=S.users.find(u=>u.email===q.by||u.name===q.by);
+  // Get creator info from Quotation Editors list (q.by holds editor's name)
+  const creator=(S.settings.quotationEditors||[]).find(p=>p.name===q.by);
   const creatorPhone=creator?.phone||co.phone||'N/A';
   const creatorEmail=creator?.email||co.email||'N/A';
   
@@ -4896,7 +4955,7 @@ function exportPricingPDF(isArabic=false){
         <div class="details-header">${isArabic?'معلومات المشروع':'PROJECT INFORMATION'}</div>
         <div class="detail-row"><span class="detail-label">${isArabic?'اسم المشروع':'Project Name'}:</span> <span class="detail-value">${esc(q.project||'N/A')}</span></div>
         <div class="detail-row"><span class="detail-label">${isArabic?'الجهة':'Client/Entity'}:</span> <span class="detail-value">${esc(q.client||'N/A')}</span></div>
-        <div class="detail-row"><span class="detail-label">${isArabic?'رقم المشروع':'Project Number'}:</span> <span class="detail-value">${esc(q.num||'N/A')}</span></div>
+        <div class="detail-row"><span class="detail-label">${isArabic?'رقم المشروع':'Project Number'}:</span> <span class="detail-value">${esc(q.tenderref||'N/A')}</span></div>
         <div class="detail-row"><span class="detail-label">${isArabic?'رقم تواصل العميل':'Client Contact'}:</span> <span class="detail-value">${esc(q.clientPhone||'N/A')}</span></div>
         <div class="detail-row"><span class="detail-label">${isArabic?'الموقع':'Location'}:</span> <span class="detail-value">${esc(q.addr||'N/A')}</span></div>
       </div>
