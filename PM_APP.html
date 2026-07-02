@@ -1837,6 +1837,7 @@ textarea{resize:vertical;min-height:68px}
 </div></div>
 
 </div>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script>
 // ── SETTINGS ──
 var S={
@@ -4290,6 +4291,49 @@ function viewProject(id){
   var computedNet = computedAmount - computedCost;
   var docs=p.docs||[];
 
+  // Compute petty cash expenses from daily reports
+  var drPettyTotal=0;
+  var drPettyRows=[];
+  window.__currentPettyRows=drPettyRows; // store for Excel export
+  relR.forEach(function(r){
+    var pettyExpList=(r.pettyExp||r.pettyExpenses||[]);
+    pettyExpList.forEach(function(e){
+      var amt=parseFloat(e.amount||0);
+      if(amt){
+        drPettyTotal+=amt;
+        drPettyRows.push({date:r.date,supplier:e.supplier||'',invNum:e.invNum||'',amount:amt});
+      }
+    });
+  });
+  var pettyExpHTML='';
+  window.__currentPettyRows=drPettyRows; // update after population
+  window.__currentProjRef=p.ref||''; // store for Excel filename
+  if(true){  // Always show petty cash expenses card
+    var rowsHTML=drPettyRows.map(function(e,i){
+      return '<tr style="border-bottom:1px solid var(--border)">'+
+        '<td style="padding:7px 10px;font-size:12px;color:var(--muted)">'+(i+1)+'</td>'+
+        '<td style="padding:7px 10px;font-size:12px">'+esc(e.date)+'</td>'+
+        '<td style="padding:7px 10px;font-size:12px">'+esc(e.supplier)+'</td>'+
+        '<td style="padding:7px 10px;font-size:12px;font-family:monospace;text-align:right">SAR '+fmt(e.amount)+'</td>'+
+      '</tr>';
+    }).join('');
+    pettyExpHTML='<div class="section-sep"></div>'+
+      '<div class="card-title mb12">💵 Petty Cash Expenses</div>'+
+      
+      (drPettyRows.length?
+        '<div class="ss" style="padding:0;overflow:hidden">'+
+          '<table style="width:100%;border-collapse:collapse">'+
+            '<thead><tr style="background:var(--surface2)">'+
+              '<th style="padding:7px 10px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase">#</th>'+
+              '<th style="padding:7px 10px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase">Date</th>'+
+              '<th style="padding:7px 10px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase">Supplier</th>'+
+              '<th style="padding:7px 10px;text-align:right;font-size:10px;color:var(--muted);text-transform:uppercase">Amount</th>'+
+            '</tr></thead>'+
+            '<tbody>'+rowsHTML+'</tbody>'+
+          '</table>'+
+        '</div>':'<div style="text-align:center;color:var(--muted);font-size:13px;padding:12px">No petty cash expenses recorded</div>');
+  } else { pettyExpHTML=''; }
+
   var reportsHTML='';
   if(relR.length){
     reportsHTML='<div class="section-sep"></div><div class="card-title mb12">Daily Reports ('+relR.length+')</div>';
@@ -4638,7 +4682,12 @@ function viewProject(id){
           '<button onclick="printProjectProgress('+p.id+')" class="btn btn-ghost btn-xs no-print" style="font-size:9px;padding:2px 6px" title="Print Progress">🖨</button>'+
         '</div>'+
         '<div class="kpi-value" style="font-size:22px;color:'+clr+'">'+pct2+'%</div>'+
-        '<div class="kpi-sub">'+impl.detail+'</div></div>';
+        '<div class="kpi-sub">'+impl.detail+'</div></div>'+
+        '<div class="kpi" style="background:var(--surface2);border:1.5px solid var(--border);cursor:pointer" onclick="exportPettyCashExcel()" title="Click to export Excel">'+
+          '<div class="kpi-label" style="display:flex;justify-content:space-between;align-items:center">💵 Petty Cash Expenses <span style="font-size:9px;background:var(--accent);color:#fff;padding:1px 5px;border-radius:8px">⬇ Excel</span></div>'+
+          '<div class="kpi-value" style="font-size:22px;color:var(--accent)">'+SAR(drPettyTotal)+'</div>'+
+          '<div class="kpi-sub">'+drPettyRows.length+' transaction'+(drPettyRows.length!==1?'s':'')+' — click to export</div>'+
+        '</div>';
     }())+
     '</div>'+
     // BOQ Material Balance summary
@@ -4701,7 +4750,7 @@ function viewProject(id){
     (p.assigned||p.assignedUserIds&&p.assignedUserIds.length?'<div><span class="color-muted">Assigned To:</span> '+((p.assignedUserIds||[]).map(function(uid){var u=DB.users.find(function(x){return x.id===uid;});return u?u.name:'?';}).join(', ')||p.assigned||'—')+'</div>':'')+
     (p.remarks?'<div style="grid-column:1/-1"><span class="color-muted">Remarks:</span> '+p.remarks+'</div>':'')+
     '</div>'+
-    renderProjTeamInDetail(p.team||'')+reportsHTML+boqHTML+sitesHTML+poHTML+invHTML+pettyHTML+docsHTML;
+    renderProjTeamInDetail(p.team||'')+reportsHTML+pettyExpHTML+boqHTML+sitesHTML+poHTML+invHTML+pettyHTML+docsHTML;
   openModal('modal-proj-detail');
 }
 
@@ -8755,6 +8804,44 @@ function ddResetDesign(){
 }
 
 // ══ DUE PAYMENTS ══════════════════════════════════════════════════════
+function exportPettyCashExcel(){
+  if(!window.XLSX){ alert('SheetJS not loaded'); return; }
+  var rows=window.__currentPettyRows||[];
+  var wb=XLSX.utils.book_new();
+  var projRef=window.__currentProjRef||'Project';
+
+  var data=[
+    ['Petty Cash Expenses Report — '+projRef],
+    ['Generated: '+new Date().toLocaleDateString()],
+    [],
+    ['#','Date','Supplier / Description','Amount (SAR)']
+  ];
+  rows.forEach(function(r,i){
+    data.push([i+1, r.date||'', r.supplier||'', parseFloat(r.amount)||0]);
+  });
+  data.push([]);
+  var total=rows.reduce(function(a,r){return a+(parseFloat(r.amount)||0);},0);
+  data.push(['','','Total',total]);
+
+  var ws=XLSX.utils.aoa_to_sheet(data);
+  ws['!cols']=[{wch:5},{wch:14},{wch:35},{wch:16}];
+  XLSX.utils.book_append_sheet(wb,'Petty Cash',ws);
+
+  // Use Blob + anchor click (works in iframes/portals)
+  try{
+    var wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+    var blob=new Blob([wbout],{type:'application/octet-stream'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url; a.download='PettyCash_'+projRef+'_'+new Date().toISOString().slice(0,10)+'.xlsx';
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
+  }catch(e){
+    // Fallback: try writeFile
+    XLSX.writeFile(wb,'PettyCash_'+projRef+'.xlsx');
+  }
+}
+
 function dpStatusBadge(s){
   var styles={'Paid':'background:#d1fae5;color:#065f46','Pending':'background:#fff3cd;color:#856404','Overdue':'background:#fee2e2;color:#991b1b','Partial':'background:#dbeafe;color:#1d4ed8'};
   var dot={'Paid':'#10b981','Pending':'#f59e0b','Overdue':'#ef4444','Partial':'#3b82f6'}[s]||'#bbb';
@@ -9344,19 +9431,23 @@ function _initApp(){
 
 // ── Print / PDF via parent window (works in sandbox) ────────────
 function _printViaParent(htmlContent){
+  // Try parent portal bridge first
   try{
     if(window.parent&&window.parent!==window){
       window.parent.postMessage({__zeina_print:true,html:htmlContent},'*');
       return true;
     }
   }catch(e){}
+  // Open new window and write HTML directly (avoids blob: restriction)
   try{
-    var blob=new Blob([htmlContent],{type:'text/html;charset=utf-8'});
-    var url=URL.createObjectURL(blob);
-    var w=window.open(url,'_blank');
-    if(w){w.onload=function(){w.print();};}
-    setTimeout(function(){URL.revokeObjectURL(url);},15000);
-    return true;
+    var w=window.open('','_blank');
+    if(w){
+      w.document.open();
+      w.document.write(htmlContent);
+      w.document.close();
+      setTimeout(function(){w.print();},600);
+      return true;
+    }
   }catch(e){}
   return false;
 }
