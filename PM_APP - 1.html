@@ -1037,6 +1037,23 @@ textarea{resize:vertical;min-height:68px}
 </div></div>
 
 <!-- Supplier Modal -->
+<!-- BILL OF MATERIAL MODAL -->
+<div class="modal-overlay" id="modal-proj-bom" style="z-index:500">
+  <div class="modal" style="max-width:900px">
+    <div class="modal-header">
+      <div class="modal-title">📦 Bill of Material</div>
+      <button class="modal-close" onclick="closeModal('modal-proj-bom')">✕</button>
+    </div>
+    <div style="padding:16px 20px" id="proj-bom-body">
+      <div style="text-align:center;color:var(--muted);padding:24px">Loading...</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-proj-bom')">Close</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-proj-bom');closeModal('modal-proj-detail');openBOQModal(window.__currentProjId,'Main')">+ Main SOW BOQ</button>
+    </div>
+  </div>
+</div>
+
 <!-- PETTY CASH MODAL -->
 <div class="modal-overlay" id="modal-proj-pc" style="z-index:500">
   <div class="modal" style="max-width:800px">
@@ -1563,7 +1580,7 @@ textarea{resize:vertical;min-height:68px}
 </div></div>
 
 <!-- PO Preview -->
-<div class="modal-overlay" id="modal-po-preview">
+<div class="modal-overlay" id="modal-po-preview" style="z-index:700">
 <div class="modal modal-lg">
   <div class="modal-header"><div class="modal-title">Purchase Order</div><button class="modal-close" onclick="closeModal('modal-po-preview')">✕</button></div>
   <div id="po-preview-content"></div>
@@ -1761,6 +1778,7 @@ textarea{resize:vertical;min-height:68px}
       <div class="form-group"><label>DN Number</label><input id="dn-create-num" readonly style="background:var(--panel)"/></div>
       <div class="form-group"><label>Date</label><input id="dn-create-date" type="date"/></div>
       <div class="form-group"><label>Project Ref </label><select id="dn-create-proj" onchange="dnAutoFillProject()"><option value="">— Select Project —</option></select></div>
+      <div class="form-group"><label>BOQ / Table</label><select id="dn-create-boq" onchange="dnLoadFromBOQ()"><option value="">— Select BOQ (optional) —</option></select></div>
       <div class="form-group"><label>Project Name</label><input id="dn-create-proj-name" readonly style="background:var(--panel)"/></div>
       <div class="form-group"><label>Client</label><input id="dn-create-client" readonly style="background:var(--panel)"/></div>
       <div class="form-group"><label>Delivery Location</label><input id="dn-create-location" placeholder="Site / destination"/></div>
@@ -2273,7 +2291,7 @@ function wrapBody(html){
 // ── Unified print wrapper — injects CSS + prints via parent ──────
 function _printDoc(html, title){
   var full = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+(title||'Document')+'</title>'+
-    '<style>'+_printCSS(sec)+'</style></head><body>'+html+'</body></html>';
+    '<style>'+_printCSS(_pSec())+'</style></head><body>'+html+'</body></html>';
   if(!_printViaParent(full)){
     // fallback: write to new window
     try{
@@ -2303,11 +2321,11 @@ var DB={
 
 // ── HELPERS ──
 function getSubmittedBy(){ return (currentUser&&currentUser.name) ? currentUser.name : (S.sigPo||''); }
-function SAR(v){if(v==null||v==='')return '—';var r=Math.round(Number(v)*100)/100;return 'SAR '+r.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function SAR(v){if(v==null||v==='')return '—';var r=Math.round((Number(v)+Number.EPSILON)*100)/100;return 'SAR '+r.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function pct(v){return isNaN(v)||!isFinite(v)?'—':(v*100).toFixed(1)+'%';}
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function today(){return new Date().toISOString().slice(0,10);}
-function fmt(n){var r=Math.round(Number(n)*100)/100;return r.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fmt(n){var r=Math.round((Number(n)+Number.EPSILON)*100)/100;return r.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 function openModal(id){document.getElementById(id).classList.add('open');}
 function sBadge(s){
@@ -4571,6 +4589,7 @@ function viewProject(id){
   window.__currentPettyRows=drPettyRows; // update after population
   window.__currentProjRef=p.ref||''; // store for Excel filename
   window.__currentProjName=p.name||'';
+  window.__currentProjId=p.id;
   if(true){  // Always show petty cash expenses card
     var rowsHTML=drPettyRows.map(function(e,i){
       return '<tr style="border-bottom:1px solid var(--border)">'+
@@ -4954,6 +4973,7 @@ function viewProject(id){
       '<div class="kpi-value" style="font-size:22px;color:#d97706">'+SAR(drPettyTotal)+'</div>'+
       '<div class="kpi-sub">'+drPettyRows.length+' transaction'+(drPettyRows.length!==1?'s':'')+' · click to view</div>'+
     '</div>'+
+
     (function(){
       var projPOs=DB.pos.filter(function(po){return po.projRef===p.ref;});
       var approvedPOs=projPOs.filter(function(po){return po.approvalStatus==='Approved'||po.status==='Approved';});
@@ -5049,7 +5069,20 @@ function viewProject(id){
     (p.assigned||p.assignedUserIds&&p.assignedUserIds.length?'<div><span class="color-muted">Assigned To:</span> '+((p.assignedUserIds||[]).map(function(uid){var u=DB.users.find(function(x){return x.id===uid;});return u?u.name:'?';}).join(', ')||p.assigned||'—')+'</div>':'')+
     (p.remarks?'<div style="grid-column:1/-1"><span class="color-muted">Remarks:</span> '+p.remarks+'</div>':'')+
     '</div>'+
-    renderProjTeamInDetail(p.team||'')+reportsHTML+boqHTML+sitesHTML+pettyHTML+docsHTML;
+    (function(){
+      var projBOMs=DB.boqs.filter(function(b){return b.projId===p.id||b.projRef===p.ref;});
+      var bomLines=projBOMs.reduce(function(a,b){return a+(b.lines||[]).length;},0);
+      window.__currentProjBOMs=projBOMs;
+      return '<div style="margin-top:12px"><div class="ss" style="padding:14px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin:0" onclick="openProjBOMModal()">'+
+        '<div style="display:flex;align-items:center;gap:10px">'+
+          '<span style="font-size:18px">📦</span>'+
+          '<div><div class="kpi-label" style="color:#0369a1;margin-bottom:2px">Bill of Material</div>'+
+          '<div style="font-size:12px;color:var(--muted)">'+projBOMs.length+' BOQ'+(projBOMs.length!==1?'s':'')+' · '+bomLines+' items</div></div>'+
+        '</div>'+
+        '<div class="btn btn-ghost btn-sm" style="pointer-events:none">View →</div>'+
+      '</div></div>';
+    }())+
+    renderProjTeamInDetail(p.team||'')+reportsHTML+sitesHTML+pettyHTML+docsHTML;
   openModal('modal-proj-detail');
 }
 
@@ -6094,8 +6127,9 @@ function buildSigBlock(mod, record, submittedBy){
     '<b>📋 Manual Approval:</b> Print → Collect signatures → Upload signed copy → Admin confirms.</div>' : '';
 
   // Build table-style signature block (matches classic PO layout)
-  var tds = cells.map(function(cell, i){
-    return '<td style="padding:14px 16px;vertical-align:top;width:'+(100/cols)+'%;'+(i<cols-1?'border-right:1px solid #aaa;':'')+'">'+cell+'</td>';
+  var cells_rtl=cells.slice().reverse();
+  var tds = cells_rtl.map(function(cell, i){
+    return '<td style="padding:14px 16px;vertical-align:top;width:'+(100/cols)+'%;'+(i<cells_rtl.length-1?'border-right:1px solid #aaa;':'')+'">'+cell+'</td>';
   }).join('');
 
   return '<table style="border:1px solid #aaa;margin-top:0;width:100%;border-collapse:collapse"><tbody><tr>'+tds+'</tr></tbody></table>';
@@ -9379,6 +9413,86 @@ function projPCReject(pcId){
   showToast('Petty Cash rejected');
 }
 
+function projBOMDelete(id){
+  if(!confirm('Delete this BOQ? This cannot be undone.')) return;
+  var idx=DB.boqs.findIndex(function(b){return b.id===id;});
+  if(idx<0) return;
+  DB.boqs.splice(idx,1);
+  saveToCloud();
+  // Refresh modal
+  var projId=window.__currentProjId;
+  var p=DB.projects.find(function(x){return x.id===projId;});
+  if(p){
+    var projBOMs=DB.boqs.filter(function(b){return b.projId===p.id||b.projRef===p.ref;});
+    window.__currentProjBOMs=projBOMs;
+  }
+  openProjBOMModal();
+  showToast&&showToast('BOQ deleted');
+}
+
+function openProjBOMModal(){
+  var boqs=window.__currentProjBOMs||[];
+  var body=document.getElementById('proj-bom-body');
+  if(!body) return;
+  if(!boqs.length){
+    body.innerHTML='<div style="text-align:center;color:var(--muted);padding:24px">No BOQ found for this project</div>';
+    openModal('modal-proj-bom');
+    return;
+  }
+  var html='';
+  boqs.forEach(function(b){
+    var lines=b.lines||[];
+    var total=lines.reduce(function(a,l){return a+(parseFloat(l.extPrice)||parseFloat(l.qty||0)*parseFloat(l.unitPrice||0)||0);},0);
+    html+='<div style="margin-bottom:20px;border:1px solid var(--border);border-radius:10px;overflow:hidden">';
+    // BOQ header
+    html+='<div style="background:var(--surface2);padding:10px 14px;display:flex;justify-content:space-between;align-items:center">';
+    html+='<div><span style="font-weight:700;color:var(--accent)">'+esc(b.num||'BOQ')+'</span>';
+    if(b.rev) html+=' <span style="font-size:11px;color:var(--muted)">'+esc(b.rev)+'</span>';
+    html+='<span style="font-size:12px;color:var(--muted);margin-left:10px">'+esc(b.scope||b.title||'')+'</span></div>';
+    html+='<div style="display:flex;align-items:center;gap:8px">';
+    html+='<span style="font-weight:700;font-family:monospace;color:var(--accent)">'+SAR(total)+'</span>';
+    html+='<button class="btn btn-secondary btn-sm" onclick="closeModal(\'modal-proj-bom\');closeModal(\'modal-proj-detail\');editBOQ('+b.id+')" style="font-size:11px">✏ Edit</button>';
+    html+='<button class="btn btn-danger btn-sm" onclick="projBOMDelete('+b.id+')" style="font-size:11px">🗑 Delete</button>';
+    html+='</div>';
+    html+='</div>';
+    // Lines table
+    if(lines.length){
+      html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+      html+='<thead><tr style="background:var(--surface2)">';
+      html+='<th style="padding:7px 10px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase">#</th>';
+      html+='<th style="padding:7px 10px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase">Part No.</th>';
+      html+='<th style="padding:7px 10px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase">Description</th>';
+      html+='<th style="padding:7px 10px;text-align:center;font-size:10px;color:var(--muted);text-transform:uppercase">Unit</th>';
+      html+='<th style="padding:7px 10px;text-align:right;font-size:10px;color:var(--muted);text-transform:uppercase">Qty</th>';
+      html+='<th style="padding:7px 10px;text-align:right;font-size:10px;color:var(--muted);text-transform:uppercase">Unit Price</th>';
+      html+='<th style="padding:7px 10px;text-align:right;font-size:10px;color:var(--muted);text-transform:uppercase">Total</th>';
+      html+='</tr></thead><tbody>';
+      lines.forEach(function(l,i){
+        var ext=parseFloat(l.extPrice)||parseFloat(l.qty||0)*parseFloat(l.unitPrice||0)||0;
+        html+='<tr style="border-bottom:1px solid var(--border);'+(i%2===1?'background:var(--surface2)':'')+'">';
+        html+='<td style="padding:7px 10px;color:var(--muted)">'+(i+1)+'</td>';
+        html+='<td style="padding:7px 10px;font-family:monospace;font-size:11px">'+esc(l.partNum||'—')+'</td>';
+        html+='<td style="padding:7px 10px">'+esc(l.desc||'—')+'</td>';
+        html+='<td style="padding:7px 10px;text-align:center">'+esc(l.unit||'—')+'</td>';
+        html+='<td style="padding:7px 10px;text-align:right">'+fmt(l.qty||0)+'</td>';
+        html+='<td style="padding:7px 10px;text-align:right">'+fmt(l.unitPrice||0)+'</td>';
+        html+='<td style="padding:7px 10px;text-align:right;font-weight:700">'+fmt(ext)+'</td>';
+        html+='</tr>';
+      });
+      html+='<tr style="background:var(--surface2);border-top:2px solid var(--border)">';
+      html+='<td colspan="6" style="padding:8px 10px;font-weight:700">Total</td>';
+      html+='<td style="padding:8px 10px;text-align:right;font-weight:800;font-family:monospace;color:var(--accent)">'+fmt(total)+'</td>';
+      html+='</tr>';
+      html+='</tbody></table></div>';
+    } else {
+      html+='<div style="padding:16px;text-align:center;color:var(--muted);font-size:12px">No items</div>';
+    }
+    html+='</div>';
+  });
+  body.innerHTML=html;
+  openModal('modal-proj-bom');
+}
+
 function openProjPCModal(){
   var filt=document.getElementById('proj-pc-filter-status');if(filt)filt.value='';
   renderProjPCModal();
@@ -10269,6 +10383,22 @@ function viewDN(id){
 
 
 function buildDNHTML(dn){
+  var p = DB.projects.find(function(x){return x.ref===dn.projRef;});
+  // Use the configured DN template from getDeliveryNoteHTML
+  var boq = {
+    id: dn.boqId||'', num: dn.boqRef||dn.num||'', projId: p?p.id:'', projRef: dn.projRef||'',
+    client: dn.client||'', preparedBy: dn.deliveredBy||'', scope: dn.projName||'', rev:'',
+    lines: (dn.items||[]).map(function(l){return {partNum:l.partNum,desc:l.desc,unit:l.unit,qty:l.qty};})
+  };
+  var dnObj = {
+    num: dn.num, date: dn.date, deliveredBy: dn.deliveredBy, receivedBy: dn.receivedBy,
+    location: dn.location, vehicle: dn.vehicle, notes: dn.notes
+  };
+  var fullHTML = getDeliveryNoteHTML(boq, dnObj);
+  return {previewHTML: fullHTML, printHTML: fullHTML};
+}
+
+function buildDNHTML_OLD(dn){
   var p   = DB.projects.find(function(x){return x.ref===dn.projRef;});
   var hdr = _pH('ppr'), hdrT = _pHT('ppr'), alt = _pAlt('ppr'), tot = _pT('ppr'), totT = _pTT('ppr');
 
@@ -10623,7 +10753,27 @@ function dnAutoFillProject(){
   var p=DB.projects.find(function(x){return x.ref===projRef;});
   document.getElementById('dn-create-proj-name').value=p?p.name:'';
   document.getElementById('dn-create-client').value=p?p.client:'';
+  // Populate BOQ dropdown
+  var boqSel=document.getElementById('dn-create-boq');
+  if(boqSel){
+    var projBOQs=p?DB.boqs.filter(function(b){return b.projId===p.id||b.projRef===p.ref;}):[];
+    boqSel.innerHTML='<option value="">— Select BOQ (optional) —</option>'+
+      projBOQs.map(function(b){return '<option value="'+b.id+'">'+esc(b.num||'BOQ'+(b.id))+' '+(b.rev?'('+b.rev+')':'')+' — '+esc(b.scope||b.title||'')+'</option>';}).join('');
+  }
   dnLoadInventoryItems(projRef);
+}
+
+function dnLoadFromBOQ(){
+  var boqId=parseInt(document.getElementById('dn-create-boq').value);
+  if(!boqId) return;
+  var boq=DB.boqs.find(function(b){return b.id===boqId;});
+  if(!boq||!boq.lines||!boq.lines.length) return;
+  // Pre-fill DN items table from BOQ lines
+  document.querySelectorAll('.dn-qty-input').forEach(function(inp){
+    var part=inp.dataset.part;
+    var line=boq.lines.find(function(l){return l.partNum===part;});
+    if(line) inp.value=line.qty||0;
+  });
 }
 
 function dnNextNum(){
