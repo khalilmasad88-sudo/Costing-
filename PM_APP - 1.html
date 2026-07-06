@@ -6145,8 +6145,8 @@ function getPOHTML(po){
   var sub     = lines.reduce(function(a,l){return a+(parseFloat(l.extPrice)||parseFloat(l.qty||0)*parseFloat(l.unitPrice||0));},0)||parseFloat(po.amount)||0;
   var disc    = parseFloat(po.discountAmt)||0;
   var aftDisc = sub-disc;
-  var vat     = isIntl?0:Math.round(aftDisc*0.15*100)/100;
-  var total   = aftDisc+vat;
+  var vat     = isIntl?0:Math.round((aftDisc*0.15+Number.EPSILON)*100)/100;
+  var total   = Math.round((aftDisc+aftDisc*(isIntl?0:0.15)+Number.EPSILON)*100)/100;
   var hdr     = _pH('po');
   var hdrT    = _pHT('po');
   var totBg   = _pT('po');
@@ -10760,20 +10760,46 @@ function dnAutoFillProject(){
     boqSel.innerHTML='<option value="">— Select BOQ (optional) —</option>'+
       projBOQs.map(function(b){return '<option value="'+b.id+'">'+esc(b.num||'BOQ'+(b.id))+' '+(b.rev?'('+b.rev+')':'')+' — '+esc(b.scope||b.title||'')+'</option>';}).join('');
   }
-  dnLoadInventoryItems(projRef);
+  // Reset table until BOQ is selected
+  var tbl=document.getElementById('dn-create-table');
+  if(tbl){var tbody=tbl.querySelector('tbody');if(tbody) tbody.innerHTML='<tr><td colspan="6" style="padding:20px;text-align:center;color:#999">Select a BOQ above to load items</td></tr>';}
 }
 
 function dnLoadFromBOQ(){
   var boqId=parseInt(document.getElementById('dn-create-boq').value);
-  if(!boqId) return;
+  var tbl=document.getElementById('dn-create-table');
+  var alert=document.getElementById('dn-create-items-alert');
+  if(!boqId){
+    // Clear table if no BOQ selected
+    var tbody=tbl?tbl.querySelector('tbody'):null;
+    if(tbody) tbody.innerHTML='<tr><td colspan="6" style="padding:20px;text-align:center;color:#999">Select a BOQ to load items</td></tr>';
+    return;
+  }
   var boq=DB.boqs.find(function(b){return b.id===boqId;});
-  if(!boq||!boq.lines||!boq.lines.length) return;
-  // Pre-fill DN items table from BOQ lines
-  document.querySelectorAll('.dn-qty-input').forEach(function(inp){
-    var part=inp.dataset.part;
-    var line=boq.lines.find(function(l){return l.partNum===part;});
-    if(line) inp.value=line.qty||0;
-  });
+  if(!boq||!boq.lines||!boq.lines.length){
+    if(alert){alert.style.display='block';alert.textContent='No items found in selected BOQ.';}
+    return;
+  }
+  if(alert) alert.style.display='none';
+  var lines=boq.lines.filter(function(l){return l.desc||l.partNum;});
+  var hdr=_pH('dn');
+  var rows=lines.map(function(l,i){
+    return '<tr style="border-bottom:1px solid #e2e6ef;'+(i%2?'background:#f9f9f9':'')+'">' +
+      '<td style="padding:6px 10px;font-family:monospace;font-size:11px;color:#888">'+(l.partNum||'—')+'</td>'+
+      '<td style="padding:6px 10px">'+(l.desc||'')+'</td>'+
+      '<td style="padding:6px 10px;text-align:right">'+(l.unit||'Pcs')+'</td>'+
+      '<td style="padding:6px 10px;text-align:right">'+fmt(l.qty||0)+'</td>'+
+      '<input type="hidden" class="dn-qty-input" data-desc="'+esc(l.desc||'')+'" data-part="'+esc(l.partNum||'')+'" data-unit="'+esc(l.unit||'')+'" value="'+(l.qty||0)+'">'+
+      '<td style="padding:6px 10px;text-align:right"><input type="number" min="0" step="0.01" value="'+(l.qty||0)+'" style="width:80px;padding:4px 6px;border-radius:5px;border:1.5px solid #dde2f0;text-align:right;font-size:12px" class="dn-qty-input" data-desc="'+esc(l.desc||'')+'" data-part="'+esc(l.partNum||'')+'" data-unit="'+esc(l.unit||'')+'"></td>'+
+      '<td style="padding:6px 10px;text-align:center;font-size:16px;color:#ccc">☐</td>'+
+    '</tr>';
+  }).join('');
+  if(tbl){
+    var tbody=tbl.querySelector('tbody');
+    if(tbody){
+      tbody.innerHTML=rows||'<tr><td colspan="6" style="padding:20px;text-align:center;color:#999">No items</td></tr>';
+    }
+  }
 }
 
 function dnNextNum(){
