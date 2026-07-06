@@ -654,12 +654,44 @@ textarea{resize:vertical;min-height:68px}
             <span style="font-size:10px;color:var(--muted)">(changes apply to this document only)</span>
             <div style="margin-left:auto;display:flex;gap:6px">
               <button class="btn btn-secondary btn-sm" onclick="ddResetDocColors()" style="font-size:11px">↺ Reset to Global</button>
-              <button class="btn btn-primary btn-sm" onclick="ddSaveDesign()" style="font-size:11px">💾 Save</button>
+              <button class="btn btn-primary btn-sm" onclick="ddSaveDesign();saveNow()" style="font-size:11px">💾 Save</button>
               <span id="dd-saved-badge" style="font-size:11px;color:var(--accent2);display:none;align-self:center">✅</span>
             </div>
           </div>
 
           <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:10px;align-items:end">
+
+            <div id="dd-sec-color-group" class="form-group" style="margin:0;display:none">
+              <label style="font-size:10px">Sections & Table</label>
+              <div style="display:flex;gap:3px;align-items:center">
+                <input type="color" id="dc-sec-color" style="width:32px;height:26px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="ddRefreshPreview()"/>
+                <input id="dc-sec-color-hex" style="flex:1;font-size:10px;padding:2px 4px" oninput="syncColor2('dc-sec-color','dc-sec-color-hex');ddRefreshPreview()"/>
+              </div>
+            </div>
+
+            <div id="dd-doc-hdr-color-group" class="form-group" style="margin:0;display:none">
+              <label style="font-size:10px">Doc Header BG</label>
+              <div style="display:flex;gap:3px;align-items:center">
+                <input type="color" id="dc-doc-hdr-bg" style="width:32px;height:26px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="ddRefreshPreview()"/>
+                <input id="dc-doc-hdr-bg-hex" style="flex:1;font-size:10px;padding:2px 4px" oninput="syncColor2('dc-doc-hdr-bg','dc-doc-hdr-bg-hex');ddRefreshPreview()"/>
+              </div>
+            </div>
+
+            <div id="dd-doc-hdr-text-group" class="form-group" style="margin:0;display:none">
+              <label style="font-size:10px">Doc Header Text</label>
+              <div style="display:flex;gap:3px;align-items:center">
+                <input type="color" id="dc-doc-hdr-text" style="width:32px;height:26px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="ddRefreshPreview()"/>
+                <input id="dc-doc-hdr-text-hex" style="flex:1;font-size:10px;padding:2px 4px" oninput="syncColor2('dc-doc-hdr-text','dc-doc-hdr-text-hex');ddRefreshPreview()"/>
+              </div>
+            </div>
+
+            <div id="dd-footer-color-group" class="form-group" style="margin:0;display:none">
+              <label style="font-size:10px">Footer BG</label>
+              <div style="display:flex;gap:3px;align-items:center">
+                <input type="color" id="dc-ftr-bg" style="width:32px;height:26px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="ddRefreshPreview()"/>
+                <input id="dc-ftr-bg-hex" style="flex:1;font-size:10px;padding:2px 4px" oninput="syncColor2('dc-ftr-bg','dc-ftr-bg-hex');ddRefreshPreview()"/>
+              </div>
+            </div>
 
             <div class="form-group" style="margin:0">
               <label style="font-size:10px">Header BG</label>
@@ -2111,6 +2143,9 @@ function _pH(doc)  {
   return _dcGet(d,'thBg', S.pdfTableHeader||S.headerBgColor||'#1a4fa0');
 }
 function _pHo_doc(doc,hex,op){ return _pHo(hex,op); }
+function _pDocHdr(doc)  { var d=doc||_ddCurrentDoc||''; return _dcGet(d,'docHdrBg', _pH(d)); }
+function _pDocHdrT(doc) { var d=doc||_ddCurrentDoc||''; return _dcGet(d,'docHdrText', _pHT(d)); }
+function _pSec(doc) { var d=doc||_ddCurrentDoc||''; return _dcGet(d,'secColor', _pH(d)); }
 function _pTB() { return S.docTableBorder    || '#e2e6ef'; }  // table border color
 function _pAlt(doc)  { var d=doc||_ddCurrentDoc||''; return _dcGet(d,'altRow', S.docTableAltRow||S.pdfAltRow||'transparent'); }
 function _pHT(doc)  { var d=doc||_ddCurrentDoc||''; return _dcGet(d,'thText', S.pdfTableHeaderText||'#ffffff'); }
@@ -2125,7 +2160,8 @@ function _pHo(hex, opacity) {
 }
 
 // ── Shared print CSS (same as CostingAPP quotation style) ────────
-function _printCSS(){
+function _printCSS(sec){
+  sec=sec||_pSec();
   var hdr=_pH(_ddCurrentDoc), hdrT=_pHT(_ddCurrentDoc), tot=_pT(_ddCurrentDoc), totT=_pTT(_ddCurrentDoc), alt=_pAlt(_ddCurrentDoc);
   return [
     '@page{margin:14mm 12mm;size:A4 portrait}',
@@ -2141,7 +2177,7 @@ function _printCSS(){
     '.info-card{padding:11px 14px;border-radius:6px;border:1px solid #e4e8f0;font-size:11.5px;line-height:1.7}',
     '.info-card.accent{background:'+_pHo(hdr,0.05)+';border-color:'+_pHo(hdr,0.2)+'}',
     '.info-card.gray{background:#f7f8fc}',
-    '.info-label{font-size:9.5px;font-weight:700;color:'+hdr+';text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px;padding-bottom:4px;border-bottom:1px solid '+_pHo(hdr,0.15)+'}',
+    '.info-label{font-size:9.5px;font-weight:700;color:'+sec+';text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px;padding-bottom:4px;border-bottom:1px solid '+_pHo(hdr,0.15)+'}',
     '.info-row{display:flex;gap:6px;margin-bottom:1px}',
     '.info-key{color:#666;min-width:72px;font-size:11px}',
     '.info-val{font-weight:600;color:#1a1a2e;flex:1}',
@@ -2156,7 +2192,7 @@ function _printCSS(){
     /* ── Table ── */
     'table{width:100%;border-collapse:collapse;margin-bottom:0;background:transparent}',
     'thead tr{background:'+hdr+'}',
-    'th{color:'+hdrT+';padding:7px 10px;text-align:left;font-size:10.5px;font-weight:700;letter-spacing:.3px}',
+    'th{background:'+sec+';color:#fff;padding:7px 10px;text-align:left;font-size:10.5px;font-weight:700;letter-spacing:.3px}',
     'th.r{text-align:right}',
     'th.c{text-align:center}',
     'tbody tr{border-bottom:1px solid #eef0f5}',
@@ -2196,31 +2232,45 @@ function _printCSS(){
   ].join(' ');
 }
 
-function getDocHeader(){
+function getDocHeader(docType, opts){
+  opts=opts||{};
   if(S.letterheadData){
     return '<div style="width:100%;line-height:0"><img src="'+S.letterheadData+'" style="width:100%;display:block;"/></div>';
   }
-  var color  = S.headerBgColor||'#1a4fa0';
+  var color  = (docType?_pH(docType):null)||S.headerBgColor||'#1a4fa0';
   var txtSize= (S.headerTextSize||'15')+'px';
   var pad    = (S.headerPadding||'14')+'px 20px';
-  var fontColor      = S.headerFontColor||'#ffffff';
+  var fontColor      = (docType?_pHT(docType):null)||S.headerFontColor||'#ffffff';
   var fontColorMuted = fontColor+'cc';
   var logoHTML = S.logoData
     ? '<img src="'+S.logoData+'" style="height:52px;max-width:140px;object-fit:contain"/>'
     : '<div style="font-size:20px;font-weight:900;color:'+color+';font-family:Calibri,Arial,sans-serif">'+S.companyEn+'</div>';
-  var h='<div style="background:'+color+';padding:'+pad+';display:flex;justify-content:space-between;align-items:center;-webkit-print-color-adjust:exact;print-color-adjust:exact">';
+  var h='<div style="background:'+color+';padding:'+pad+';display:flex;justify-content:space-between;align-items:center;-webkit-print-color-adjust:exact;print-color-adjust:exact;position:relative">';
   h+='<div style="display:flex;align-items:center;gap:12px">';
   h+='<div style="background:#fff;border-radius:8px;padding:6px 8px;display:flex;align-items:center">'+logoHTML+'</div>';
-  h+='<div>';
-  h+='<div style="color:'+fontColor+';font-size:'+txtSize+';font-weight:800;font-family:Calibri,Arial,sans-serif;letter-spacing:-.3px">'+S.companyEn+'</div>';
-  if(S.companyAr) h+='<div style="color:'+fontColorMuted+';font-size:11px;direction:rtl;margin-top:1px">'+S.companyAr+'</div>';
-  h+='</div></div>';
+  if(opts.centerTitle){
+    h+='<div style="position:absolute;left:0;right:0;top:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">';
+    h+='<div style="color:'+fontColor+';font-size:22px;font-weight:900;letter-spacing:.5px">'+opts.centerTitle+'</div>';
+    if(opts.centerTitleAr) h+='<div style="color:'+fontColorMuted+';font-size:12px;direction:rtl">'+opts.centerTitleAr+'</div>';
+    h+='</div>';
+  }
+  if(!opts.companyRight){
+    h+='<div>';
+    h+='<div style="color:'+fontColor+';font-size:'+txtSize+';font-weight:800;font-family:Calibri,Arial,sans-serif;letter-spacing:-.3px">'+S.companyEn+'</div>';
+    if(S.companyAr) h+='<div style="color:'+fontColorMuted+';font-size:11px;direction:rtl;margin-top:1px">'+S.companyAr+'</div>';
+    h+='</div>';
+  }
+  h+='</div>';
   h+='<div style="text-align:right;color:'+fontColorMuted+';font-size:11px;line-height:1.75">';
-  if(S.headerShowAddress!==false&&S.addressEn)  h+='<div>'+S.addressEn+'</div>';
-  if(S.headerShowPhone!==false&&S.phone)         h+='<div>'+S.phone+'</div>';
-  if(S.headerShowEmail!==false&&S.email)         h+='<div>'+S.email+'</div>';
-  if(S.headerShowCR!==false&&S.cr)               h+='<div>CR: '+S.cr+'</div>';
-  if(S.headerShowVAT!==false&&S.vat)             h+='<div>VAT: '+S.vat+'</div>';
+  if(opts.companyRight){
+    h+='<div style="color:'+fontColor+';font-size:'+txtSize+';font-weight:800;font-family:Calibri,Arial,sans-serif;letter-spacing:-.3px;margin-bottom:2px">'+S.companyEn+'</div>';
+    if(S.companyAr) h+='<div style="font-size:12px;direction:rtl;margin-bottom:4px">'+S.companyAr+'</div>';
+  }
+  if(!opts.hideAddress&&S.headerShowAddress!==false&&S.addressEn)  h+='<div>'+S.addressEn+'</div>';
+  if(!opts.hidePhone&&S.headerShowPhone!==false&&S.phone)           h+='<div>'+S.phone+'</div>';
+  if(!opts.hideEmail&&S.headerShowEmail!==false&&S.email)           h+='<div>'+S.email+'</div>';
+  if(!opts.hideCR&&S.headerShowCR!==false&&S.cr)                    h+='<div>CR: '+S.cr+'</div>';
+  if(!opts.hideVAT&&S.headerShowVAT!==false&&S.vat)                 h+='<div>VAT: '+S.vat+'</div>';
   h+='</div></div>';
   return h;
 }
@@ -2237,7 +2287,7 @@ function wrapBody(html){
 // ── Unified print wrapper — injects CSS + prints via parent ──────
 function _printDoc(html, title){
   var full = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+(title||'Document')+'</title>'+
-    '<style>'+_printCSS()+'</style></head><body>'+html+'</body></html>';
+    '<style>'+_printCSS(sec)+'</style></head><body>'+html+'</body></html>';
   if(!_printViaParent(full)){
     // fallback: write to new window
     try{
@@ -2267,7 +2317,7 @@ var DB={
 
 // ── HELPERS ──
 function getSubmittedBy(){ return (currentUser&&currentUser.name) ? currentUser.name : (S.sigPo||''); }
-function SAR(v){return v==null||v===''?'—':'SAR '+Number(v).toLocaleString('en',{minimumFractionDigits:0,maximumFractionDigits:0});}
+function SAR(v){return v==null||v===''?'—':'SAR '+Number(v).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function pct(v){return isNaN(v)||!isFinite(v)?'—':(v*100).toFixed(1)+'%';}
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function today(){return new Date().toISOString().slice(0,10);}
@@ -4893,7 +4943,7 @@ function viewProject(id){
     (projectDetailLevel()==='full'?
       (function(){
         var impl=getProjectImplementation(p.id,p.ref,p.budget);
-        var pct2=Math.min(100,Math.round(impl.pct||0));
+        var pct2=Math.min(100,Math.round((impl.overall||impl.pct||0)*100));
         var clr=pct2>=80?'var(--green)':pct2>=50?'var(--accent)':'var(--accent3)';
         return '<div class="kpi" style="background:var(--accent-lt);border:1.5px solid var(--accent)">'+
           '<div class="kpi-label" style="color:var(--accent);display:flex;justify-content:space-between;align-items:center">Project Progress'+
@@ -4909,9 +4959,9 @@ function viewProject(id){
       '<div class="kpi blue"><div class="kpi-label">Project</div><div class="kpi-value" style="font-size:16px">'+p.ref+'</div><div class="kpi-sub">'+p.client+'</div></div>'+
       '<div class="kpi" style="background:var(--panel)"><div class="kpi-label">Status</div><div class="kpi-value" style="font-size:16px">'+p.status+'</div><div class="kpi-sub">'+p.duration+'</div></div>'
     )+
-    '<div class="kpi" style="background:var(--surface2);border:1.5px solid var(--border);cursor:pointer" onclick="openPettyCashExpModal()" title="View all expenses">'+
-      '<div class="kpi-label">💵 Petty Cash Expenses</div>'+
-      '<div class="kpi-value" style="font-size:22px;color:var(--accent)">'+SAR(drPettyTotal)+'</div>'+
+    '<div class="kpi" style="background:#fefce8;border:1.5px solid #f59e0b;cursor:pointer" onclick="openPettyCashExpModal()" title="View all expenses">'+
+      '<div class="kpi-label" style="color:#92400e">💵 Petty Cash Expenses</div>'+
+      '<div class="kpi-value" style="font-size:22px;color:#d97706">'+SAR(drPettyTotal)+'</div>'+
       '<div class="kpi-sub">'+drPettyRows.length+' transaction'+(drPettyRows.length!==1?'s':'')+' · click to view</div>'+
     '</div>'+
     (function(){
@@ -4919,9 +4969,9 @@ function viewProject(id){
       var approvedPOs=projPOs.filter(function(po){return po.approvalStatus==='Approved'||po.status==='Approved';});
       var poTotal=approvedPOs.reduce(function(a,po){return a+(parseFloat(po.amount)||0);},0);
       window.__currentProjPOs=projPOs;
-      return '<div class="kpi" style="background:var(--surface2);border:1.5px solid var(--border);cursor:pointer" onclick="openProjPOModal()" title="View all POs">'+
-        '<div class="kpi-label">🛒 Purchase Orders</div>'+
-        '<div class="kpi-value" style="font-size:22px;color:var(--accent2)">'+SAR(poTotal)+'</div>'+
+      return '<div class="kpi" style="background:#eff6ff;border:1.5px solid #3b82f6;cursor:pointer" onclick="openProjPOModal()" title="View all POs">'+
+        '<div class="kpi-label" style="color:#1d4ed8">🛒 Purchase Orders</div>'+
+        '<div class="kpi-value" style="font-size:22px;color:#2563eb">'+SAR(poTotal)+'</div>'+
         '<div class="kpi-sub">Σ '+approvedPOs.length+' approved POs · click to view</div>'+
       '</div>';
     }())+
@@ -4931,9 +4981,9 @@ function viewProject(id){
       var collectedInvs=projInvs.filter(function(i){return i.paymentStatus==='Collected';});
       var invTotal=approvedInvs.reduce(function(a,i){return a+(parseFloat(i.total)||0);},0);
       window.__currentProjInvs=projInvs;
-      return '<div class="kpi" style="background:var(--surface2);border:1.5px solid var(--border);cursor:pointer" onclick="openProjInvModal()" title="View all invoices">'+
-        '<div class="kpi-label">🧾 Invoice Requests</div>'+
-        '<div class="kpi-value" style="font-size:22px;color:var(--accent)">'+SAR(invTotal)+'</div>'+
+      return '<div class="kpi" style="background:#faf5ff;border:1.5px solid #a855f7;cursor:pointer" onclick="openProjInvModal()" title="View all invoices">'+
+        '<div class="kpi-label" style="color:#7e22ce">🧾 Invoice Requests</div>'+
+        '<div class="kpi-value" style="font-size:22px;color:#9333ea">'+SAR(invTotal)+'</div>'+
         '<div class="kpi-sub">'+approvedInvs.length+' approved · '+collectedInvs.length+' collected · click to view</div>'+
       '</div>';
     }())+
@@ -4942,9 +4992,9 @@ function viewProject(id){
       var approvedPC=projPC.filter(function(pc){return pc.approvalStatus==='Approved'||pc.status==='Approved';});
       var pcTotal=approvedPC.reduce(function(a,pc){return a+(parseFloat(pc.total)||0);},0);
       window.__currentProjPC=projPC;
-      return '<div class="kpi" style="background:var(--surface2);border:1.5px solid var(--border);cursor:pointer" onclick="openProjPCModal()" title="View petty cash">'+
-        '<div class="kpi-label">💰 Petty Cash</div>'+
-        '<div class="kpi-value" style="font-size:22px;color:var(--accent)">'+SAR(pcTotal)+'</div>'+
+      return '<div class="kpi" style="background:#f0fdf4;border:1.5px solid #22c55e;cursor:pointer" onclick="openProjPCModal()" title="View petty cash">'+
+        '<div class="kpi-label" style="color:#15803d">💰 Petty Cash</div>'+
+        '<div class="kpi-value" style="font-size:22px;color:#16a34a">'+SAR(pcTotal)+'</div>'+
         '<div class="kpi-sub">'+approvedPC.length+' approved · '+projPC.length+' total · click to view</div>'+
       '</div>';
     }())+
@@ -5487,7 +5537,7 @@ function buildReportHTML(r, reportId){
   }).join('');
 
   var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Daily Report '+esc(r.num||'')+'</title>'+
-    '<style>'+_printCSS()+'</style></head><body>';
+    '<style>'+_printCSS(sec)+'</style></head><body>';
 
   html+=getDocHeader();
 
@@ -7060,7 +7110,7 @@ function printProjectProgress(projId){
     '.prog-bar{height:12px;background:#e2e6ef;border-radius:6px;overflow:hidden;margin:4px 0}'+
     '.prog-fill{height:100%;border-radius:6px}'+
     '</style></head><body>';
-  html+=getDocHeader();
+  html+=getDocHeader('po');
   html+='<div style="padding:14px 22px;border-bottom:1px solid #e2e6ef;display:flex;justify-content:space-between;align-items:center;background:'+_pHo(_pH('ppr'),0.05)+'">';
   html+='<div><div style="font-size:20px;font-weight:900;color:'+_pH('ppr')+'">PROJECT PROGRESS REPORT</div>';
   html+='<div style="font-size:12px;color:#888">'+esc(p.ref)+' — '+esc(p.name||p.client)+'</div></div>';
@@ -7369,7 +7419,8 @@ function getDeliveryNoteHTML(boq, dn){
   var lines = boq.lines||[];
   var p     = DB.projects.find(function(x){return x.id===boq.projId;});
   var dnNum = dn.num || ('DN-'+boq.num);
-  var hdr   = _pH('dn'), hdrT=_pHT('dn');
+  var hdr   = _pDocHdr('dn'), hdrT=_pDocHdrT('dn');
+  var sec   = _pSec('dn');  // Section labels + table header color
   var totalQty = lines.reduce(function(a,l){return a+(parseFloat(l.qty)||0);},0);
 
   var lineRows = lines.length ? lines.map(function(l,i){
@@ -7384,27 +7435,16 @@ function getDeliveryNoteHTML(boq, dn){
   }).join('') : '<tr><td colspan="6" style="padding:20px;text-align:center;color:#bbb">No items</td></tr>';
 
   var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+dnNum+'</title>'+
-    '<style>'+_printCSS()+'</style></head><body>';
+    '<style>'+_printCSS(sec)+'</style></head><body>';
 
-  html+=getDocHeader();
+  html+=getDocHeader('dn',{hideAddress:true,hidePhone:true,hideEmail:true,hideCR:true,hideVAT:true,companyRight:true,centerTitle:'DELIVERY NOTE',centerTitleAr:'سند تسليم'});
 
-  html+='<div class="doc-title-bar">'+
-    '<div>'+
-      '<div class="doc-title-main">DELIVERY NOTE</div>'+
-      '<div class="doc-title-sub">سند تسليم</div>'+
-    '</div>'+
-    '<div class="doc-meta-right">'+
-      '<div><b>DN No:</b> '+dnNum+'</div>'+
-      '<div><b>Date:</b> '+(dn.date||boq.date||today())+'</div>'+
-      '<div><b>BOQ Ref:</b> '+boq.num+'</div>'+
-      (p?'<div><b>Project:</b> '+p.ref+'</div>':'')+
-    '</div>'+
-  '</div>';
+
 
   html+='<div class="doc-body">';
 
   html+='<div class="doc-grid-2">'+
-    '<div class="info-card accent">'+
+    '<div class="info-card" style="background:#fff">'+
       '<div class="info-label">Project Details</div>'+
       (p?'<div class="info-row"><span class="info-key">Project:</span><span class="info-val">'+esc(p.name||p.ref)+'</span></div>':'')+
       '<div class="info-row"><span class="info-key">BOQ Ref:</span><span class="info-val">'+boq.num+'</span></div>'+
@@ -7412,12 +7452,13 @@ function getDeliveryNoteHTML(boq, dn){
       (dn.location?'<div class="info-row"><span class="info-key">Location:</span><span class="info-val">'+esc(dn.location)+'</span></div>':'')+
       (dn.vehicle?'<div class="info-row"><span class="info-key">Vehicle:</span><span class="info-val">'+esc(dn.vehicle)+'</span></div>':'')+
     '</div>'+
-    '<div class="info-card gray">'+
+    '<div class="info-card" style="background:#fff">'+
       '<div class="info-label">Delivery Info</div>'+
+      '<div class="info-row"><span class="info-key">DN No:</span><span class="info-val">'+dnNum+'</span></div>'+
       '<div class="info-row"><span class="info-key">Delivered By:</span><span class="info-val">'+(dn.deliveredBy||getSubmittedBy())+'</span></div>'+
       (dn.receivedBy?'<div class="info-row"><span class="info-key">Received By:</span><span class="info-val">'+esc(dn.receivedBy)+'</span></div>':'')+
       '<div class="info-row"><span class="info-key">Items Count:</span><span class="info-val">'+lines.length+'</span></div>'+
-      '<div class="info-row"><span class="info-key">Total Qty:</span><span class="info-val" style="color:'+hdr+';font-weight:700">'+totalQty+'</span></div>'+
+      '<div class="info-row"><span class="info-key">Total Qty:</span><span class="info-val">'+totalQty+'</span></div>'+
     '</div>'+
   '</div>';
 
@@ -7434,14 +7475,25 @@ function getDeliveryNoteHTML(boq, dn){
       '<tbody>'+lineRows+'</tbody>'+
     '</table>';
 
-  if(dn.notes){
-    html+='<div class="notes-box" style="margin-top:12px"><div class="notes-label">Notes / ملاحظات</div>'+esc(dn.notes)+'</div>';
-  }
+    // Notes section — always shown (2 lines)
+  html+='<div style="margin-top:12px;border:1px solid #e2e6ef;border-radius:6px;padding:10px 14px">'+
+    '<div style="font-size:9.5px;font-weight:700;color:'+sec+';text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Notes / ملاحظات</div>'+
+    '<div style="font-size:11.5px;color:#444;min-height:18px;border-bottom:1px dashed #dde2f0;padding-bottom:8px;margin-bottom:8px">'+(dn.notes?esc(dn.notes):'&nbsp;')+'</div>'+
+    '<div style="font-size:11.5px;color:#444;min-height:18px">&nbsp;</div>'+
+  '</div>';
 
   html+='<div class="sig-grid" style="grid-template-columns:1fr 1fr 1fr">'+
-    '<div class="sig-box"><div class="sig-title">Prepared By</div><div class="sig-name">'+esc(boq.preparedBy||getSubmittedBy())+'</div><div class="sig-line"></div><div class="sig-stamp">Stamp</div></div>'+
-    '<div class="sig-box"><div class="sig-title">Delivered By / المُسلِّم</div><div class="sig-name">'+esc(dn.deliveredBy||'&nbsp;')+'</div><div class="sig-line"></div><div class="sig-stamp">Stamp</div></div>'+
-    '<div class="sig-box"><div class="sig-title">Received By / المُستلِم</div><div class="sig-name">'+esc(dn.receivedBy||'&nbsp;')+'</div><div class="sig-line"></div><div class="sig-stamp" style="border-color:'+_pHo(hdr,0.3)+';color:'+_pHo(hdr,0.4)+'">Date &amp; Stamp<br>التاريخ والختم</div></div>'+
+    '<div class="sig-box"><div class="sig-title">Prepared By</div><div class="sig-name">'+esc(boq.preparedBy||getSubmittedBy())+'</div><div class="sig-line"></div></div>'+
+    '<div class="sig-box"><div class="sig-title">Delivered By / المُسلِّم</div><div class="sig-name">'+esc(dn.deliveredBy||'&nbsp;')+'</div><div class="sig-line"></div></div>'+
+    '<div class="sig-box"><div class="sig-title">Received By / المُستلِم</div><div class="sig-name">'+esc(dn.receivedBy||'&nbsp;')+'</div><div class="sig-line"></div></div>'+
+  '</div>';
+
+  // Footer with company address
+  var footerParts=[S.companyEn,S.addressEn,S.phone,S.email,S.cr?'CR: '+S.cr:'',S.vat?'VAT: '+S.vat:''].filter(Boolean);
+  var ftrBgColor=(_dcGet('dn','footerBg',null))||hdr;
+  var ftrTxtColor=hdrT;
+  html+='<div style="-webkit-print-color-adjust:exact;background:'+ftrBgColor+';color:'+ftrTxtColor+';padding:6px 20px;font-size:10px;text-align:center;margin-top:8px">'+
+    footerParts.join('&nbsp;&nbsp;|&nbsp;&nbsp;')+
   '</div>';
 
   html+='</div></body></html>';
@@ -8861,10 +8913,25 @@ function ddLoadDocColors(type){
   set('dc-tot-bg',  hex(totBg));  set('dc-tot-hex',      totBg);
   set('dc-alt-bg',  hex(altRow)); set('dc-alt-hex',      altRow);
   set('dc-accent',  hex(accent)); set('dc-accent-hex',   accent);
+
+  // Load DN-specific colors
+  var _c=S.docColors&&S.docColors[type]||{};
+  var ftrEl=document.getElementById('dc-ftr-bg');if(ftrEl)ftrEl.value=(_c.footerBg||'');
+  var ftrHexEl=document.getElementById('dc-ftr-bg-hex');if(ftrHexEl)ftrHexEl.value=(_c.footerBg||'');
+  var dhEl=document.getElementById('dc-doc-hdr-bg');if(dhEl)dhEl.value=(_c.docHdrBg||'');
+  var dhHexEl=document.getElementById('dc-doc-hdr-bg-hex');if(dhHexEl)dhHexEl.value=(_c.docHdrBg||'');
+  var dhtEl=document.getElementById('dc-doc-hdr-text');if(dhtEl)dhtEl.value=(_c.docHdrText||'');
+  var dhtHexEl=document.getElementById('dc-doc-hdr-text-hex');if(dhtHexEl)dhtHexEl.value=(_c.docHdrText||'');
+  var secEl=document.getElementById('dc-sec-color');if(secEl)secEl.value=(_c.secColor||'');
+  var secHexEl=document.getElementById('dc-sec-color-hex');if(secHexEl)secHexEl.value=(_c.secColor||'');
 }
 
 function ddSelectDoc(type){
   _ddCurrentDoc = type;
+  var ftrGroup=document.getElementById('dd-footer-color-group');if(ftrGroup)ftrGroup.style.display=(type==='dn')?'':'none';
+  var dhGroup=document.getElementById('dd-doc-hdr-color-group');if(dhGroup)dhGroup.style.display=(type==='dn')?'':'none';
+  var secGroup=document.getElementById('dd-sec-color-group');if(secGroup)secGroup.style.display=(type==='dn')?'':'none';
+  var dhtGroup=document.getElementById('dd-doc-hdr-text-group');if(dhtGroup)dhtGroup.style.display=(type==='dn')?'':'none';
   document.querySelectorAll('.dd-item').forEach(function(el){
     el.style.background=''; el.style.color=''; el.style.fontWeight='';
   });
@@ -8953,8 +9020,8 @@ function ddGetSampleHTML(type){
   }
 }
 
-function ddGenericPreview(title, num){
-  var hdr = _pH(type); var hdrT = _pHT(type);
+function ddGenericPreview(title, num, docType){
+  var hdr = _pH(docType||_ddCurrentDoc); var hdrT = _pHT(docType||_ddCurrentDoc);
   return '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>'+_printCSS()+'</style></head><body>'+
     getDocHeader()+
     '<div style="background:'+hdr+';padding:14px 20px;display:flex;justify-content:space-between;align-items:center;-webkit-print-color-adjust:exact">'+
@@ -8995,6 +9062,11 @@ function ddRefreshPreview(){
   sv('thBg',   g('dc-th-bg'));    sv('thText',  g('dc-th-text'));
   sv('totBg',  g('dc-tot-bg'));   sv('altRow',  g('dc-alt-bg'));
   sv('accent', g('dc-accent'));
+  // DN-specific
+  sv('docHdrBg',   g('dc-doc-hdr-bg'));
+  sv('docHdrText', g('dc-doc-hdr-text'));
+  sv('footerBg',   g('dc-ftr-bg'));
+  sv('secColor',   g('dc-sec-color'));
 
   // ── Generate full HTML with updated colors ────────────────
   var html = ddGetSampleHTML(doc);
@@ -9036,6 +9108,14 @@ function ddSaveDesign(){
   var badge = document.getElementById('dd-saved-badge');
   if(badge){ badge.style.display='inline'; setTimeout(function(){badge.style.display='none';},2500); }
   showToast('✅ Document design saved.');
+
+  // Save DN-specific colors
+  if(_ddCurrentDoc==='dn'){
+    var ftrBg2=document.getElementById('dc-ftr-bg');if(ftrBg2&&ftrBg2.value)S.docColors[_ddCurrentDoc].footerBg=ftrBg2.value;
+    var dhBg2=document.getElementById('dc-doc-hdr-bg');if(dhBg2&&dhBg2.value)S.docColors[_ddCurrentDoc].docHdrBg=dhBg2.value;
+    var dhTxt2=document.getElementById('dc-doc-hdr-text');if(dhTxt2&&dhTxt2.value)S.docColors[_ddCurrentDoc].docHdrText=dhTxt2.value;
+    var sec2=document.getElementById('dc-sec-color');if(sec2&&sec2.value)S.docColors[_ddCurrentDoc].secColor=sec2.value;
+  }
 }
 
 function ddResetDocColors(){
@@ -9110,7 +9190,7 @@ function renderProjPOModal(){
       var stStyle=statusColors[st]||'background:#f0f0f0;color:#888';
       return '<tr style="border-bottom:1px solid var(--border);'+(i%2===1?'background:var(--surface2)':'')+'">'+
         '<td style="padding:8px 12px;font-size:12px;color:var(--muted)">'+(i+1)+'</td>'+
-        '<td style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--accent)">'+esc(po.num||'—')+'</td>'+
+        '<td style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--accent);cursor:pointer;text-decoration:underline" onclick="viewPO('+po.id+')">'+esc(po.num||'—')+'</td>'+
         '<td style="padding:8px 12px;font-size:12px">'+esc(po.vendor||po.supplier||'—')+'</td>'+
         '<td style="padding:8px 12px;font-size:12px;color:var(--muted)">'+esc(po.date||'—')+'</td>'+
         '<td style="padding:8px 12px"><span style="'+stStyle+';padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">'+esc(st)+'</span></td>'+
