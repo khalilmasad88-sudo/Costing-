@@ -4617,8 +4617,7 @@ function viewProject(id){
   var siteTotal=siteBOQs.reduce(function(a,b){return a+b.total;},0);
   var boqHTML='<div class="section-sep"></div>';
   boqHTML+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">';
-  var _boqId='proj-boq';
-  boqHTML+='<div class="section-sep"></div><div class="card-title" onclick="_projSecToggle(\''+_boqId+'\')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between"><span>SOW BOQ ('+projBOQs.length+')</span><span id="proj-sec-arr-'+_boqId+'" style="font-size:12px;transition:transform .2s;display:inline-block">▼</span></div><div id="proj-sec-'+_boqId+'" style="display:none">';
+  boqHTML+='<div class="section-sep">'+'<div class="card-title">SOW BOQ ('+projBOQs.length+')</div>';
   var addBtns='<button class="btn btn-primary btn-sm" onclick="closeModal(\'modal-proj-detail\');openBOQModal('+p.id+',\'Main\')" style="margin-left:4px">+ Main SOW BOQ</button>';
   
   boqHTML+='<div style="display:flex;gap:4px;align-items:center">'+addBtns+'</div></div>';
@@ -7305,17 +7304,7 @@ function getBOQHTML(boq, hidePrices){
   body+='<div style="text-align:center"><div style="border-top:1px solid #333;padding-top:5px;margin-top:26px">Prepared By<br><em>'+(boq.preparedBy||getSubmittedBy())+'</em></div></div>';
   body+='<div style="text-align:center"><div style="border-top:1px solid #333;padding-top:5px;margin-top:26px">Received By<br>&nbsp;</div></div>';
   body+='</div></div>';
-  // Footer
-  var ftrBgColor=(_dcGet('inv','footerBg',null))||hdr;
-  var footerParts=[S.companyEn,S.addressEn,S.phone,S.email,S.cr?'CR: '+S.cr:'',S.vat?'VAT: '+S.vat:''].filter(Boolean);
-
-  return '<div style="'+getDocStyle()+'">'+
-    getDocHeader('inv',{hideAddress:true,hidePhone:true,hideEmail:true,hideCR:true,hideVAT:true,companyRight:true,centerTitle:'Invoice Request',centerTitleAr:'طلب فاتورة'})+
-    wrapBody(body)+
-    '<div style="-webkit-print-color-adjust:exact;background:'+ftrBgColor+';color:#fff;padding:6px 20px;font-size:10px;text-align:center">'+
-      footerParts.join(' &nbsp;|&nbsp; ')+
-    '</div>'+
-  '</div>';
+  return '<div style="'+getDocStyle()+'">'+getDocHeader('boq')+wrapBody(body)+'</div>';
 }
 function previewBOQ(){
   currentBOQId=null; boqHidePrices=false;
