@@ -669,21 +669,7 @@ textarea{resize:vertical;min-height:68px}
               </div>
             </div>
 
-            <div id="dd-doc-hdr-color-group" class="form-group" style="margin:0;display:none">
-              <label style="font-size:10px">Doc Header BG</label>
-              <div style="display:flex;gap:3px;align-items:center">
-                <input type="color" id="dc-doc-hdr-bg" style="width:32px;height:26px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="ddRefreshPreview()"/>
-                <input id="dc-doc-hdr-bg-hex" style="flex:1;font-size:10px;padding:2px 4px" oninput="syncColor2('dc-doc-hdr-bg','dc-doc-hdr-bg-hex');ddRefreshPreview()"/>
-              </div>
-            </div>
 
-            <div id="dd-doc-hdr-text-group" class="form-group" style="margin:0;display:none">
-              <label style="font-size:10px">Doc Header Text</label>
-              <div style="display:flex;gap:3px;align-items:center">
-                <input type="color" id="dc-doc-hdr-text" style="width:32px;height:26px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="ddRefreshPreview()"/>
-                <input id="dc-doc-hdr-text-hex" style="flex:1;font-size:10px;padding:2px 4px" oninput="syncColor2('dc-doc-hdr-text','dc-doc-hdr-text-hex');ddRefreshPreview()"/>
-              </div>
-            </div>
 
             <div id="dd-footer-color-group" class="form-group" style="margin:0;display:none">
               <label style="font-size:10px">Footer BG</label>
@@ -2143,9 +2129,9 @@ function _pH(doc)  {
   return _dcGet(d,'thBg', S.pdfTableHeader||S.headerBgColor||'#1a4fa0');
 }
 function _pHo_doc(doc,hex,op){ return _pHo(hex,op); }
-function _pDocHdr(doc)  { var d=doc||_ddCurrentDoc||''; return _dcGet(d,'docHdrBg', _pH(d)); }
-function _pDocHdrT(doc) { var d=doc||_ddCurrentDoc||''; return _dcGet(d,'docHdrText', _pHT(d)); }
-function _pSec(doc) { var d=doc||_ddCurrentDoc||''; return _dcGet(d,'secColor', _pH(d)); }
+function _pDocHdr(doc)  { var d=doc||_ddCurrentDoc||''; return _dcGet(d,'docHdrBg', _dcGet(d,'hdrBg', S.headerBgColor||S.pdfTableHeader||'#1a4fa0')); }
+function _pDocHdrT(doc) { var d=doc||_ddCurrentDoc||''; return _dcGet(d,'docHdrText', _dcGet(d,'hdrText', S.headerFontColor||'#ffffff')); }
+function _pSec(doc) { var d=doc||_ddCurrentDoc||''; return _dcGet(d,'secColor', _dcGet(d,'thBg', S.pdfTableHeader||S.headerBgColor||'#1a4fa0')); }
 function _pTB() { return S.docTableBorder    || '#e2e6ef'; }  // table border color
 function _pAlt(doc)  { var d=doc||_ddCurrentDoc||''; return _dcGet(d,'altRow', S.docTableAltRow||S.pdfAltRow||'transparent'); }
 function _pHT(doc)  { var d=doc||_ddCurrentDoc||''; return _dcGet(d,'thText', S.pdfTableHeaderText||'#ffffff'); }
@@ -2317,11 +2303,11 @@ var DB={
 
 // ── HELPERS ──
 function getSubmittedBy(){ return (currentUser&&currentUser.name) ? currentUser.name : (S.sigPo||''); }
-function SAR(v){return v==null||v===''?'—':'SAR '+Number(v).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function SAR(v){if(v==null||v==='')return '—';var r=Math.round(Number(v)*100)/100;return 'SAR '+r.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function pct(v){return isNaN(v)||!isFinite(v)?'—':(v*100).toFixed(1)+'%';}
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function today(){return new Date().toISOString().slice(0,10);}
-function fmt(n){return Number(n).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fmt(n){var r=Math.round(Number(n)*100)/100;return r.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 function openModal(id){document.getElementById(id).classList.add('open');}
 function sBadge(s){
@@ -3418,10 +3404,9 @@ function boqToggle(colId){
   el.style.display=hidden?'block':'none';
   // Update arrow icon
   var parent=el.previousElementSibling;
-  if(parent){
-    var arrow=parent.querySelector('.boq-arrow');
-    if(arrow) arrow.textContent=hidden?'▼':'▶';
-  }
+  var bid=colId.replace('boq-body-','');
+  var arrow=document.querySelector('.boq-arrow-'+bid);
+  if(arrow) arrow.textContent=hidden?'▼':'▶';
 }
 
 function siteToggleCollapse(el){
@@ -4545,6 +4530,7 @@ function viewProject(id){
   var computedBudget = parseFloat(p.budget) || 0;
 
   // Cost = Approved POs (ex-VAT) + Petty Cash expenses from Daily Reports
+  reportsHTML+='</div>';
   var computedCost = (function(){
     // PO cost ex-VAT (approved POs only)
     var poCost = DB.pos.filter(function(po){
@@ -4613,7 +4599,8 @@ function viewProject(id){
 
   var reportsHTML='';
   if(relR.length){
-    reportsHTML='<div class="section-sep"></div><div class="card-title mb12">Daily Reports ('+relR.length+')</div>';
+    var _drId='proj-reports';
+  reportsHTML='<div class="section-sep"></div><div class="card-title mb12" onclick="_projSecToggle(\''+_drId+'\')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between"><span>Daily Reports ('+relR.length+')</span><span id="proj-sec-arr-'+_drId+'" style="font-size:12px;transition:transform .2s;display:inline-block">▼</span></div><div id="proj-sec-'+_drId+'" style="display:none">';
     relR.forEach(function(r){reportsHTML+='<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span class="color-gold">'+r.date+'</span> \u2014 '+(r.location||'\u2014')+' \u2014 '+r.tasks.length+' tasks</div>';});
   }
 
@@ -4630,7 +4617,8 @@ function viewProject(id){
   var siteTotal=siteBOQs.reduce(function(a,b){return a+b.total;},0);
   var boqHTML='<div class="section-sep"></div>';
   boqHTML+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">';
-  boqHTML+='<div class="card-title">SOW BOQ ('+projBOQs.length+')</div>';
+  var _boqId='proj-boq';
+  boqHTML+='<div class="section-sep"></div><div class="card-title" onclick="_projSecToggle(\''+_boqId+'\')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between"><span>SOW BOQ ('+projBOQs.length+')</span><span id="proj-sec-arr-'+_boqId+'" style="font-size:12px;transition:transform .2s;display:inline-block">▼</span></div><div id="proj-sec-'+_boqId+'" style="display:none">';
   var addBtns='<button class="btn btn-primary btn-sm" onclick="closeModal(\'modal-proj-detail\');openBOQModal('+p.id+',\'Main\')" style="margin-left:4px">+ Main SOW BOQ</button>';
   
   boqHTML+='<div style="display:flex;gap:4px;align-items:center">'+addBtns+'</div></div>';
@@ -4667,7 +4655,7 @@ function viewProject(id){
         boqHTML+='<div style="padding:10px 14px;display:flex;align-items:center;justify-content:space-between;background:var(--accent-lt)">';
         var _boqIdx=mainBOQs.indexOf(b);
         boqHTML+='<div style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1" onclick="window.__bt('+b.id+')">';
-        boqHTML+='<span class="boq-arrow-'+b.id+'" style="font-size:11px;color:var(--accent)">▼</span>';
+        boqHTML+='<span class="boq-arrow-'+b.id+'" style="font-size:11px;color:var(--accent)">▶</span>';
         boqHTML+='<span style="font-weight:700;color:var(--accent)">'+esc(b.num)+'</span>';
         boqHTML+='<span class="badge badge-blue">'+esc(b.rev||'')+'</span>';
         boqHTML+=(b.scope?'<span style="font-size:12px;color:var(--muted)">'+esc(b.scope)+'</span>':'');
@@ -4679,7 +4667,7 @@ function viewProject(id){
         boqHTML+='<button class="btn btn-secondary btn-sm" onclick="editBOQFromDetail('+b.id+')">Edit</button>';
         boqHTML+='<button class="btn btn-danger btn-sm" onclick="deleteBOQ('+b.id+')" title="Delete">🗑</button>';
         boqHTML+='</div></div>';
-        boqHTML+='<div id="'+colId+'" style="display:block">';
+        boqHTML+='<div id="'+colId+'" style="display:none">';
 
         if((b.lines||[]).length){
           boqHTML+='<div style="padding:12px 14px">';
@@ -4899,7 +4887,9 @@ function viewProject(id){
   } else {
     pcRows='<tr><td colspan="7" style="padding:16px;text-align:center;color:var(--muted)">No petty cash requests for this project yet.</td></tr>';
   }
-  var pettyHTML='<div class="section-sep"></div><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div class="card-title">Petty Cash ('+pcs.length+')</div><button class="btn btn-primary btn-sm" onclick="closeModal(\'modal-proj-detail\');openPettyModalForProject(\''+p.ref+'\')">+ New Request</button></div>';
+  boqHTML+='</div>';
+  var _pcId='proj-petty';
+  var pettyHTML='<div class="section-sep"></div><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><div class="card-title" onclick="_projSecToggle(\''+_pcId+'\')" style="cursor:pointer;display:flex;align-items:center;gap:8px"><span>Petty Cash ('+pcs.length+')</span><span id="proj-sec-arr-'+_pcId+'" style="font-size:12px;transition:transform .2s;display:inline-block">▼</span></div><button class="btn btn-primary btn-sm" onclick="closeModal(\'modal-proj-detail\');openPettyModalForProject(\''+p.ref+'\')">+ New Request</button></div>';
   // Compute total balance = sum of getPettyBalance for all PCs
   var totalPCBalance=pcs.reduce(function(a,pc){return a+getPettyBalance(pc);},0);
   var _balClr=totalPCBalance<0?'#d94040':totalPCBalance===0?'#e67e22':'#7c3aed';
@@ -4915,6 +4905,7 @@ function viewProject(id){
   pettyHTML+='<table style="width:100%;border-collapse:collapse;font-size:12px;border:1px solid var(--border)"><thead><tr><th style="padding:8px 12px;text-align:left;background:var(--panel);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase">Req #</th><th style="padding:8px 12px;text-align:left;background:var(--panel);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase">Date</th><th style="padding:8px 12px;text-align:left;background:var(--panel);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase">Custodian</th><th style="padding:8px 12px;text-align:right;background:var(--panel);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase">Amount</th><th style="padding:8px 12px;text-align:center;background:var(--panel);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase">Approval</th><th style="padding:8px 12px;text-align:center;background:var(--panel);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase">Payment</th><th style="padding:8px 12px;text-align:right;background:var(--panel);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase">Balance</th><th style="padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--border)"></th></tr></thead><tbody>'+pcRows+'</tbody></table>';
 
   // Build docsHTML last (so it appears after pettyHTML)
+  pettyHTML+='</div>';
   var docsHTML='<div class="section-sep"></div>'+
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'+
       '<div class="card-title">Documents ('+docs.length+')</div>'+
@@ -4945,16 +4936,16 @@ function viewProject(id){
         var impl=getProjectImplementation(p.id,p.ref,p.budget);
         var pct2=Math.min(100,Math.round((impl.overall||impl.pct||0)*100));
         var clr=pct2>=80?'var(--green)':pct2>=50?'var(--accent)':'var(--accent3)';
-        return '<div class="kpi" style="background:var(--accent-lt);border:1.5px solid var(--accent)">'+
-          '<div class="kpi-label" style="color:var(--accent);display:flex;justify-content:space-between;align-items:center">Project Progress'+
+        return '<div class="kpi" style="background:#eff6ff;border:1.5px solid #3b82f6;border-top:4px solid #3b82f6">'+
+          '<div class="kpi-label" style="color:#1d4ed8;display:flex;justify-content:space-between;align-items:center">PROJECT PROGRESS'+
             '<button onclick="printProjectProgress('+p.id+')" class="btn btn-ghost btn-xs no-print" style="font-size:9px;padding:2px 6px">🖨</button>'+
           '</div>'+
           '<div class="kpi-value" style="font-size:22px;color:'+clr+'">'+pct2+'%</div>'+
           '<div class="kpi-sub">'+impl.detail+'</div></div>';
       }())+
-      '<div class="kpi gold"><div class="kpi-label">Contract Amount (excl.VAT)</div><div class="kpi-value" style="font-size:17px">'+SAR(computedAmount)+'</div><div class="kpi-sub">'+(DB.boqs.filter(function(b){return b.projId===p.id;}).length?'From '+DB.boqs.filter(function(b){return b.projId===p.id;}).length+' BOQ(s)':'Manual: '+SAR(p.amount))+'</div></div>'+
-      '<div class="kpi green"><div class="kpi-label">Net Profit</div><div class="kpi-value" style="font-size:17px">'+SAR(computedNet)+'</div><div class="kpi-sub">Margin '+(p.amount>0?pct(computedNet/p.amount):'—')+'</div></div>'+
-      '<div class="kpi red"><div class="kpi-label">Cost excl. VAT</div><div class="kpi-value" style="font-size:17px">'+SAR(computedCost)+'</div><div class="kpi-sub">Manual: '+SAR(p.cost)+'</div></div>'
+      '<div class="kpi" style="background:#f0fff8;border:1.5px solid #1a9e72;border-top:4px solid #1a9e72"><div class="kpi-label" style="color:#1a9e72">CONTRACT AMOUNT<br><span style="font-size:9px;font-weight:400">(excl.VAT)</span></div><div class="kpi-value" style="font-size:17px;color:#1a9e72">'+SAR(computedAmount)+'</div><div class="kpi-sub">'+(DB.boqs.filter(function(b){return b.projId===p.id;}).length?'From '+DB.boqs.filter(function(b){return b.projId===p.id;}).length+' BOQ(s)':'Manual: '+SAR(p.amount))+'</div></div>'+
+      '<div class="kpi" style="background:#faf5ff;border:1.5px solid #9333ea;border-top:4px solid #9333ea"><div class="kpi-label" style="color:#7e22ce">NET PROFIT</div><div class="kpi-value" style="font-size:17px;color:#9333ea">'+SAR(computedNet)+'</div><div class="kpi-sub">Margin '+(p.amount>0?pct(computedNet/p.amount):'—')+'</div></div>'+
+      '<div class="kpi" style="background:#fff5f5;border:1.5px solid #ef4444;border-top:4px solid #ef4444"><div class="kpi-label" style="color:#991b1b">COST EXCL. VAT</div><div class="kpi-value" style="font-size:17px;color:#ef4444">'+SAR(computedCost)+'</div><div class="kpi-sub">Manual: '+SAR(p.cost)+'</div></div>'
     :
       '<div class="kpi blue"><div class="kpi-label">Project</div><div class="kpi-value" style="font-size:16px">'+p.ref+'</div><div class="kpi-sub">'+p.client+'</div></div>'+
       '<div class="kpi" style="background:var(--panel)"><div class="kpi-label">Status</div><div class="kpi-value" style="font-size:16px">'+p.status+'</div><div class="kpi-sub">'+p.duration+'</div></div>'
@@ -5494,7 +5485,8 @@ function dboqBalanceMap(projRef, excludeReportId){
 
 function buildReportHTML(r, reportId){
   if(!r) return '';
-  var hdr=_pH('dr'), hdrT=_pHT('dr');
+  var hdr=_pDocHdr('dr'), hdrT=_pDocHdrT('dr');
+  var sec=_pSec('dr');
   var p=DB.projects.find(function(x){return x.ref===r.projRef;});
   var siteLabel='';
   if(r.siteId&&p){var site=(p.sites||[]).find(function(s){return s.id===r.siteId;});if(site)siteLabel=' · '+site.ref+' '+site.name;}
@@ -5539,10 +5531,9 @@ function buildReportHTML(r, reportId){
   var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Daily Report '+esc(r.num||'')+'</title>'+
     '<style>'+_printCSS(sec)+'</style></head><body>';
 
-  html+=getDocHeader();
+  html+=getDocHeader('dr',{hideAddress:true,hidePhone:true,hideEmail:true,hideCR:true,hideVAT:true,companyRight:true,centerTitle:'DAILY REPORT',centerTitleAr:'تقرير يومي'});
 
-  // Title bar
-  html+='<div class="doc-title-bar">'+
+
     '<div>'+
       '<div class="doc-title-main">DAILY REPORT</div>'+
       '<div class="doc-title-sub">تقرير يومي</div>'+
@@ -5560,7 +5551,7 @@ function buildReportHTML(r, reportId){
   // Team section
   if(teamRows){
     html+='<div style="margin-bottom:14px">'+
-      '<div style="font-size:9.5px;font-weight:700;color:'+hdr+';text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px">Team on Site</div>'+
+      '<div style="font-size:9.5px;font-weight:700;color:'+sec+';text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px">Team on Site</div>'+
       '<table><thead><tr><th>Name</th><th class="c">Time In</th><th class="c">Time Out</th></tr></thead>'+
       '<tbody>'+teamRows+'</tbody></table></div>';
   }
@@ -5576,7 +5567,7 @@ function buildReportHTML(r, reportId){
   // Items section
   if(itemRows){
     html+='<div style="margin-bottom:14px">'+
-      '<div style="font-size:9.5px;font-weight:700;color:'+hdr+';text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px">Materials Used</div>'+
+      '<div style="font-size:9.5px;font-weight:700;color:'+sec+';text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px">Materials Used</div>'+
       '<table><thead><tr><th>Part No.</th><th>Description</th><th>Vendor</th><th class="r">Qty</th></tr></thead>'+
       '<tbody>'+itemRows+'</tbody></table></div>';
   }
@@ -5585,7 +5576,7 @@ function buildReportHTML(r, reportId){
   if(pettyRows){
     var totPetty=(r.pettyExp||[]).reduce(function(a,e){return a+(e.amount||0);},0);
     html+='<div style="margin-bottom:14px">'+
-      '<div style="font-size:9.5px;font-weight:700;color:'+hdr+';text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px">Petty Cash Expenses</div>'+
+      '<div style="font-size:9.5px;font-weight:700;color:'+sec+';text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px">Petty Cash Expenses</div>'+
       '<table><thead><tr><th>Inv No.</th><th>Date</th><th>Supplier</th><th class="r">Amount</th></tr></thead>'+
       '<tbody>'+pettyRows+'</tbody>'+
       '<tfoot><tr><td colspan="3" style="text-align:right;padding:7px 10px;font-weight:700">Total</td><td class="r">SAR '+fmt(totPetty)+'</td></tr></tfoot>'+
@@ -6112,6 +6103,8 @@ function buildSigBlock(mod, record, submittedBy){
 }
 
 function getPOHTML(po){
+  var _f2=function(n){return Number(n).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});};
+  var _SAR=function(n){return 'SAR '+_f2(n);};
   var isIntl  = (po.supplierType||'').toLowerCase()==='international';
   var cur     = isIntl&&po.currency&&po.currency!=='SAR' ? po.currency+' ' : 'SAR ';
   var exRate  = parseFloat(po.exchangeRate)||1;
@@ -6493,34 +6486,17 @@ function getPettyHTML(pc){
   body+='<tfoot><tr style="background:#f5f8ff"><td colspan="6" style="padding:8px 10px;font-weight:700;text-align:right">\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a \u0628\u062f\u0648\u0646 \u0627\u0644\u0636\u0631\u064a\u0628\u0629</td><td style="padding:8px 10px;font-weight:700">'+fmt(sub)+'</td></tr><tr style="background:#fffde7"><td colspan="6" style="padding:7px 10px;text-align:right">\u0642\u064a\u0645\u0629 \u0627\u0644\u0636\u0631\u064a\u0628\u0629 15%</td><td style="padding:7px 10px">'+fmt(vat)+'</td></tr><tr style="background:'+_pT('pc')+'"><td colspan="6" style="padding:9px 10px;font-weight:700;color:'+_pH('pc')+';text-align:right">\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a \u0634\u0627\u0645\u0644 \u0627\u0644\u0636\u0631\u064a\u0628\u0629</td><td style="padding:9px 10px;font-weight:700;color:'+_pH('pc')+'">'+fmt(sub+vat)+'</td></tr></tfoot></table>';
   if(pc.notes) body+='<div style="margin-top:12px;padding:8px;background:#f5f8ff;border-radius:6px"><b>\u0645\u0644\u0627\u062d\u0638\u0627\u062a:</b> '+pc.notes+'</div>';
   body+=buildSigBlock('pc', pc, pc.owner||getSubmittedBy())+'</div>';
-  // Build custom PO header: Logo+Company LEFT, PURCHASE ORDER title+meta RIGHT
-  var _hdrColor = S.headerBgColor||'#1a4fa0';
-  var _fontColor= S.headerFontColor||'#ffffff';
-  var _logoHTML = S.logoData
-    ? '<img src="'+S.logoData+'" style="height:50px;max-width:130px;object-fit:contain"/>'
-    : '<div style="font-size:18px;font-weight:900;color:#fff">'+S.companyEn+'</div>';
+  // Footer
+  var ftrBgColor=(_dcGet('inv','footerBg',null))||hdr;
+  var footerParts=[S.companyEn,S.addressEn,S.phone,S.email,S.cr?'CR: '+S.cr:'',S.vat?'VAT: '+S.vat:''].filter(Boolean);
 
-  // Sub-bar: company address + PO meta
-  var invHeader =
-    '<div style="-webkit-print-color-adjust:exact;background:'+_hdrColor+';padding:12px 20px;display:flex;justify-content:space-between;align-items:center">'+
-      '<div style="display:flex;align-items:center;gap:10px">'+
-        '<div style="background:#fff;border-radius:6px;padding:5px 7px;display:flex;align-items:center">'+_logoHTML+'</div>'+
-        '<div>'+
-          '<div style="color:'+_fontColor+';font-size:15px;font-weight:800">'+S.companyEn+'</div>'+
-          (S.companyAr?'<div style="color:'+_fontColor+'cc;font-size:11px;direction:rtl">'+S.companyAr+'</div>':'')+
-        '</div>'+
-      '</div>'+
-      '<div style="text-align:right">'+
-        '<div style="font-size:22px;font-weight:900;color:'+_fontColor+'">Invoice Request</div>'+
-        '<div style="font-size:16px;font-weight:700;color:'+_fontColor+'cc">'+(inv.num||'')+'</div>'+
-        '<div style="font-size:11px;color:'+_fontColor+'99">Date: '+(inv.date||'')+'</div>'+
-      '</div>'+
+  return '<div style="'+getDocStyle()+'">'+
+    getDocHeader('inv',{hideAddress:true,hidePhone:true,hideEmail:true,hideCR:true,hideVAT:true,companyRight:true,centerTitle:'Invoice Request',centerTitleAr:'طلب فاتورة'})+
+    wrapBody(body)+
+    '<div style="-webkit-print-color-adjust:exact;background:'+ftrBgColor+';color:#fff;padding:6px 20px;font-size:10px;text-align:center">'+
+      footerParts.join(' &nbsp;|&nbsp; ')+
     '</div>'+
-    '<div style="background:#f5f7fc;border-bottom:1px solid #dde2f0;padding:5px 20px;font-size:11px;color:#555">'+
-      [S.addressEn,S.phone,S.email].filter(Boolean).join(' &nbsp;|&nbsp; ')+
-    '</div>';
-
-  return '<div style="'+getDocStyle()+'">'+invHeader+wrapBody(body)+'</div>';
+  '</div>';
 }
 function renderPettyTable(){
   DB.petty.forEach(function(pc){if(!pc.approvalStatus){pc.approvalStatus=pc.status==='Approved'?'Approved':'Pending';pc.paymentStatus='Pending Payment';}});
@@ -6938,12 +6914,13 @@ function rejectInvoice(id){
 }
 function markCollected(id){var inv=DB.invoices.find(function(i){return i.id===id;});inv.paymentStatus='Collected';inv.collectedDate=today();renderInvoiceTable();refreshProjDetail();saveToGitHub();}
 function getInvoiceHTML(inv){
+  var hdr=_pDocHdr('inv'), hdrT=_pDocHdrT('inv');
+  var sec=_pSec('inv');
   var lines=inv.lines||[];var sub=lines.reduce(function(a,l){return a+l.extPrice;},0)||(inv.total/1.15);var vat=sub*.15;var total=sub+vat;
   var lineRows='';
   if(lines.length){lines.forEach(function(l,i){lineRows+='<tr style="background:'+(i%2?_pAlt('inv'):'#fff')+'"><td style="padding:7px 10px">'+(i+1)+'</td><td style="padding:7px 10px">'+l.desc+'</td><td style="padding:7px 10px;text-align:right">'+l.qty+'</td><td style="padding:7px 10px;text-align:right">'+fmt(l.unitPrice)+'</td><td style="padding:7px 10px;text-align:right;font-weight:700">'+fmt(l.extPrice)+'</td></tr>';});}
   else{lineRows='<tr><td colspan="5" style="padding:16px;text-align:center;color:#999">No line items</td></tr>';}
-  var body='<div style="padding:12px 20px;background:rgba(245,248,255,0.9);border-bottom:1px solid #e2e6ef;display:flex;justify-content:space-between;align-items:center"><div style="font-size:17px;font-weight:800;color:'+_pH('inv')+'">Invoice Request</div><div style="color:#555;font-weight:600">'+inv.num+' | '+inv.date+'</div></div>';
-  body+='<div style="padding:16px 20px">';
+  var body='<div style="padding:16px 20px">';
 
   // Accountant instruction banner
   body+='<div style="background:#fffbeb;border:2px solid #f59e0b;border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:flex-start;gap:10px">';
@@ -6952,41 +6929,24 @@ function getInvoiceHTML(inv){
   body+='<div style="color:#78350f;font-size:13px">Please issue an official tax invoice to <strong>'+inv.client+'</strong> based on the details below and ensure delivery before the due date of <strong>'+(inv.dueDate||'—')+'</strong>. Payment terms: <strong>'+(inv.terms||'30 days')+'</strong>.</div></div></div>';
 
   body+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">';
-  body+='<div style="padding:11px;background:'+(S.docCardBg||'#f5f8ff')+';border-radius:8px;border:1px solid '+_pTB()+'"><div style="font-weight:700;color:'+_pH('inv')+';margin-bottom:5px;font-size:11px;text-transform:uppercase">Project Details</div>'+(function(){var p=DB.projects.find(function(x){return x.ref===inv.proj;});return p?'<div><b>Project Name:</b> '+p.name+'</div>':'';}())+'<div><b>Project Ref:</b> '+(inv.proj||'—')+'</div><div><b>Client:</b> '+inv.client+'</div><div><b>Client PO Ref:</b> '+(inv.poRef||'—')+'</div><div><b>Invoice No:</b> '+inv.num+'</div><div><b>Date:</b> '+inv.date+'</div><div><b>Due Date:</b> '+(inv.dueDate||'—')+'</div><div><b>Terms:</b> '+(inv.terms||'30 days')+'</div></div>';
-  body+='<div style="padding:11px;background:'+(S.docSubBarBg||'#f9f9f9')+';border-radius:8px;border:1px solid '+_pTB()+'"><div style="font-weight:700;color:'+_pH('inv')+';margin-bottom:5px;font-size:11px;text-transform:uppercase">Requested By</div><div style="font-size:14px;font-weight:700">'+(inv.reqBy||getSubmittedBy())+'</div>'+(function(){var u=DB.users.find(function(x){return x.name===(inv.reqBy||getSubmittedBy());});return u?'<div style="margin-top:4px;font-size:12px;color:#555">'+(u.phone?'<div>📞 '+u.phone+'</div>':'')+(u.email?'<div>✉ '+u.email+'</div>':'')+'</div>':'';}())+(inv.notes?'<div style="margin-top:6px;padding:6px 8px;background:#fff;border-radius:5px;font-size:12px;color:#666;border:1px solid #e2e6ef"><b>Notes:</b> '+inv.notes+'</div>':'')+'</div></div>';
+  body+='<div style="padding:11px;background:'+(S.docCardBg||'#f5f8ff')+';border-radius:8px;border:1px solid '+_pTB()+'"><div style="font-weight:700;color:'+sec+';margin-bottom:5px;font-size:11px;text-transform:uppercase">PROJECT DETAILS</div>'+(function(){var p=DB.projects.find(function(x){return x.ref===inv.proj;});return p?'<div><b>Project Name:</b> '+p.name+'</div>':'';}())+'<div><b>Project Ref:</b> '+(inv.proj||'—')+'</div><div><b>Client:</b> '+inv.client+'</div><div><b>Client PO Ref:</b> '+(inv.poRef||'—')+'</div><div><b>Invoice No:</b> '+inv.num+'</div><div><b>Date:</b> '+inv.date+'</div><div><b>Due Date:</b> '+(inv.dueDate||'—')+'</div><div><b>Terms:</b> '+(inv.terms||'30 days')+'</div></div>';
+  body+='<div style="padding:11px;background:'+(S.docSubBarBg||'#f9f9f9')+';border-radius:8px;border:1px solid '+_pTB()+'"><div style="font-weight:700;color:'+sec+';margin-bottom:5px;font-size:11px;text-transform:uppercase">REQUESTED BY</div><div style="font-size:14px;font-weight:700">'+(inv.reqBy||getSubmittedBy())+'</div>'+(function(){var u=DB.users.find(function(x){return x.name===(inv.reqBy||getSubmittedBy());});return u?'<div style="margin-top:4px;font-size:12px;color:#555">'+(u.phone?'<div>📞 '+u.phone+'</div>':'')+(u.email?'<div>✉ '+u.email+'</div>':'')+'</div>':'';}())+(inv.notes?'<div style="margin-top:6px;padding:6px 8px;background:#fff;border-radius:5px;font-size:12px;color:#666;border:1px solid #e2e6ef"><b>Notes:</b> '+inv.notes+'</div>':'')+'</div></div>';
   body+='<table style="width:100%;border-collapse:collapse"><thead><tr style="background:'+_pH('inv')+';color:'+_pHT('inv')+'"><th style="padding:7px 10px;text-align:left">#</th><th style="padding:7px 10px;text-align:left">Description</th><th style="padding:7px 10px;text-align:right">Qty</th><th style="padding:7px 10px;text-align:right">Unit Price (SAR)</th><th style="padding:7px 10px;text-align:right">Ext Price (SAR)</th></tr></thead><tbody>'+lineRows+'</tbody>';
   body+='<tfoot><tr style="background:#f5f8ff"><td colspan="4" style="padding:8px 10px;text-align:right;font-weight:700">Subtotal</td><td style="padding:8px 10px;text-align:right;font-weight:700">'+fmt(sub)+'</td></tr><tr style="background:#fffde7"><td colspan="4" style="padding:7px 10px;text-align:right;color:#666">15% VAT</td><td style="padding:7px 10px;text-align:right">'+fmt(vat)+'</td></tr><tr style="background:'+_pT('inv')+'"><td colspan="4" style="padding:9px 10px;text-align:right;font-weight:700;color:'+_pH('inv')+'">Total with VAT</td><td style="padding:9px 10px;text-align:right;font-weight:700;color:'+_pH('inv')+'">'+fmt(total)+'</td></tr></tfoot></table>';
 
   // Signature block with approval stamps
   body+=buildSigBlock('inv', inv, inv.reqBy||getSubmittedBy())+'</div>';
-  // Build custom PO header: Logo+Company LEFT, PURCHASE ORDER title+meta RIGHT
-  var _hdrColor = S.headerBgColor||'#1a4fa0';
-  var _fontColor= S.headerFontColor||'#ffffff';
-  var _logoHTML = S.logoData
-    ? '<img src="'+S.logoData+'" style="height:50px;max-width:130px;object-fit:contain"/>'
-    : '<div style="font-size:18px;font-weight:900;color:#fff">'+S.companyEn+'</div>';
+  // Footer
+  var ftrBgColor=(_dcGet('inv','footerBg',null))||hdr;
+  var footerParts=[S.companyEn,S.addressEn,S.phone,S.email,S.cr?'CR: '+S.cr:'',S.vat?'VAT: '+S.vat:''].filter(Boolean);
 
-  // Sub-bar: company address + PO meta
-  var invHeader =
-    '<div style="-webkit-print-color-adjust:exact;background:'+_hdrColor+';padding:12px 20px;display:flex;justify-content:space-between;align-items:center">'+
-      '<div style="display:flex;align-items:center;gap:10px">'+
-        '<div style="background:#fff;border-radius:6px;padding:5px 7px;display:flex;align-items:center">'+_logoHTML+'</div>'+
-        '<div>'+
-          '<div style="color:'+_fontColor+';font-size:15px;font-weight:800">'+S.companyEn+'</div>'+
-          (S.companyAr?'<div style="color:'+_fontColor+'cc;font-size:11px;direction:rtl">'+S.companyAr+'</div>':'')+
-        '</div>'+
-      '</div>'+
-      '<div style="text-align:right">'+
-        '<div style="font-size:22px;font-weight:900;color:'+_fontColor+'">Invoice Request</div>'+
-        '<div style="font-size:16px;font-weight:700;color:'+_fontColor+'cc">'+(inv.num||'')+'</div>'+
-        '<div style="font-size:11px;color:'+_fontColor+'99">Date: '+(inv.date||'')+'</div>'+
-      '</div>'+
+  return '<div style="'+getDocStyle()+'">'+
+    getDocHeader('inv',{hideAddress:true,hidePhone:true,hideEmail:true,hideCR:true,hideVAT:true,companyRight:true,centerTitle:'Invoice Request',centerTitleAr:'طلب فاتورة'})+
+    wrapBody(body)+
+    '<div style="-webkit-print-color-adjust:exact;background:'+ftrBgColor+';color:#fff;padding:6px 20px;font-size:10px;text-align:center">'+
+      footerParts.join(' &nbsp;|&nbsp; ')+
     '</div>'+
-    '<div style="background:#f5f7fc;border-bottom:1px solid #dde2f0;padding:5px 20px;font-size:11px;color:#555">'+
-      [S.addressEn,S.phone,S.email].filter(Boolean).join(' &nbsp;|&nbsp; ')+
-    '</div>';
-
-  return '<div style="'+getDocStyle()+'">'+invHeader+wrapBody(body)+'</div>';
+  '</div>';
 }
 function viewInvoice(id){document.getElementById('invoice-preview-content').innerHTML=getInvoiceHTML(DB.invoices.find(function(x){return x.id===id;}));openModal('modal-invoice-preview');}
 function previewInvoice(){
@@ -7345,34 +7305,17 @@ function getBOQHTML(boq, hidePrices){
   body+='<div style="text-align:center"><div style="border-top:1px solid #333;padding-top:5px;margin-top:26px">Prepared By<br><em>'+(boq.preparedBy||getSubmittedBy())+'</em></div></div>';
   body+='<div style="text-align:center"><div style="border-top:1px solid #333;padding-top:5px;margin-top:26px">Received By<br>&nbsp;</div></div>';
   body+='</div></div>';
-  // Build custom PO header: Logo+Company LEFT, PURCHASE ORDER title+meta RIGHT
-  var _hdrColor = S.headerBgColor||'#1a4fa0';
-  var _fontColor= S.headerFontColor||'#ffffff';
-  var _logoHTML = S.logoData
-    ? '<img src="'+S.logoData+'" style="height:50px;max-width:130px;object-fit:contain"/>'
-    : '<div style="font-size:18px;font-weight:900;color:#fff">'+S.companyEn+'</div>';
+  // Footer
+  var ftrBgColor=(_dcGet('inv','footerBg',null))||hdr;
+  var footerParts=[S.companyEn,S.addressEn,S.phone,S.email,S.cr?'CR: '+S.cr:'',S.vat?'VAT: '+S.vat:''].filter(Boolean);
 
-  // Sub-bar: company address + PO meta
-  var invHeader =
-    '<div style="-webkit-print-color-adjust:exact;background:'+_hdrColor+';padding:12px 20px;display:flex;justify-content:space-between;align-items:center">'+
-      '<div style="display:flex;align-items:center;gap:10px">'+
-        '<div style="background:#fff;border-radius:6px;padding:5px 7px;display:flex;align-items:center">'+_logoHTML+'</div>'+
-        '<div>'+
-          '<div style="color:'+_fontColor+';font-size:15px;font-weight:800">'+S.companyEn+'</div>'+
-          (S.companyAr?'<div style="color:'+_fontColor+'cc;font-size:11px;direction:rtl">'+S.companyAr+'</div>':'')+
-        '</div>'+
-      '</div>'+
-      '<div style="text-align:right">'+
-        '<div style="font-size:22px;font-weight:900;color:'+_fontColor+'">Invoice Request</div>'+
-        '<div style="font-size:16px;font-weight:700;color:'+_fontColor+'cc">'+(inv.num||'')+'</div>'+
-        '<div style="font-size:11px;color:'+_fontColor+'99">Date: '+(inv.date||'')+'</div>'+
-      '</div>'+
+  return '<div style="'+getDocStyle()+'">'+
+    getDocHeader('inv',{hideAddress:true,hidePhone:true,hideEmail:true,hideCR:true,hideVAT:true,companyRight:true,centerTitle:'Invoice Request',centerTitleAr:'طلب فاتورة'})+
+    wrapBody(body)+
+    '<div style="-webkit-print-color-adjust:exact;background:'+ftrBgColor+';color:#fff;padding:6px 20px;font-size:10px;text-align:center">'+
+      footerParts.join(' &nbsp;|&nbsp; ')+
     '</div>'+
-    '<div style="background:#f5f7fc;border-bottom:1px solid #dde2f0;padding:5px 20px;font-size:11px;color:#555">'+
-      [S.addressEn,S.phone,S.email].filter(Boolean).join(' &nbsp;|&nbsp; ')+
-    '</div>';
-
-  return '<div style="'+getDocStyle()+'">'+invHeader+wrapBody(body)+'</div>';
+  '</div>';
 }
 function previewBOQ(){
   currentBOQId=null; boqHidePrices=false;
@@ -8928,10 +8871,11 @@ function ddLoadDocColors(type){
 
 function ddSelectDoc(type){
   _ddCurrentDoc = type;
-  var ftrGroup=document.getElementById('dd-footer-color-group');if(ftrGroup)ftrGroup.style.display=(type==='dn')?'':'none';
-  var dhGroup=document.getElementById('dd-doc-hdr-color-group');if(dhGroup)dhGroup.style.display=(type==='dn')?'':'none';
-  var secGroup=document.getElementById('dd-sec-color-group');if(secGroup)secGroup.style.display=(type==='dn')?'':'none';
-  var dhtGroup=document.getElementById('dd-doc-hdr-text-group');if(dhtGroup)dhtGroup.style.display=(type==='dn')?'':'none';
+  var _extDoc=(type==='dn'||type==='dr'||type==='inv');
+  var ftrGroup=document.getElementById('dd-footer-color-group');if(ftrGroup)ftrGroup.style.display=_extDoc?'':'none';
+  var dhGroup=document.getElementById('dd-doc-hdr-color-group');if(dhGroup)dhGroup.style.display=_extDoc?'':'none';
+  var secGroup=document.getElementById('dd-sec-color-group');if(secGroup)secGroup.style.display=_extDoc?'':'none';
+  var dhtGroup=document.getElementById('dd-doc-hdr-text-group');if(dhtGroup)dhtGroup.style.display=_extDoc?'':'none';
   document.querySelectorAll('.dd-item').forEach(function(el){
     el.style.background=''; el.style.color=''; el.style.fontWeight='';
   });
@@ -9110,7 +9054,7 @@ function ddSaveDesign(){
   showToast('✅ Document design saved.');
 
   // Save DN-specific colors
-  if(_ddCurrentDoc==='dn'){
+  if(_ddCurrentDoc==='dn'||_ddCurrentDoc==='dr'||_ddCurrentDoc==='inv'){
     var ftrBg2=document.getElementById('dc-ftr-bg');if(ftrBg2&&ftrBg2.value)S.docColors[_ddCurrentDoc].footerBg=ftrBg2.value;
     var dhBg2=document.getElementById('dc-doc-hdr-bg');if(dhBg2&&dhBg2.value)S.docColors[_ddCurrentDoc].docHdrBg=dhBg2.value;
     var dhTxt2=document.getElementById('dc-doc-hdr-text');if(dhTxt2&&dhTxt2.value)S.docColors[_ddCurrentDoc].docHdrText=dhTxt2.value;
@@ -9533,6 +9477,15 @@ function exportPettyCashExcel(){
   document.body.appendChild(a);
   a.click();
   setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},2000);
+}
+
+function _projSecToggle(id){
+  var body=document.getElementById('proj-sec-'+id);
+  if(!body) return;
+  var expanded=body.style.display!=='none';
+  body.style.display=expanded?'none':'';
+  var arrow=document.getElementById('proj-sec-arr-'+id);
+  if(arrow) arrow.style.transform=expanded?'rotate(-90deg)':'rotate(0)';
 }
 
 function dpStatusBadge(s){
