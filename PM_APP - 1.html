@@ -1007,6 +1007,14 @@ textarea{resize:vertical;min-height:68px}
     <div class="form-group"><label>City</label><input id="cl-city" placeholder="Riyadh"/></div>
     <div class="form-group full"><label>Address</label><textarea id="cl-address" rows="2" placeholder="Full address"></textarea></div>
     <div class="form-group full"><label>Notes</label><textarea id="cl-notes" rows="2" placeholder="Optional notes"></textarea></div>
+    <div class="form-group full"><label>Client Logo</label>
+      <div style="display:flex;align-items:center;gap:10px">
+        <img id="cl-logo-preview" src="" style="height:48px;max-width:120px;object-fit:contain;border-radius:6px;border:1px solid var(--border);background:#fff;padding:4px;display:none"/>
+        <div><input type="file" id="cl-logo-file" accept="image/*" style="display:none" onchange="handleClientLogo(this)"/>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('cl-logo-file').click()">📁 Upload Logo</button>
+        <button class="btn btn-danger btn-sm" id="cl-logo-remove" style="display:none;margin-left:4px" onclick="removeClientLogo()">✕ Remove</button></div>
+      </div>
+    </div>
   </div>
   <div class="section-sep"></div>
   <div class="sec-label">&#x1F4CE; Attached Documents</div>
@@ -1332,7 +1340,17 @@ textarea{resize:vertical;min-height:68px}
     <div class="form-group"><label>Project Ref</label><input id="p-ref" placeholder="e.g. 1-2025"/></div>
     <div class="form-group"><label>Year</label><input id="p-year" type="number" value="2025"/></div>
     <div class="form-group full"><label>Project Name</label><input id="p-name" placeholder="Project description"/></div>
-    <div class="form-group"><label>Client</label><input id="p-client" placeholder="Client name" list="client-datalist" autocomplete="off" oninput="autoFillClient(this.value,'proj')"/></div>
+    <div class="form-group"><label>Client</label><input id="p-client" placeholder="Client name" list="client-datalist" autocomplete="off" oninput="autoFillClient(this.value,'proj');projLoadClientLogo(this.value)"/></div>
+    <div class="form-group"><label>Client Logo</label>
+      <div style="display:flex;align-items:center;gap:8px">
+        <img id="proj-client-logo-preview" src="" style="height:38px;max-width:100px;object-fit:contain;border-radius:5px;border:1px solid var(--border);background:#fff;padding:3px;display:none"/>
+        <div>
+          <input type="file" id="proj-client-logo-file" accept="image/*" style="display:none" onchange="projHandleClientLogo(this)"/>
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('proj-client-logo-file').click()">📁 Upload</button>
+          <button class="btn btn-danger btn-sm" id="proj-client-logo-remove" style="display:none;margin-left:4px" onclick="projRemoveClientLogo()">✕</button>
+        </div>
+      </div>
+    </div>
     <div class="form-group"><label>Tender Ref</label><input id="p-tender" placeholder="Tender / PO ref"/></div>
   </div>
   <div class="section-sep"></div>
@@ -1909,7 +1927,11 @@ textarea{resize:vertical;min-height:68px}
 <!-- Project Detail -->
 <div class="modal-overlay" id="modal-proj-detail">
 <div class="modal modal-lg">
-  <div class="modal-header"><div class="modal-title" id="proj-detail-title">Project Detail</div><button class="modal-close" onclick="closeModal('modal-proj-detail')">✕</button></div>
+  <div class="modal-header" style="display:flex;align-items:center;gap:12px;flex-wrap:nowrap">
+    <div id="proj-detail-client-logo" style="flex-shrink:0;display:none"><img id="proj-detail-client-logo-img" style="height:40px;max-width:100px;object-fit:contain;border-radius:6px;border:1px solid var(--border);background:#fff;padding:3px" src=""/></div>
+    <div class="modal-title" id="proj-detail-title" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📁 Project Detail</div>
+    <button class="modal-close" onclick="closeModal('modal-proj-detail')">✕</button>
+  </div>
   <div id="proj-detail-content"></div>
   <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-proj-detail')">Close</button><button class="btn btn-secondary" onclick="printProjDetail()">🖨 Print</button><button class="btn btn-pdf" onclick="exportProjPDF()">⬇ Export PDF</button></div>
 </div></div>
@@ -4015,7 +4037,7 @@ function _renderAfApprovers(steps){
       '</div>'+
       '<div class="form-group" style="margin-bottom:0">'+
         '<label style="font-size:11px">Approver / الموافق</label>'+
-        '<select style="font-size:12px;width:100%;padding:5px 8px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface)" onchange="afUpdateStep('+i+',\'name\',this.value)">'+opts+'</select>'+
+        '<input value="'+(step.name||'')+'" placeholder="Name or title" style="font-size:12px;width:100%;padding:5px 8px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface)" oninput="afUpdateStep('+i+',\'name\',this.value)"/>'+
       '</div>'+
       '<button onclick="afRemoveStep('+i+')" class="btn btn-danger btn-sm" style="height:36px;margin-bottom:0">✕</button>'+
     '</div>';
@@ -4445,6 +4467,9 @@ function openProjModal(p){
   document.getElementById('p-year').value=p?p.year:2025;
   document.getElementById('p-name').value=p?p.name:'';
   document.getElementById('p-client').value=p?p.client:'';
+  window._projClientLogo=(p&&p.clientLogo)||null;
+  var _plp=document.getElementById('proj-client-logo-preview');if(_plp){_plp.src=(p&&p.clientLogo)||'';_plp.style.display=(p&&p.clientLogo)?'block':'none';}
+  var _plr=document.getElementById('proj-client-logo-remove');if(_plr)_plr.style.display=(p&&p.clientLogo)?'inline-block':'none';
   document.getElementById('p-tender').value=p?p.tender:'';
   document.getElementById('p-quot-ref').value=p?p.quotRef||'':'';
   document.getElementById('p-po-num').value=p?p.poNum||'':'';
@@ -4504,6 +4529,7 @@ function saveProject(){
     year:parseInt(document.getElementById('p-year').value),
     name:document.getElementById('p-name').value,
     client:document.getElementById('p-client').value,
+    clientLogo:window._projClientLogo||undefined,
     tender:document.getElementById('p-tender').value,
     quotRef:document.getElementById('p-quot-ref').value,
     poNum:document.getElementById('p-po-num').value,
@@ -5083,6 +5109,22 @@ function viewProject(id){
       '</div></div>';
     }())+
     renderProjTeamInDetail(p.team||'')+reportsHTML+sitesHTML+pettyHTML+docsHTML;
+  var titleEl=document.getElementById('proj-detail-title');
+  if(titleEl) titleEl.textContent='📁 '+(p.name||p.ref||'Project Detail');
+  // Show client logo if available
+  var clientLogoWrap=document.getElementById('proj-detail-client-logo');
+  var clientLogoImg=document.getElementById('proj-detail-client-logo-img');
+  var client=p.client?DB.clients.find(function(c){return c.name===p.client;}):null;
+  var logoSrc=p.clientLogo||(client&&client.logo)||'';
+  if(clientLogoWrap&&clientLogoImg){
+    if(logoSrc){
+      clientLogoImg.src=logoSrc;
+      clientLogoWrap.style.display='block';
+    } else {
+      clientLogoWrap.style.display='none';
+      clientLogoImg.src='';
+    }
+  }
   openModal('modal-proj-detail');
 }
 
@@ -6147,8 +6189,10 @@ function getPOHTML(po){
   var aftDisc = sub-disc;
   var vat     = isIntl?0:Math.round((aftDisc*0.15+Number.EPSILON)*100)/100;
   var total   = Math.round((aftDisc+aftDisc*(isIntl?0:0.15)+Number.EPSILON)*100)/100;
-  var hdr     = _pH('po');
-  var hdrT    = _pHT('po');
+  var hdr     = _dcGet('po','hdrBg',_pH('po'));    // Doc header bg
+  var hdrT    = _dcGet('po','hdrText',_pHT('po')); // Doc header text
+  var thBg    = _pH('po');                          // Table TH bg
+  var thT     = _pHT('po');                         // Table TH text
   var totBg   = _pT('po');
   var altBg   = _pAlt('po');
 
@@ -6271,7 +6315,7 @@ function getPOHTML(po){
 
     // ── LINE ITEMS TABLE ─────────────────────────────────────
     '<table style="margin-bottom:0;border:1px solid #ccc">'+
-      '<thead><tr style="background:'+hdr+';color:'+hdrT+'">'+
+      '<thead><tr style="background:'+thBg+';color:'+thT+'">'+
         '<th style="border:1px solid '+hdr+'88;padding:8px 10px;text-align:center;width:32px">Ref</th>'+
         '<th style="border:1px solid '+hdr+'88;padding:8px 10px;width:100px">Part Number</th>'+
         '<th style="border:1px solid '+hdr+'88;padding:8px 10px">Description</th>'+
@@ -7382,7 +7426,7 @@ function previewDeliveryNote(){
 
 function getDeliveryNoteHTML(boq, dn){
   dn = dn||{};
-  var lines = boq.lines||[];
+  var lines = (boq.lines||[]).filter(function(l){return parseFloat(l.qty||0)>0;});
   var p     = DB.projects.find(function(x){return x.id===boq.projId;});
   var dnNum = dn.num || ('DN-'+boq.num);
   var hdr   = _pDocHdr('dn'), hdrT=_pDocHdrT('dn');
@@ -8564,6 +8608,42 @@ function renderSuppliersTable() {
   document.getElementById('suppliers-table').innerHTML = h;
 }
 
+function projLoadClientLogo(clientName){
+  var client=DB.clients.find(function(c){return c.name===clientName;});
+  var prev=document.getElementById('proj-client-logo-preview');
+  var rem=document.getElementById('proj-client-logo-remove');
+  if(client&&client.logo){
+    window._projClientLogo=client.logo;
+    if(prev){prev.src=client.logo;prev.style.display='block';}
+    if(rem) rem.style.display='inline-block';
+  } else if(!client){
+    // Don't clear if manually uploaded
+  }
+}
+
+function projHandleClientLogo(inp){
+  var f=inp.files[0]; if(!f) return;
+  var r=new FileReader();
+  r.onload=function(e){
+    window._projClientLogo=e.target.result;
+    var prev=document.getElementById('proj-client-logo-preview');
+    if(prev){prev.src=e.target.result;prev.style.display='block';}
+    var rem=document.getElementById('proj-client-logo-remove');
+    if(rem) rem.style.display='inline-block';
+  };
+  r.readAsDataURL(f);
+}
+
+function projRemoveClientLogo(){
+  window._projClientLogo=null;
+  var prev=document.getElementById('proj-client-logo-preview');
+  if(prev){prev.src='';prev.style.display='none';}
+  var rem=document.getElementById('proj-client-logo-remove');
+  if(rem) rem.style.display='none';
+  var inp=document.getElementById('proj-client-logo-file');
+  if(inp) inp.value='';
+}
+
 function autoFillClient(name, prefix){
   var cl = DB.clients.find(function(x){ return x.name === name; });
   if (!cl) return;
@@ -8600,6 +8680,29 @@ function populateSupplierDropdowns() {
 
 // ── CLIENT DOCUMENT ATTACHMENTS ──
 var _clientDocs = {cr: null, vat: null, addr: null};
+
+function handleClientLogo(inp){
+  var f=inp.files[0]; if(!f) return;
+  var r=new FileReader();
+  r.onload=function(e){
+    window._clientLogoData=e.target.result;
+    var prev=document.getElementById('cl-logo-preview');
+    if(prev){prev.src=e.target.result;prev.style.display='block';}
+    var btn=document.getElementById('cl-logo-remove');
+    if(btn) btn.style.display='inline-block';
+  };
+  r.readAsDataURL(f);
+}
+
+function removeClientLogo(){
+  window._clientLogoData=null;
+  var prev=document.getElementById('cl-logo-preview');
+  if(prev){prev.src='';prev.style.display='none';}
+  var btn=document.getElementById('cl-logo-remove');
+  if(btn) btn.style.display='none';
+  var inp=document.getElementById('cl-logo-file');
+  if(inp) inp.value='';
+}
 
 function handleClientDoc(type, input) {
   var file = input.files[0]; if (!file) return;
@@ -10784,14 +10887,27 @@ function dnLoadFromBOQ(){
   var lines=boq.lines.filter(function(l){return l.desc||l.partNum;});
   var hdr=_pH('dn');
   var rows=lines.map(function(l,i){
+    var boqQty=parseFloat(l.qty||0);
+    // Calculate delivered qty from existing DNs
+    var deliveredQty=0;
+    DB.deliveryNotes&&DB.deliveryNotes.forEach(function(d){
+      if(d.projRef!==(document.getElementById('dn-create-proj').value||'')) return;
+      (d.items||[]).forEach(function(it){
+        if((it.partNum||it.desc)===(l.partNum||l.desc)) deliveredQty+=parseFloat(it.qty||0);
+      });
+    });
+    var balance=Math.max(0,boqQty-deliveredQty);
     return '<tr style="border-bottom:1px solid #e2e6ef;'+(i%2?'background:#f9f9f9':'')+'">' +
       '<td style="padding:6px 10px;font-family:monospace;font-size:11px;color:#888">'+(l.partNum||'—')+'</td>'+
-      '<td style="padding:6px 10px">'+(l.desc||'')+'</td>'+
-      '<td style="padding:6px 10px;text-align:right">'+(l.unit||'Pcs')+'</td>'+
-      '<td style="padding:6px 10px;text-align:right">'+fmt(l.qty||0)+'</td>'+
-      '<input type="hidden" class="dn-qty-input" data-desc="'+esc(l.desc||'')+'" data-part="'+esc(l.partNum||'')+'" data-unit="'+esc(l.unit||'')+'" value="'+(l.qty||0)+'">'+
-      '<td style="padding:6px 10px;text-align:right"><input type="number" min="0" step="0.01" value="'+(l.qty||0)+'" style="width:80px;padding:4px 6px;border-radius:5px;border:1.5px solid #dde2f0;text-align:right;font-size:12px" class="dn-qty-input" data-desc="'+esc(l.desc||'')+'" data-part="'+esc(l.partNum||'')+'" data-unit="'+esc(l.unit||'')+'"></td>'+
-      '<td style="padding:6px 10px;text-align:center;font-size:16px;color:#ccc">☐</td>'+
+      '<td style="padding:6px 10px">'+esc(l.desc||'')+'</td>'+
+      '<td style="padding:6px 10px;text-align:right;color:var(--muted)">'+fmt(boqQty)+' '+(l.unit||'')+'</td>'+
+      '<td style="padding:6px 10px;text-align:right;color:#10b981;font-weight:600">'+fmt(deliveredQty)+'</td>'+
+      '<td style="padding:6px 10px;text-align:right;font-weight:700;color:'+(balance>0?'var(--accent)':'#ef4444')+'">'+fmt(balance)+'</td>'+
+      '<td style="padding:6px 10px;text-align:right">'+
+        (balance>0?
+          '<input type="number" min="0" max="'+balance+'" step="0.01" value="'+balance+'" style="width:85px;padding:4px 6px;border-radius:5px;border:1.5px solid var(--border);text-align:right;font-size:12px;background:var(--surface)" class="dn-qty-input" data-desc="'+esc(l.desc||'')+'" data-part="'+esc(l.partNum||'')+'" data-unit="'+esc(l.unit||'')+'">':
+          '<span style="color:#ccc;font-size:11px">Fully delivered</span>')+
+      '</td>'+
     '</tr>';
   }).join('');
   if(tbl){
