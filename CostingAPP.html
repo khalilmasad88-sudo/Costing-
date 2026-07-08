@@ -254,7 +254,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
 .note-indicator{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--amber);margin-left:4px;animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
 
-.quotation-sidebar{position:relative;transition:all .3s ease;min-width:0}
+.quotation-sidebar{width:100%;transition:all .3s ease}
 .quotation-sidebar.collapsed{width:0;overflow:visible;padding:0;min-width:0}
 .quotation-sidebar.collapsed > *:not(.sidebar-toggle-btn){display:none}
 .sidebar-toggle-btn{position:absolute;right:-28px;top:10px;background:var(--accent);color:#fff;border:none;border-radius:0 6px 6px 0;padding:10px 7px;cursor:pointer;z-index:100;font-size:13px;transition:all .2s;writing-mode:vertical-rl;white-space:nowrap;box-shadow:2px 2px 8px rgba(0,0,0,.3)}
@@ -319,13 +319,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <div class="company-sub" id="companyTagDisplay">Security Systems</div>
       </div>
     </div>
-    <div class="company-switcher">
-      <div class="company-switch-btn" onclick="toggleCompanyDropdown()">
-        <span id="current-company-name">Future Tag</span>
-        <span>▼</span>
-      </div>
-      <div class="company-dropdown" id="company-dropdown"></div>
-    </div>
+
     <button class="edit-co-btn" onclick="openModal('companyModal')">⚙ Edit company</button>
   </div>
   <nav class="nav" id="main-nav">
@@ -401,11 +395,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <div class="stat-value" id="dash-inpricing" style="font-size:28px;color:var(--amber)">0</div>
         <div class="stat-sub" id="dash-inpricing-val">SAR 0</div>
       </div>
-      <div class="stat-card" style="background:var(--surface2);border:1px solid var(--border)">
-        <div class="stat-label" style="color:var(--muted)">📦 Total Cost</div>
-        <div class="stat-value" id="dash-cost" style="font-size:22px;color:var(--text)">SAR 0</div>
-        <div class="stat-sub" id="dash-cost-sub">from quotations</div>
-      </div>
+
     </div>
 
     <!-- Row 3: Chart + Status + Recent -->
@@ -429,26 +419,26 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <div id="dash-donut-legend" style="font-size:11px;color:var(--muted);text-align:center;padding:0 12px 12px"></div>
       </div>
 
-      <!-- Recent Quotations -->
+      <!-- Upcoming Deadlines -->
       <div class="card">
-        <div class="card-header">
-          <div class="card-title">Recent Quotations</div>
-          <button class="btn btn-ghost btn-xs" onclick="showPage('quotation')">View all →</button>
-        </div>
-        <div class="card-body" id="dash-recent" style="max-height:280px;overflow-y:auto"></div>
+        <div class="card-header"><div class="card-title">⏰ Upcoming Deadlines</div></div>
+        <div class="card-body" id="dash-deadlines"></div>
       </div>
 
     </div>
 
-    <!-- Row 4: Top Projects + Upcoming Deadlines -->
+    <!-- Row 4: Top Projects + Recent Quotations -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
       <div class="card">
         <div class="card-header"><div class="card-title">🏆 Top Projects by Value</div></div>
         <div class="card-body" id="dash-top-projects"></div>
       </div>
       <div class="card">
-        <div class="card-header"><div class="card-title">⏰ Upcoming Deadlines</div></div>
-        <div class="card-body" id="dash-deadlines"></div>
+        <div class="card-header">
+          <div class="card-title">Recent Quotations</div>
+          <button class="btn btn-ghost btn-xs" onclick="showPage('quotation')">View all →</button>
+        </div>
+        <div class="card-body" id="dash-recent" style="max-height:280px;overflow-y:auto"></div>
       </div>
     </div>
 
@@ -462,9 +452,9 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <button class="btn btn-primary btn-sm no-print" onclick="openAddPipelineModal()">+ Add Project</button>
       </div>
       <div class="card-body">
-        <div style="display:flex;gap:10px;margin-bottom:14px" class="no-print">
-          <input type="text" id="pl-search" placeholder="Search..." style="flex:1;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px" oninput="filterPipeline()">
-          <select id="pl-status" style="background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px" onchange="filterPipeline()">
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px" class="no-print">
+          <input type="text" id="pl-search" placeholder="🔍 Search..." style="flex:2;min-width:160px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px" oninput="filterPipeline()">
+          <select id="pl-status" style="flex:1;min-width:120px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px" onchange="filterPipeline()">
             <option value="">All Status</option>
             <option value="Approved">Approved</option>
             <option value="Submitted">Submitted</option>
@@ -472,23 +462,23 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
             <option value="out">out</option>
             <option value="Canceled">Canceled</option>
           </select>
+          <select id="pl-client-filter" style="flex:1;min-width:120px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px" onchange="filterPipeline()">
+            <option value="">All Clients</option>
+          </select>
+          <select id="pl-by-filter" style="flex:1;min-width:120px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px" onchange="filterPipeline()">
+            <option value="">All Quoted By</option>
+          </select>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>#</th><th>رقم العرض</th><th>Project</th><th>Type</th><th>System</th><th>Client</th><th>Location</th><th>Date</th><th>Amount (SAR)</th><th>Status</th><th class="no-print">Actions</th></tr></thead>
-            <tbody id="pipeline-tbody"></tbody>
-          </table>
-        </div>
+        <div id="pipeline-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;padding:4px 0"></div>
       </div>
     </div>
   </div>
 
   <!-- QUOTATIONS -->
   <div class="page" id="page-quotation">
-    <div style="display:grid;grid-template-columns:280px 1fr;gap:18px" id="quotation-grid">
-      <div class="quotation-sidebar" id="q-sidebar">
-        <button class="sidebar-toggle-btn" onclick="toggleQuotationSidebar()">☰</button>
-        <div class="card">
+    <div id="quotation-grid">
+      <div class="quotation-sidebar" id="q-sidebar" style="width:100%">
+        <div class="card" style="margin:0">
           <div class="card-header">
             <div class="card-title">Quotations</div>
             <button class="btn btn-primary btn-xs" onclick="newQuotation()">+</button>
@@ -500,281 +490,14 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
                 <option value="">All Projects</option>
               </select>
             </div>
-            <div id="q-list" style="max-height:calc(100vh - 280px);overflow-y:auto"></div>
-          </div>
-        </div>
-      </div>
-      <div>
-        <div id="q-empty-state" style="display:flex;align-items:center;justify-content:center;height:60vh;flex-direction:column;gap:12px">
-          <div style="font-size:48px">📄</div>
-          <div style="font-size:16px;color:var(--muted)">No quotation selected</div>
-          <button class="btn btn-primary" onclick="newQuotation()">+ New Quotation</button>
-        </div>
-        <div id="q-form" style="display:none">
-          <div class="card" style="margin-bottom:18px">
-            <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
-              <div style="display:flex;align-items:center;gap:12px">
-                <div>
-                  <div style="font-size:15px;font-weight:700;color:var(--text)" id="qf-title">Untitled</div>
-                  <div style="font-size:12px;color:var(--muted);margin-top:2px" id="qf-subtitle">No project</div>
-                </div>
-                <div class="badge badge-draft" id="qf-version-badge">v1</div>
-                <div id="qf-lock-badge" style="display:none" class="lock-indicator">🔒 Locked</div>
-              </div>
-              <div style="display:flex;gap:6px" class="no-print">
-                <button class="btn btn-ghost btn-sm" onclick="newVersion()">📋 Version</button>
-                <button class="btn btn-ghost btn-sm" onclick="duplicateQ()">📑 Duplicate</button>
-                <button class="btn btn-warning btn-sm" id="lock-btn" onclick="toggleLock()" style="display:none">🔓 Unlock</button>
-                <button class="btn btn-danger btn-sm" onclick="deleteQ()">🗑 Delete</button>
-              </div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-body">
-              <div class="tabs" id="q-tabs">
-                <div class="tab active" onclick="switchQTab(this,'qtab-info')">Info</div>
-                <div class="tab" onclick="switchQTab(this,'qtab-documents')">Documents</div>
-                <div class="tab" onclick="switchQTab(this,'qtab-costing')">Costing</div>
-                <div class="tab" onclick="switchQTab(this,'qtab-pricing')">Pricing</div>
-                <div class="tab" onclick="switchQTab(this,'qtab-terms')">Terms & Payment</div>
-                <div class="tab" onclick="switchQTab(this,'qtab-costsell')">Cost-Sell</div>
-                <div class="tab" onclick="switchQTab(this,'qtab-techeval')">Technical Evaluation</div>
-              </div>
-
-              <!-- INFO TAB -->
-              <div id="qtab-info">
-                <!-- Basic Information Section -->
-                <div class="modern-card">
-                  <div class="card-section-header">
-                    <div class="section-icon">📋</div>
-                    <div class="section-title">Basic Information</div>
-                  </div>
-                  <div class="form-grid">
-                    <div class="field">
-                      <label>Quotation Number</label>
-                      <select id="q-num" onchange="autofillFromPipeline()"></select>
-                    </div>
-                    <div class="field"><label>Version</label><input id="q-version" placeholder="v1.0" onchange="saveQ()"></div>
-                    <div class="field"><label>Submission Date</label><input type="date" id="q-date" onchange="saveQ()"></div>
-                    <div class="field">
-                      <label>Status</label>
-                      <select id="q-status" onchange="saveQ()">
-                        <option>Draft</option><option>Submitted</option><option>Approved</option><option>in pricing</option><option>out</option><option>Canceled</option>
-                      </select>
-                    </div>
-                    <div class="field"><label>Quoted By</label><select id="q-by" onchange="saveQ()"></select></div>
-                  </div>
-                </div>
-
-                <!-- Project Details Section -->
-                <div class="modern-card">
-                  <div class="card-section-header">
-                    <div class="section-icon">🏗️</div>
-                    <div class="section-title">Project Details</div>
-                  </div>
-                  <div class="form-grid">
-                    <div class="field field-full"><label>Project Name</label><input id="q-project" placeholder="Enter project name..." onchange="saveQ()"></div>
-                    <div class="field"><label>Client</label><input id="q-client" placeholder="Client name..." onchange="saveQ()"></div>
-                    <div class="field"><label>Client Contact</label><input id="q-client-phone" placeholder="Phone number..." onchange="saveQ()"></div>
-                    <div class="field"><label>Address</label><input id="q-addr" placeholder="Location..." onchange="saveQ()"></div>
-                    <div class="field">
-                      <label>System Type</label>
-                      <select id="q-system" onchange="saveQ()">
-                        <option>CCTV</option><option>Security</option><option>Supplies</option><option>Fire Alarm</option><option>AV System</option><option>IT Network</option><option>Other</option>
-                      </select>
-                    </div>
-                    <div class="field"><label>Tender Reference</label><input id="q-tenderref" placeholder="Ref..." onchange="saveQ()"></div>
-                  </div>
-                </div>
-
-                <!-- Commercial Terms Section -->
-                <div class="modern-card">
-                  <div class="card-section-header">
-                    <div class="section-icon">💼</div>
-                    <div class="section-title">Commercial Terms</div>
-                  </div>
-                  <div class="form-grid">
-                    <div class="field"><label>Validity Period</label><input id="q-validity" placeholder="90 days" onchange="saveQ()"></div>
-                    <div class="field"><label>VAT %</label><input type="number" id="q-vat" value="15" min="0" max="100" onchange="saveQ()"></div>
-                    <div class="field"><label>Project Value (incl. VAT)</label><input type="number" id="q-project-value" placeholder="Enter or auto-calculated" onchange="saveQ()"></div>
-                    <div class="field"><label>Payment Terms</label><input id="q-payment-terms" placeholder="As per schedule" onchange="saveQ()"></div>
-                  </div>
-                </div>
-
-                <!-- Timeline Section -->
-                <div class="modern-card">
-                  <div class="card-section-header">
-                    <div class="section-icon">📅</div>
-                    <div class="section-title">Project Timeline</div>
-                  </div>
-                  <div class="form-grid">
-                    <div class="field"><label>Duration</label><input id="q-duration" placeholder="e.g., 6 months" onchange="saveQ()"></div>
-                    <div class="field"><label>Delivery Time</label><input id="q-delivery" placeholder="270 days from site handover" onchange="saveQ()"></div>
-                    <div class="field"><label>Implementation Period</label><input id="q-impl" placeholder="30 days from site handover" onchange="saveQ()"></div>
-                  </div>
-                </div>
-
-                <!-- Additional Information Section -->
-                <div class="modern-card">
-                  <div class="card-section-header">
-                    <div class="section-icon">📝</div>
-                    <div class="section-title">Additional Information</div>
-                  </div>
-                  <div class="form-grid">
-                    <div class="field field-full"><label>Scope of Work</label><textarea id="q-scope" rows="3" placeholder="Describe the project scope..." onchange="saveQ()"></textarea></div>
-                    <div class="field field-full"><label>Notes</label><textarea id="q-notes" rows="3" placeholder="Additional notes..." onchange="saveQ()"></textarea></div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- DOCUMENTS TAB -->
-              <div id="qtab-documents" style="display:none">
-                <div style="margin-bottom:14px">
-                  <label class="btn btn-primary btn-sm" style="cursor:pointer">
-                    📎 Upload PDF Document (Max 5MB)
-                    <input type="file" accept=".pdf" style="display:none" onchange="handleDocUpload(event)">
-                  </label>
-                </div>
-                <div class="doc-list" id="doc-list"></div>
-              </div>
-
-              <!-- COSTING TAB -->
-              <div id="qtab-costing" style="display:none">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px" class="no-print">
-                  <div style="display:flex;gap:8px">
-                    <button class="btn btn-accent btn-sm" onclick="exportCostingPDF()">📄 Export BOQ (PDF)</button>
-                    <button class="btn btn-accent btn-sm" onclick="exportCostingExcel()">📊 Export BOQ (Excel)</button>
-                  </div>
-                  <div style="display:flex;gap:8px">
-                    <button class="btn btn-ghost btn-sm" onclick="importExcelItems()" title="Import full costing (Main+Sub items with all columns)">📥 Import Full</button>
-                    <button class="btn btn-ghost btn-sm" onclick="importMainItemsOnly()" title="Import main items only: Description / Qty / Unit / Notes">📋 Import Items</button>
-                    <button class="btn btn-ghost btn-sm" onclick="downloadImportTemplate()" title="Download Excel template with correct format">📋 Template</button>
-                    <button class="btn btn-primary btn-sm" onclick="addMainItem()">+ Add Item</button>
-                  </div>
-                  <input type="file" id="excel-import-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleExcelImport(event)">
-                </div>
-                <div id="cost-items-wrap"></div>
-                <div class="totals-bar" id="costing-totals"></div>
-              </div>
-
-              <!-- PRICING TAB -->
-              <div id="qtab-pricing" style="display:none">
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap" class="no-print">
-                  <div style="display:flex;align-items:center;gap:8px">
-                    <label style="font-size:13px;font-weight:600">Profit %</label>
-                    <input type="number" id="profit-pct" value="25" min="0" max="100" step="5" style="width:70px;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:13px" onchange="saveQ();renderPricingTab()">
-                  </div>
-                  <div class="checkbox-field">
-                    <input type="checkbox" id="show-prices" onchange="renderPricingTab()">
-                    <label style="font-size:13px;margin:0">Show Prices</label>
-                  </div>
-                  <div style="margin-left:auto;display:flex;gap:8px">
-                    <button class="btn btn-ghost btn-sm" onclick="exportPricingPDF()">⬇ PDF</button>
-                    <button class="btn btn-ghost btn-sm" onclick="exportPricingPDF(true)">⬇ عربي</button>
-                    <button class="btn btn-ghost btn-sm" onclick="exportPricingPDF()">🖨 Print</button>
-                  </div>
-                </div>
-                <div class="table-wrap">
-                  <table>
-                    <thead><tr><th>#</th><th>Part #</th><th>Description</th><th>Unit</th><th>Qty</th><th>Cost Unit</th><th>Cost Total</th><th>Sell Unit</th><th>Sell Total</th><th>Optional</th></tr></thead>
-                    <tbody id="pricing-tbody"></tbody>
-                  </table>
-                </div>
-                <div class="totals-bar" id="pricing-totals"></div>
-              </div>
-
-              <!-- TERMS & PAYMENT -->
-              <div id="qtab-terms" style="display:none">
-                <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px" class="no-print">
-                  <button class="btn btn-ghost btn-sm" onclick="exportPaymentPDF()">⬇ PDF</button>
-                  <button class="btn btn-primary btn-sm" onclick="addPayRow()">+ Add Payment</button>
-                </div>
-                <div class="table-wrap">
-                  <table>
-                    <thead><tr><th>#</th><th>Milestone</th><th>%</th><th>Due Date</th><th>Amount (SAR)</th><th class="no-print"></th></tr></thead>
-                    <tbody id="pay-tbody"></tbody>
-                  </table>
-                </div>
-                <div class="totals-bar">
-                  <div class="total-item"><div class="total-label">% Allocated</div><div class="total-value" id="pay-pct-total" style="font-size:15px">0%</div></div>
-                  <div class="total-item"><div class="total-label">Total</div><div class="total-value tv-green" id="pay-total">SAR 0</div></div>
-                  <div class="total-item"><div class="total-label">Grand Total</div><div class="total-value tv-blue" id="pay-linked">SAR 0</div></div>
-                </div>
-              </div>
-
-              <!-- COST-SELL -->
-              <div id="qtab-costsell" style="display:none">
-                <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px" class="no-print">
-                  <button class="btn btn-ghost btn-sm" onclick="exportCostSellPDF()">⬇ PDF</button>
-                  <button class="btn btn-ghost btn-sm" onclick="exportCostSellPDF()">🖨 Print</button>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px">
-                  <div class="card">
-                    <div class="card-header"><div class="card-title">Cost by Type</div></div>
-                    <div class="card-body">
-                      <div class="chart-container"><canvas id="chart-by-type"></canvas></div>
-                      <div class="table-wrap" style="margin-top:12px">
-                        <table id="table-by-type">
-                          <thead><tr><th>Type</th><th>Amount (SAR)</th><th>% of Total</th></tr></thead>
-                          <tbody></tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="card">
-                    <div class="card-header"><div class="card-title">Cost by Vendor</div></div>
-                    <div class="card-body">
-                      <div class="chart-container"><canvas id="chart-by-vendor"></canvas></div>
-                      <div class="table-wrap" style="margin-top:12px">
-                        <table id="table-by-vendor">
-                          <thead><tr><th>Vendor</th><th>Amount (SAR)</th><th>% of Total</th><th class="no-print">Export</th></tr></thead>
-                          <tbody></tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 320px;gap:18px">
-                  <div>
-                    <div class="card">
-                      <div class="card-header"><div class="card-title">Cost vs Sell Summary</div></div>
-                      <div class="card-body"><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px" id="cs-summary-grid"></div></div>
-                    </div>
-                  </div>
-                  <div class="card">
-                    <div class="card-header"><div class="card-title">Profit Analysis</div></div>
-                    <div class="card-body" id="cs-profit-panel"></div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- TECHNICAL EVALUATION -->
-              <div id="qtab-techeval" style="display:none">
-                <div style="margin-bottom:14px">
-                  <button class="btn btn-primary btn-sm" onclick="addTechEvalRow()">+ Add Criteria</button>
-                </div>
-                <div class="table-wrap">
-                  <table>
-                    <thead><tr><th>#</th><th>Description</th><th>Requested Weight %</th><th>Our Achievement %</th><th class="no-print"></th></tr></thead>
-                    <tbody id="techeval-tbody"></tbody>
-                  </table>
-                </div>
-                <div style="margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:14px">
-                  <div class="field">
-                    <label>Required Pass Percentage</label>
-                    <input type="number" id="tech-pass-pct" value="70" min="0" max="100" onchange="renderTechEval()">
-                  </div>
-                  <div id="tech-result-panel"></div>
-                </div>
-              </div>
-            </div>
+            <div id="q-list"></div>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- BOQ -->
+    <!-- BOQ -->
   <div class="page" id="page-boq">
     <div class="card">
       <div class="card-header">
@@ -1211,51 +934,60 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
 <!-- PIPELINE MODAL -->
 <div class="modal-overlay" id="plModal">
   <div class="modal" style="max-width:640px">
-    <div class="modal-header"><div class="modal-title">Pipeline Project</div><button class="modal-close" onclick="closeModal('plModal')">×</button></div>
-    <div class="modal-body">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="plModal-title">Pipeline Project</div>
+        <div style="font-size:11px;color:var(--muted)" id="plModal-step-sub">Step 1 of 2 — Project Info</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('plModal')">×</button>
+    </div>
+    <!-- Step indicator -->
+    <div style="display:flex;gap:2px;padding:0 24px;margin-top:4px">
+      <div id="plwiz-bar-1" style="flex:1;height:4px;border-radius:4px 0 0 4px;background:var(--accent);transition:.3s"></div>
+      <div id="plwiz-bar-2" style="flex:1;height:4px;border-radius:0 4px 4px 0;background:var(--border);transition:.3s"></div>
+    </div>
+
+    <!-- Step 1: Project Info -->
+    <div id="plwiz-body-1" class="modal-body">
       <div class="form-grid">
 
-        <!-- QTN ربط + رقم الطباعة -->
-        <div class="field">
-          <label>QTN <span style="color:var(--muted);font-size:10px">ربط بالتسعير</span></label>
-          <select id="pm-qtn" onchange="onPmQtnChange()"></select>
-        </div>
-        <div class="field">
-          <label>رقم العرض للطباعة <span style="color:var(--muted);font-size:10px">قابل للتعديل</span></label>
-          <input id="pm-print-ref" placeholder="QTN-26001 / Rev.2">
-        </div>
-
-        <!-- Linked quotation indicator -->
-        <div class="field field-full" id="pm-link-indicator" style="display:none">
-          <div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px">
-            <span style="font-size:16px">🔗</span>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:12px;font-weight:700;color:var(--accent)" id="pm-link-qnum"></div>
-              <div style="font-size:11px;color:var(--text2)" id="pm-link-detail"></div>
-            </div>
-            <div style="font-family:var(--mono);font-weight:700;color:var(--green);white-space:nowrap" id="pm-link-amount"></div>
-          </div>
-        </div>
-
-        <div class="field"><label>Date</label><input type="date" id="pm-date"></div>
+        <div class="field"><label>Submission Date</label><input type="date" id="pm-date"></div>
         <div class="field field-full"><label>Project Name</label><input id="pm-name" placeholder="Project name…"></div>
-        <div class="field"><label>Type</label><select id="pm-type"><option>Tender</option><option>Lead</option></select></div>
+        <div class="field"><label>Type</label><select id="pm-type"><option>Tender</option><option>Lead</option><option>RFQ</option></select></div>
         <div class="field"><label>System</label><select id="pm-sys"><option>CCTV</option><option>Security</option><option>Supplies</option><option>Fire Alarm</option><option>AV System</option><option>IT Network</option><option>Other</option></select></div>
         <div class="field"><label>Client</label><input id="pm-client" placeholder="Client…"></div>
         <div class="field"><label>Location</label><input id="pm-loc" placeholder="Location…"></div>
         <div class="field"><label>Quoted By</label><select id="pm-by"></select></div>
-        <div class="field">
-          <label>Amount (SAR) <span id="pm-amount-note" style="color:var(--accent);font-size:10px"></span></label>
-          <input type="number" id="pm-amount" placeholder="0">
-        </div>
+
         <div class="field"><label>Status</label><select id="pm-status"><option>Submitted</option><option>Approved</option><option>in pricing</option><option>out</option><option>Canceled</option></select></div>
         <div class="field field-full"><label>Note</label><input id="pm-note" placeholder="Notes…"></div>
-
       </div>
     </div>
+
+    <!-- Step 2: Technical Evaluation -->
+    <div id="plwiz-body-2" class="modal-body" style="display:none">
+      <div style="margin-bottom:10px">
+        <button class="btn btn-primary btn-sm" onclick="plAddTechEvalRow()">+ Add Criteria</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Description</th><th>Requested Weight %</th><th>Our Achievement %</th><th class="no-print"></th></tr></thead>
+          <tbody id="pl-techeval-tbody"></tbody>
+        </table>
+      </div>
+      <div style="margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="field">
+          <label>Required Pass Percentage</label>
+          <input type="number" id="pl-tech-pass-pct" value="70" min="0" max="100" onchange="plRenderTechEval()">
+        </div>
+        <div id="pl-tech-result-panel"></div>
+      </div>
+    </div>
+
     <div class="modal-footer">
+      <button id="plwiz-back" class="btn btn-secondary" onclick="plWizStep(-1)" style="display:none">← Back</button>
       <button class="btn btn-ghost" onclick="closeModal('plModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="savePipelineItem()">Save</button>
+      <button id="plwiz-next" class="btn btn-primary" onclick="plWizStep(1)">Next →</button>
     </div>
   </div>
 </div>
@@ -1348,7 +1080,7 @@ function subTotal(si){return(si.qty||0)*(si.unitPrice||0);}
 function mainCostTotal(mi){return(mi.subItems||[]).reduce((s,si)=>s+subTotal(si),0);}
 function mainUnitPrice(mi){const q=mi.qty||1;return mainCostTotal(mi)/q;}
 function qCostTotal(q){return(q.items||[]).filter(mi=>!mi.optional).reduce((s,mi)=>s+mainCostTotal(mi),0);}
-function qSellUnit(mi,q){const p=(q.profitPct||25)/100;return mi.sellUnitOverride!=null?mi.sellUnitOverride:mainUnitPrice(mi)*(1+p);}
+function qSellUnit(mi,q){const p=(q.profitPct||25)/100;var raw=mi.sellUnitOverride!=null?mi.sellUnitOverride:mainUnitPrice(mi)*(1+p);return Math.round((raw+Number.EPSILON)*100)/100;}
 function qSellTotal(q){return(q.items||[]).filter(mi=>!mi.optional).reduce((s,mi)=>s+qSellUnit(mi,q)*(mi.qty||1),0);}
 function qSellWithVAT(q){return qSellTotal(q)*(1+(q.vat||15)/100);}
 function getQ(){return S.quotations.find(q=>q.id===S.activeQId);}
@@ -1446,12 +1178,7 @@ function init(){
   });
   migratePipelineQuotationIds();
 
-  // Restore last open quotation without triggering a save
-  const _initId = S.activeQId || (S.quotations.length ? S.quotations[0].id : null);
-  if(_initId && S.quotations.find(q=>q.id===_initId)){
-    // Use openQuotation directly — safe now that it doesn't call save()
-    openQuotation(_initId);
-  }
+  // Don't auto-open quotations on startup
 }
 
 function save(){
@@ -1833,7 +1560,7 @@ function applyCompany(){
   if(!co)return;
   document.getElementById('companyNameDisplay').textContent=co.name;
   document.getElementById('companyTagDisplay').textContent=co.tag;
-  document.getElementById('current-company-name').textContent=co.name;
+  (document.getElementById('current-company-name')||{}).textContent=co.name;
   document.getElementById('co-name').value=co.name;
   document.getElementById('co-tag').value=co.tag;
   document.getElementById('co-color').value=co.color;
@@ -1900,14 +1627,14 @@ function renderCompanyDropdown(){
   const userCompanies=user?S.companies.filter(c=>user.companies.includes(c.id)):S.companies;
   const html=userCompanies.map(c=>`<div class="company-dropdown-item ${c.id===S.currentCompanyId?'active':''}" onclick="switchCompany(${c.id})">${esc(c.name)}</div>`).join('')+
   `<div class="company-dropdown-item" onclick="addNewCompany()" style="border-top:1px solid var(--border);color:var(--accent)">+ Add New Company</div>`;
-  document.getElementById('company-dropdown').innerHTML=html;
+  var _cd=document.getElementById('company-dropdown'); if(_cd) _cd.innerHTML=html;
 }
 
 function switchCompany(id){
   S.currentCompanyId=id;
   applyCompany();
   renderCompanyDropdown();
-  document.getElementById('company-dropdown').classList.remove('open');
+  var _cd2=document.getElementById('company-dropdown'); if(_cd2) _cd2.classList.remove('open');
   renderPipeline();
   renderQList();
   updateDashboard();
@@ -2554,14 +2281,14 @@ function switchQTab(el,tid){
   }
   
   document.querySelectorAll('#q-tabs .tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');
-  ['qtab-info','qtab-documents','qtab-costing','qtab-pricing','qtab-terms','qtab-costsell','qtab-techeval'].forEach(i=>{const e=document.getElementById(i);if(e)e.style.display='none';});
+  ['qtab-info','qtab-documents','qtab-costing','qtab-pricing','qtab-terms','qtab-costsell'].forEach(i=>{const e=document.getElementById(i);if(e)e.style.display='none';});
   document.getElementById(tid).style.display='block';
   if(tid==='qtab-documents')renderDocuments();
   if(tid==='qtab-costing')renderCostingTab();
   if(tid==='qtab-pricing')renderPricingTab();
   if(tid==='qtab-costsell')renderCostSell();
   if(tid==='qtab-terms')renderPayments();
-  if(tid==='qtab-techeval')renderTechEval();
+
 }
 
 // Dashboard
@@ -2727,6 +2454,7 @@ function updateDashboard(){
 
 // Pipeline
 function renderPipeline(data){
+  populatePipelineFilters();
   const user=getCurrentUser();
   let rows=data||S.pipeline.filter(p=>p.companyId===S.currentCompanyId);
   
@@ -2760,32 +2488,70 @@ function renderPipeline(data){
     return `<span style="display:inline-block;width:20px;height:20px;border-radius:50%;background:${color};text-align:center;line-height:20px;font-size:10px" title="${daysUntil} days">${icon}</span>`;
   }
   
-  document.getElementById('pipeline-tbody').innerHTML=rows.map((r,i)=>{
+  // Sort: no date first (top), then newest date first
+  rows=rows.slice().sort(function(a,b){
+    var da=getPipelineDate(a)||'';
+    var db=getPipelineDate(b)||'';
+    if(!da&&!db) return 0;
+    if(!da) return -1;  // a has no date → goes to top
+    if(!db) return 1;   // b has no date → goes to top
+    return db.localeCompare(da);  // newest first
+  });
+  const wrap=document.getElementById('pipeline-cards');
+  if(!wrap) return;
+  if(!rows.length){
+    wrap.innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px;font-size:14px">No pipeline items found</div>';
+    return;
+  }
+  wrap.innerHTML=rows.map((r,i)=>{
     const amt=getPipelineAmount(r);
     const linkedQ=getLatestSubmittedQ(r);
     const linked=!!linkedQ;
-    return`<tr>
-      <td class="muted">${i+1}</td>
-      <td style="font-size:12px">
-        <div style="font-family:var(--mono);color:var(--accent);font-weight:700">${esc((r.printRef||r.qtn||'—').replace(/ v\d+$/i,''))}</div>
-        ${linkedQ?`<div style="font-size:10px;color:var(--accent)">🔗 ${esc(linkedQ.version||'v1')} · <b>${esc(linkedQ.status||'')}</b></div>`:''}
-      </td>
-      <td style="max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(r.name)}">${esc(r.name||'—')}</td>
-      <td class="muted">${esc(r.type||'—')}</td><td class="muted">${esc(r.sys||'—')}</td>
-      <td style="max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.client||'—')}</td>
-      <td class="muted">${esc(r.loc||'—')}</td>
-      <td class="muted">${getDeliveryAlert(getPipelineDate(r))} ${esc(getPipelineDate(r)||'—')}</td>
-      <td class="num">
-        <div style="color:${amt>0?'var(--green)':'var(--muted)'};font-weight:700">${fmtN(amt)}</div>
-        ${linked?'<div style="font-size:9px;color:var(--accent)">● live</div>':'<div style="font-size:9px;color:var(--muted)">manual</div>'}
-      </td>
-      <td>${pipelineStatusBadge(r.status)}</td>
-      <td class="no-print" style="white-space:nowrap">
-        <button class="btn btn-ghost btn-xs" onclick="openQFromPipeline(${r.id})" title="Open Quotation">📄</button>
-        <button class="btn btn-ghost btn-xs" onclick="editPipelineItem(${r.id})" title="Edit">✏️</button>
-        <button class="del-btn" onclick="deletePipeline(${r.id})">✕</button>
-      </td>
-    </tr>`;
+    const date=getPipelineDate(r);
+    const statusColors={
+      'Approved':   {bg:'#d1fae5',c:'#065f46',border:'#10b981'},
+      'Submitted':  {bg:'#dbeafe',c:'#1d4ed8',border:'#3b82f6'},
+      'in pricing': {bg:'#fef3c7',c:'#92400e',border:'#f59e0b'},
+      'out':        {bg:'#fee2e2',c:'#991b1b',border:'#ef4444'},
+      'Canceled':   {bg:'#e5e7eb',c:'#6b7280',border:'#9ca3af'},
+    };
+    const sc=statusColors[r.status]||{bg:'#f3f4f6',c:'#6b7280',border:'#d1d5db'};
+    return '<div style="background:var(--surface);border:1.5px solid '+sc.border+';border-radius:12px;overflow:hidden;transition:.2s;box-shadow:0 2px 8px rgba(0,0,0,.06);cursor:pointer" onclick="openProjQtnsModal('+r.id+')">'+
+      '<div style="background:'+sc.bg+';padding:10px 14px;display:flex;justify-content:space-between;align-items:center">'+
+        '<div>'+
+          '<div style="font-family:var(--mono);font-size:12px;font-weight:700;color:'+sc.c+'">'+esc((r.printRef||r.qtn||'—').replace(/ v\d+$/i,''))+'</div>'+
+          (linkedQ?'<div style="font-size:10px;color:'+sc.c+';opacity:.8">🔗 '+esc(linkedQ.version||'v1')+' · '+esc(linkedQ.status||'')+'</div>':'')+
+        '</div>'+
+        '<span style="background:'+sc.c+'22;color:'+sc.c+';padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">'+(r.status||'—')+'</span>'+
+      '</div>'+
+      '<div style="padding:12px 14px">'+
+        '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;line-height:1.4">'+esc(r.name||'—')+'</div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;color:var(--muted);margin-bottom:10px">'+
+          (r.client?'<div>👤 '+esc(r.client)+'</div>':'')+
+          (r.loc?'<div>📍 '+esc(r.loc)+'</div>':'')+
+          (r.type?'<div>🏷 '+esc(r.type)+'</div>':'')+
+          (r.sys?'<div>⚙️ '+esc(r.sys)+'</div>':'')+
+          (date?(date?'<div>📅 <span style="font-size:10px;color:var(--muted)">Submission:</span> '+getDeliveryAlert(date)+' '+esc(date)+'</div>':''):'')+
+        '</div>'+
+        '<div style="display:flex;justify-content:space-between;align-items:center">'+
+          '<div>'+
+            '<div style="font-size:16px;font-weight:800;color:'+(amt>0?'var(--green)':'var(--muted)')+'">SAR '+fmtN(amt)+'</div>'+
+            '<div style="font-size:9px;color:var(--muted)">'+(linked?'● linked to quotation':'manual amount')+'</div>'+
+          '</div>'+
+          '<div style="display:flex;align-items:center;gap:6px">'+
+            (r.teResult?
+              '<div style="margin-top:6px;background:'+(r.teResult.pass?'#d1fae5':'#fee2e2')+';color:'+(r.teResult.pass?'#065f46':'#991b1b')+';padding:6px 14px;border-radius:10px;display:inline-flex;align-items:center;gap:8px">'+
+                '<span style="font-size:20px;font-weight:900;font-family:monospace">'+r.teResult.score+'%</span>'+
+                '<span style="font-size:13px;font-weight:700">'+(r.teResult.pass?'✓ PASS':'✗ FAIL')+'</span>'+
+              '</div>'
+            :'')+
+            '<button class="btn btn-ghost btn-xs" onclick="event.stopPropagation();openQFromPipeline('+r.id+')" title="Open Quotation">📄 View</button>'+
+            '<button class="btn btn-secondary btn-xs" onclick="event.stopPropagation();editPipelineItem('+r.id+')" title="Edit">✏️</button>'+
+            '<button class="del-btn" onclick="event.stopPropagation();deletePipeline('+r.id+')">✕</button>'+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
   }).join('');
 }
 
@@ -2815,18 +2581,134 @@ function updatePipelineStatus(id,val){
 
 function filterPipeline(){
   const q=(document.getElementById('pl-search').value||'').toLowerCase();
-  const s=document.getElementById('pl-status').value;
-  renderPipeline(S.pipeline.filter(p=>p.companyId===S.currentCompanyId).filter(r=>(!q||(r.name+r.qtn+r.client+r.loc).toLowerCase().includes(q))&&(!s||r.status===s)));
+  const s=(document.getElementById('pl-status')||{}).value||'';
+  const cl=(document.getElementById('pl-client-filter')||{}).value||'';
+  const by=(document.getElementById('pl-by-filter')||{}).value||'';
+  renderPipeline(S.pipeline.filter(p=>p.companyId===S.currentCompanyId).filter(r=>{
+    if(q&&!(r.name+r.qtn+r.client+r.loc+r.by).toLowerCase().includes(q)) return false;
+    if(s&&r.status!==s) return false;
+    if(cl&&r.client!==cl) return false;
+    if(by&&r.by!==by) return false;
+    return true;
+  }));
 }
 
+function populatePipelineFilters(){
+  var rows=S.pipeline.filter(function(p){return !p.companyId||p.companyId===S.currentCompanyId;});
+  var clients=[...new Set(rows.map(function(r){return r.client||'';}).filter(Boolean))].sort();
+  var bys=[...new Set(rows.map(function(r){return r.by||'';}).filter(Boolean))].sort();
+  var clEl=document.getElementById('pl-client-filter');
+  if(clEl){
+    var curCl=clEl.value;
+    clEl.innerHTML='<option value="">All Clients</option>'+clients.map(function(c){return '<option value="'+esc(c)+'"'+(c===curCl?' selected':'')+'>'+esc(c)+'</option>';}).join('');
+  }
+  var byEl=document.getElementById('pl-by-filter');
+  if(byEl){
+    var curBy=byEl.value;
+    byEl.innerHTML='<option value="">All Quoted By</option>'+bys.map(function(b){return '<option value="'+esc(b)+'"'+(b===curBy?' selected':'')+'>'+esc(b)+'</option>';}).join('');
+  }
+}
+
+// ── PIPELINE WIZARD ──────────────────────────────────────────────────
+var _plWizStep=1;
+var _plTechEval=[];
+
+function plWizStep(dir){
+  if(dir===1&&_plWizStep===2){savePipelineItem();return;}
+  _plWizStep=Math.max(1,Math.min(2,_plWizStep+dir));
+  plWizRender();
+}
+
+function plWizRender(){
+  var b1=document.getElementById('plwiz-body-1');
+  var b2=document.getElementById('plwiz-body-2');
+  var bar1=document.getElementById('plwiz-bar-1');
+  var bar2=document.getElementById('plwiz-bar-2');
+  var back=document.getElementById('plwiz-back');
+  var next=document.getElementById('plwiz-next');
+  var sub=document.getElementById('plModal-step-sub');
+  if(b1) b1.style.display=_plWizStep===1?'block':'none';
+  if(b2) b2.style.display=_plWizStep===2?'block':'none';
+  if(bar1) bar1.style.background='var(--accent)';
+  if(bar2) bar2.style.background=_plWizStep===2?'var(--accent)':'var(--border)';
+  if(back) back.style.display=_plWizStep>1?'':'none';
+  if(next) next.textContent=_plWizStep===2?'✓ Save':'Next →';
+  if(sub) sub.textContent=_plWizStep===1?'Step 1 of 2 — Project Info':'Step 2 of 2 — Technical Evaluation';
+  if(_plWizStep===2) plRenderTechEval();
+}
+
+function plBlankTE(){return {id:Date.now()+Math.random(),desc:'',reqWeight:0,ourAchieve:0};}
+
+function plAddTechEvalRow(){_plTechEval.push(plBlankTE());plRenderTechEval();}
+
+function plRenderTechEval(){
+  var tbody=document.getElementById('pl-techeval-tbody');
+  if(!tbody) return;
+  tbody.innerHTML=_plTechEval.map(function(r,i){
+    return '<tr>'+
+      '<td class="muted">'+(i+1)+'</td>'+
+      '<td><input value="'+esc(r.desc||'')+'" placeholder="Criteria description" style="min-width:180px" oninput="plUpdateTE('+r.id+',\'desc\',this.value)"></td>'+
+      '<td><input type="number" value="'+(r.reqWeight||0)+'" min="0" max="100" step="5" style="width:75px" oninput="plUpdateTE('+r.id+',\'reqWeight\',+this.value)">%</td>'+
+      '<td><input type="number" value="'+(r.ourAchieve||0)+'" min="0" max="100" step="5" style="width:75px" oninput="plUpdateTE('+r.id+',\'ourAchieve\',+this.value)">%</td>'+
+      '<td class="no-print"><button class="del-btn" onclick="plDeleteTE('+r.id+')">✕</button></td>'+
+    '</tr>';
+  }).join('');
+  var totalReq=_plTechEval.reduce(function(s,r){return s+(r.reqWeight||0);},0);
+  var totalAchieve=_plTechEval.reduce(function(s,r){return s+(r.reqWeight||0)*(r.ourAchieve||0)/100;},0);
+  var score=totalReq>0?(totalAchieve/totalReq*100):0;
+  var passPct=+(document.getElementById('pl-tech-pass-pct')||{value:70}).value||70;
+  var pass=score>=passPct;
+  var panel=document.getElementById('pl-tech-result-panel');
+  if(panel) panel.innerHTML='<div class="eval-result '+(pass?'pass':'fail')+'">'+'<div style="font-size:11px;margin-bottom:4px">'+(pass?'✓ PASS':'✗ FAIL')+'</div><div style="font-size:24px">'+score.toFixed(1)+'%</div><div style="font-size:11px;margin-top:4px">Required: '+passPct+'%</div></div>';
+  window._teResult={score:Math.round(score*10)/10,pct:Math.round(score),pass:pass};
+}
+
+function plUpdateTE(id,key,val){
+  var r=_plTechEval.find(function(e){return e.id===id;});
+  if(r){r[key]=val;plRenderTechEval();}
+}
+
+function plDeleteTE(id){
+  _plTechEval=_plTechEval.filter(function(e){return e.id!==id;});
+  plRenderTechEval();
+}
+
+
 function savePipelineItem(){
+  // If editing existing item
+  if(window._plEditId){
+    var r=S.pipeline.find(function(p){return p.id===window._plEditId;});
+    if(r){
+      r.qtn=(document.getElementById('pm-qtn')||{}).value;
+      r.printRef=((document.getElementById('pm-print-ref')||{}).value||'').trim()||r.qtn||'';
+      r.name=document.getElementById('pm-name').value;
+      r.date=document.getElementById('pm-date').value;
+      r.type=document.getElementById('pm-type').value;
+      r.sys=document.getElementById('pm-sys').value;
+      r.client=document.getElementById('pm-client').value;
+      r.loc=document.getElementById('pm-loc').value;
+      r.status=document.getElementById('pm-status').value;
+      r.by=document.getElementById('pm-by').value;
+      r.note=document.getElementById('pm-note').value;
+      var _co2=getCurrentCompany();
+      var qs=S.quotations.filter(function(q){return q.num===r.qtn&&(!q.companyId||q.companyId===_co2.id);});
+      if(qs.length){var pool=qs.filter(function(q){return q.status==='Draft'||q.status==='in pricing';});r.quotationId=(pool.length?pool:qs).reduce(function(a,b){return a.id>b.id?a:b;}).id;r.amount=Math.round(getPipelineAmount(r));}
+      else{r.amount=+(document.getElementById('pm-amount')||{}).value||0;}
+      if(r.status==='Approved') veOnApprove(r);
+      if(window._teResult&&_plTechEval.length){r.techEval=_plTechEval.slice();r.teResult={score:window._teResult.score,pct:window._teResult.pct,pass:window._teResult.pass};}
+      window._plEditId=null;
+      populateQNumDropdown();save();renderPipeline();updateDashboard();renderVE();closeModal('plModal');
+      if(r.status==='Approved'){showPage('ve');showToast&&showToast('✅ Project moved to Value Engineering');}
+    }
+    return;
+  }
   const co=getCurrentCompany();
-  const qtnNum=document.getElementById('pm-qtn').value;
-  const printRef=document.getElementById('pm-print-ref').value.trim();
+  const qtnNum=(document.getElementById('pm-qtn')||{}).value;
+  const printRef=((document.getElementById('pm-print-ref')||{}).value||'').trim();
 
   // Find linked quotation
   let quotationId=null;
-  let amount=+document.getElementById('pm-amount').value||0;
+  let amount=+(document.getElementById('pm-amount')||{}).value||0;
 
   if(qtnNum&&qtnNum!=='__custom'&&qtnNum!==''){
     const baseQtn2=(qtnNum||'').replace(/ v\d+$/i,'').trim();
@@ -2861,7 +2743,9 @@ function savePipelineItem(){
   };
   if(_newItem.status==='Approved') veOnApprove(_newItem);
   S.pipeline.push(_newItem);
+  if(window._teResult&&_plTechEval.length){_newItem.techEval=_plTechEval.slice();_newItem.teResult={score:window._teResult.score,pct:window._teResult.pct,pass:window._teResult.pass};}
   populateQNumDropdown();save();renderPipeline();updateDashboard();renderVE();closeModal('plModal');
+  if(_newItem.status==='Approved'){showPage('ve');showToast&&showToast('✅ Project moved to Value Engineering');}
 }
 
 function deletePipeline(id){if(!confirm('Remove?'))return;S.pipeline=S.pipeline.filter(r=>r.id!==id);save();renderPipeline();updateDashboard();}
@@ -3024,15 +2908,14 @@ function openAddPipelineModal(){
   populateQNumDropdown();
   const t=document.querySelector('#plModal .modal-title');
   if(t) t.textContent='Add Pipeline Project';
-  const b=document.querySelector('#plModal .btn-primary');
-  if(b){b.textContent='Save';b.onclick=savePipelineItem;}
   // Clear fields
   ['pm-print-ref','pm-name','pm-note'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
-  const qEl=document.getElementById('pm-qtn'); if(qEl) qEl.value='';
-  document.getElementById('pm-amount').value='';
-  document.getElementById('pm-amount-note').textContent='';
-  document.getElementById('pm-link-indicator').style.display='none';
+  var _qEl=document.getElementById('pm-qtn'); if(_qEl) _qEl.value='';
+  var _amEl=document.getElementById('pm-amount'); if(_amEl) _amEl.value='';
+  var _anEl=document.getElementById('pm-amount-note'); if(_anEl) _anEl.textContent='';
+  var _liEl=document.getElementById('pm-link-indicator'); if(_liEl) _liEl.style.display='none';
   document.getElementById('pm-date').value=''; // will be filled from quotation
+  _plWizStep=1;_plTechEval=[];window._teResult=null;window._plEditId=null;plWizRender();
   openModal('plModal');
 }
 
@@ -3040,16 +2923,16 @@ function editPipelineItem(pId){
   const r=S.pipeline.find(p=>p.id===pId); if(!r) return;
   // Pre-fill modal
   populateQNumDropdown(r.id);
-  const el=document.getElementById('pm-qtn');
-  if(el) el.value=r.qtn||'';
-  document.getElementById('pm-print-ref').value=r.printRef||r.qtn||'';
+  var _el=document.getElementById('pm-qtn');
+  if(_el) _el.value=r.qtn||'';
+  var _pr=document.getElementById('pm-print-ref'); if(_pr) _pr.value=r.printRef||r.qtn||'';
   document.getElementById('pm-name').value=r.name||'';
   document.getElementById('pm-date').value=r.date||'';
   document.getElementById('pm-type').value=r.type||'Tender';
   document.getElementById('pm-sys').value=r.sys||'CCTV';
   document.getElementById('pm-client').value=r.client||'';
   document.getElementById('pm-loc').value=r.loc||'';
-  document.getElementById('pm-amount').value=r.amount||0;
+  (document.getElementById('pm-amount')||{}).value=r.amount||0;
   document.getElementById('pm-status').value=r.status||'Submitted';
   document.getElementById('pm-note').value=r.note||'';
   const byEl=document.getElementById('pm-by'); if(byEl) byEl.value=r.by||'';
@@ -3057,37 +2940,12 @@ function editPipelineItem(pId){
   const pmEl=document.getElementById('pm-qtn'); if(pmEl&&r.qtn){pmEl.value=r.qtn;} if(r.qtn) onPmQtnChange();
   // Change Save button to update existing row
   const saveBtn=document.querySelector('#plModal .btn-primary');
-  if(saveBtn){
-    saveBtn.textContent='Update';
-    saveBtn.onclick=function(){
-      r.qtn      = document.getElementById('pm-qtn').value;
-      r.printRef = document.getElementById('pm-print-ref').value.trim()||r.qtn||'';
-      r.name     = document.getElementById('pm-name').value;
-      r.date     = document.getElementById('pm-date').value;
-      r.type     = document.getElementById('pm-type').value;
-      r.sys      = document.getElementById('pm-sys').value;
-      r.client   = document.getElementById('pm-client').value;
-      r.loc      = document.getElementById('pm-loc').value;
-      r.status   = document.getElementById('pm-status').value;
-      r.by       = document.getElementById('pm-by').value;
-      r.note     = document.getElementById('pm-note').value;
-      // Re-link quotationId
-      const co=getCurrentCompany();
-      const qs=S.quotations.filter(q=>q.num===r.qtn&&(!q.companyId||q.companyId===co.id));
-      if(qs.length){
-        const active=qs.filter(q=>q.status==='Draft'||q.status==='in pricing');
-        const pool=active.length?active:qs;
-        r.quotationId=pool.reduce((a,b)=>a.id>b.id?a:b).id;
-        r.amount=Math.round(getPipelineAmount(r));
-      } else {
-        r.amount=+document.getElementById('pm-amount').value||0;
-      }
-      // Reset button
-      saveBtn.textContent='Save'; saveBtn.onclick=savePipelineItem;
-      save(); renderPipeline(); updateDashboard(); closeModal('plModal');
-    };
-  }
+  // plwiz-next handles all saving via plWizStep
   document.querySelector('#plModal .modal-title').textContent='Edit Pipeline Project';
+  _plWizStep=1;
+  if(r.teScores){window._teScores=Object.assign({},r.teScores);}else{window._teScores={};}
+  window._teResult=r.teResult||null;
+  plWizRender();
   openModal('plModal');
 }
 
@@ -3250,7 +3108,8 @@ function renderQList(){
   if(search) list=list.filter(q=>(q.num+q.project+q.client).toLowerCase().includes(search.toLowerCase()));
 
   // Sort: active project first, then by date desc
-  if(projFilter) list.sort((a,b)=>String(b.id).localeCompare(String(a.id)));
+  // Always sort newest first (by id descending)
+  list.sort((a,b)=>b.id-a.id);
 
   document.getElementById('q-list').innerHTML=list.length?list.map(q=>`
     <div class="q-list-item ${q.id===S.activeQId?'active':''}" onclick="openQuotation(${q.id})">
@@ -3377,9 +3236,103 @@ function onNumFormatChange(){
 function newQuotation(){
   const co=getCurrentCompany();
   if(!co){alert('No company found. Please refresh the page.');return;}
-  const num=generateQNum();
-  bumpQNumSequence();
-  const q=blankQ({companyId:co.id,num});S.quotations.push(q);save();renderQList();openQuotation(q.id);
+  // Open wizard
+  wizCurrentStep=1;
+  // Populate Quoted By
+  var byEl=document.getElementById('wiz-by');
+  if(byEl){
+    var editors=(S.settings&&S.settings.quotationEditors||[]).filter(function(e){return e.name;});
+    byEl.innerHTML='<option value="">— Select —</option>'+editors.map(function(p){return '<option>'+esc(p.name)+'</option>';}).join('');
+  }
+  // Reset fields
+  // Reset all fields
+  ['wiz-project','wiz-client','wiz-client-phone','wiz-addr','wiz-tenderref','wiz-system','wiz-duration','wiz-scope','wiz-delivery','wiz-validity','wiz-payment','wiz-warranty','wiz-notes','wiz-project-value'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  var vatEl=document.getElementById('wiz-vat'); if(vatEl) vatEl.value='15';
+  var stEl=document.getElementById('wiz-status'); if(stEl) stEl.value='Draft';
+  var vEl=document.getElementById('wiz-version'); if(vEl) vEl.value='v1';
+  var dEl=document.getElementById('wiz-date'); if(dEl) dEl.value=new Date().toISOString().slice(0,10);
+  // Populate pipeline dropdown
+  var numEl=document.getElementById('wiz-num');
+  if(numEl){
+    var pipeRows=(S.pipeline||[]).filter(function(r){return !r.companyId||r.companyId===S.currentCompanyId;});
+    numEl.innerHTML='<option value="">— New (auto) —</option>'+pipeRows.map(function(r){return '<option value="'+r.id+'">'+esc((r.printRef||r.qtn||''))+' — '+esc(r.name||r.client||'')+'</option>';}).join('');
+  }
+  wizRender();
+  openModal('modal-new-q-wizard');
+}
+
+var wizCurrentStep=1;
+
+function wizRender(){
+  var titles=['Quotation Info','Client & Project','Technical Details','Commercial Terms','Notes & Summary'];
+  var el=document.getElementById('wizard-step-title');
+  var sub=document.getElementById('wizard-step-sub');
+  if(el) el.textContent='New Quotation — Step '+wizCurrentStep+' of 5';
+  if(sub) sub.textContent=titles[wizCurrentStep-1];
+  for(var s=1;s<=5;s++){
+    var body=document.getElementById('wiz-body-'+s);
+    if(body) body.style.display=(s===wizCurrentStep)?'':'none';
+    var bar=document.getElementById('wiz-step-'+s);
+    if(bar) bar.style.background=s<=wizCurrentStep?'var(--accent)':'var(--border)';
+  }
+  var back=document.getElementById('wiz-btn-back');
+  var next=document.getElementById('wiz-btn-next');
+  if(back) back.style.display=wizCurrentStep>1?'':'none';
+  if(next) next.textContent=wizCurrentStep===5?'✓ Create Quotation':'Next →';
+  if(wizCurrentStep===5){
+    var g=function(id){return (document.getElementById(id)||{}).value||'';};
+    var rows=[
+      ['Project',g('wiz-project')||'—'], ['Client',g('wiz-client')||'—'],
+      ['Quoted By',g('wiz-by')||'—'], ['Status',g('wiz-status')||'Draft'],
+      ['Tender Ref',g('wiz-tenderref')||'—'], ['System',g('wiz-system')||'—'],
+      ['Duration',g('wiz-duration')||'—'], ['Delivery',g('wiz-delivery')||'—'],
+      ['Validity',g('wiz-validity')||'—'], ['VAT',g('wiz-vat')+'%'],
+      ['Payment',g('wiz-payment')||'—'], ['Warranty',g('wiz-warranty')||'—'],
+    ];
+    var sumEl=document.getElementById('wiz-summary');
+    if(sumEl) sumEl.innerHTML=rows.map(function(r){
+      return '<div style="color:var(--muted);font-size:11px">'+r[0]+'</div><div style="font-weight:600">'+esc(r[1])+'</div>';
+    }).join('');
+  }
+}
+
+function wizStep(dir){
+  if(dir===1){
+    if(wizCurrentStep===2){
+      var proj=(document.getElementById('wiz-project')||{}).value||'';
+      var cl=(document.getElementById('wiz-client')||{}).value||'';
+      if(!proj.trim()){alert('Please enter a Project Name.');return;}
+      if(!cl.trim()){alert('Please enter a Client name.');return;}
+    }
+    if(wizCurrentStep===5){wizCreateQuotation();return;}
+  }
+  wizCurrentStep=Math.max(1,Math.min(5,wizCurrentStep+dir));
+  wizRender();
+}
+
+function wizCreateQuotation(){
+  var co=getCurrentCompany();if(!co) return;
+  var g=function(id){return (document.getElementById(id)||{}).value||'';};
+  var num=generateQNum(); bumpQNumSequence();
+  var q=blankQ({
+    companyId:co.id, num:num,
+    version: g('wiz-version')||'v1',
+    date: g('wiz-date'),
+    status: g('wiz-status')||'Draft',
+    by: g('wiz-by'),
+    project: g('wiz-project'), client: g('wiz-client'),
+    clientPhone: g('wiz-client-phone'), addr: g('wiz-addr'),
+    tenderref: g('wiz-tenderref'), system: g('wiz-system'),
+    duration: g('wiz-duration'), delivery: g('wiz-delivery'),
+    scope: g('wiz-scope'),
+    validity: g('wiz-validity'), vat: parseFloat(g('wiz-vat'))||15,
+    paymentTerms: g('wiz-payment'), warranty: g('wiz-warranty'),
+    notes: g('wiz-notes')
+  });
+  S.quotations.push(q);
+  save(); renderQList();
+  closeModal('modal-new-q-wizard');
+  openQuotation(q.id);
 }
 
 function newVersion(){
@@ -3422,10 +3375,66 @@ function toggleLock(){
   renderQList();
 }
 
+function openProjQtnsModal(pipelineId){
+  var r=S.pipeline.find(function(p){return p.id===pipelineId;});
+  if(!r) return;
+  var co=getCurrentCompany();
+  var baseQtn=(r.qtn||'').replace(/ v\d+$/i,'').trim();
+  var qtns=S.quotations.filter(function(q){
+    if(q.companyId&&q.companyId!==co.id) return false;
+    var qBase=(q.num||'').replace(/ v\d+$/i,'').trim();
+    return q.pipelineId===r.id || qBase===baseQtn || q.num===r.qtn;
+  });
+  // Sort newest first
+  qtns=qtns.slice().sort(function(a,b){return b.id-a.id;});
+
+  var titleEl=document.getElementById('projqtn-title');
+  var subEl=document.getElementById('projqtn-sub');
+  if(titleEl) titleEl.textContent=r.name||'Project Quotations';
+  if(subEl) subEl.textContent=(r.client||'')+(r.client&&r.loc?' · ':'')+( r.loc||'')+' · '+qtns.length+' quotation'+(qtns.length!==1?'s':'');
+
+  var list=document.getElementById('projqtn-list');
+  if(list){
+    list.innerHTML=qtns.length?qtns.map(function(q){
+      var tot=typeof qSellWithVAT==='function'?qSellWithVAT(q):0;
+      var sc=statusColors()[q.status]||{bg:'#f3f4f6',c:'#6b7280'};
+      return '<div style="border:1.5px solid var(--border);border-radius:10px;padding:12px 16px;cursor:pointer;background:var(--surface);transition:.15s" onclick="closeModal(\'modal-proj-qtns\');openQuotation('+q.id+')">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
+          '<div style="font-weight:700;font-family:monospace;color:var(--accent);font-size:13px">'+esc((q.num||'').replace(/ v\d+$/i,''))+' <span style="font-weight:400;font-size:11px">'+esc(q.version||'v1')+'</span></div>'+
+          '<span style="background:'+sc.bg+';color:'+sc.c+';padding:2px 10px;border-radius:10px;font-size:11px;font-weight:600">'+esc(q.status||'Draft')+'</span>'+
+        '</div>'+
+        '<div style="font-size:12px;color:var(--muted);margin-bottom:6px">'+esc(q.project||q.client||'Untitled')+'</div>'+
+        '<div style="display:flex;justify-content:space-between;align-items:center">'+
+          '<div style="font-size:11px;color:var(--muted)">'+esc(q.date||'—')+'</div>'+
+          '<div style="font-weight:800;font-family:monospace;color:var(--green);font-size:14px">SAR '+fmtN(tot)+'</div>'+
+        '</div>'+
+      '</div>';
+    }).join(''):'<div style="text-align:center;color:var(--muted);padding:32px;font-size:14px">No quotations linked to this project</div>';
+  }
+  openModal('modal-proj-qtns');
+}
+
+function statusColors(){
+  return {
+    'Approved':   {bg:'#d1fae5',c:'#065f46'},
+    'Submitted':  {bg:'#dbeafe',c:'#1d4ed8'},
+    'in pricing': {bg:'#fef3c7',c:'#92400e'},
+    'out':        {bg:'#fee2e2',c:'#991b1b'},
+    'Canceled':   {bg:'#e5e7eb',c:'#6b7280'},
+    'Draft':      {bg:'#f3f4f6',c:'#6b7280'},
+    'Value Engineering':{bg:'#ede9fe',c:'#5b21b6'},
+  };
+}
+
+function closeQModal(){
+  closeModal('modal-quotation-form');
+  S.activeQId=null;
+  renderQList();
+}
+
 function openQuotation(id){
   S.activeQId=id;const q=S.quotations.find(o=>o.id===id);if(!q)return;
-  document.getElementById('q-empty-state').style.display='none';
-  document.getElementById('q-form').style.display='block';
+  openModal('modal-quotation-form');
   syncQFields(q);
   
   const user=getCurrentUser();
@@ -3448,7 +3457,7 @@ function openQuotation(id){
     }
   });
   
-  ['qtab-documents','qtab-costing','qtab-pricing','qtab-terms','qtab-costsell','qtab-techeval'].forEach(i=>{const e=document.getElementById(i);if(e)e.style.display='none';});
+  ['qtab-documents','qtab-costing','qtab-pricing','qtab-terms','qtab-costsell'].forEach(i=>{const e=document.getElementById(i);if(e)e.style.display='none';});
   document.getElementById('qtab-info').style.display='block';
   
   // Show/hide lock indicators
@@ -3576,8 +3585,7 @@ function deleteQ(){
   // Smart backup before deletion
   smartBackupCheck('deleteQuotation');
   S.quotations=S.quotations.filter(o=>o.id!==q.id);S.activeQId=null;
-  document.getElementById('q-empty-state').style.display='flex';
-  document.getElementById('q-form').style.display='none';
+  closeModal('modal-quotation-form');
   save();renderQList();
   const qs=S.quotations.filter(q=>!q.companyId||q.companyId===S.currentCompanyId);
   if(qs.length)openQuotation(qs[0].id);
@@ -3635,11 +3643,11 @@ function deleteDoc(id){
 // Item Costing
 const ITEM_TYPES=['Item','Installation material','Shipping','Custom','Professional Services'];
 
-function addMainItem(){const q=getQ();if(!q||!canEdit())return;q.items.push(blankMainItem());save();renderCostingTab();}
-function deleteMainItem(mid){const q=getQ();if(!q||!canEdit())return;q.items=q.items.filter(m=>m.id!==mid);save();renderCostingTab();}
-function addSubItem(mid){const q=getQ();if(!q||!canEdit())return;const m=q.items.find(m=>m.id===mid);if(!m)return;m.subItems.push(blankSubItem());save();renderCostingTab();}
-function deleteSubItem(mid,sid){const q=getQ();if(!q||!canEdit())return;const m=q.items.find(m=>m.id===mid);if(!m)return;m.subItems=m.subItems.filter(s=>s.id!==sid);save();renderCostingTab();}
-function updateMainItem(mid,key,val){const q=getQ();if(!q||!canEdit())return;const m=q.items.find(m=>m.id===mid);if(!m)return;m[key]=key==='qty'?+val:(key==='priced'?val:val);save();renderCostingTab();}
+function addMainItem(){const q=getQ();if(!q||!canEdit())return;q.items.push(blankMainItem());save();renderCostingTab();restoreExpandedSubItems();}
+function deleteMainItem(mid){const q=getQ();if(!q||!canEdit())return;q.items=q.items.filter(m=>m.id!==mid);save();renderCostingTab();restoreExpandedSubItems();}
+function addSubItem(mid){const q=getQ();if(!q||!canEdit())return;const m=q.items.find(m=>m.id===mid);if(!m)return;m.subItems.push(blankSubItem());save();renderCostingTab();restoreExpandedSubItems();}
+function deleteSubItem(mid,sid){const q=getQ();if(!q||!canEdit())return;const m=q.items.find(m=>m.id===mid);if(!m)return;m.subItems=m.subItems.filter(s=>s.id!==sid);save();renderCostingTab();restoreExpandedSubItems();}
+function updateMainItem(mid,key,val){const q=getQ();if(!q||!canEdit())return;const m=q.items.find(m=>m.id===mid);if(!m)return;m[key]=key==='qty'?+val:(key==='priced'?val:val);save();renderCostingTab();restoreExpandedSubItems();}
 
 function setSellUnitOverride(idx, val, useIndex){
   const q=getQ(); if(!q||!canEdit()) return;
@@ -3680,8 +3688,11 @@ function updateSubItem(mid,sid,key,val){
   }
   
   if(m.subItems.length>0)m.partno=m.subItems[0].partno;
-  save();renderCostingTab();
+  save();renderCostingTab();restoreExpandedSubItems();
 }
+
+// Track which sub-item sections are expanded
+var _expandedSubItems=new Set();
 
 function toggleSubItems(mid){
   const el=document.getElementById('sub-'+mid);
@@ -3689,6 +3700,11 @@ function toggleSubItems(mid){
   el.classList.toggle('expanded');
   const btn=document.getElementById('collapse-btn-'+mid);
   if(btn)btn.classList.toggle('expanded');
+  if(el.classList.contains('expanded')){
+    _expandedSubItems.add(mid);
+  } else {
+    _expandedSubItems.delete(mid);
+  }
 }
 
 function toggleQuotationSidebar(){
@@ -4010,6 +4026,15 @@ function _processImportRows(rows){
   save();
   renderCostingTab();
   alert('✅ Imported '+nMain+' main item'+(nMain!==1?'s':'')+' with '+nSub+' sub-item'+(nSub!==1?'s':'')+' successfully!');
+}
+
+function restoreExpandedSubItems(){
+  _expandedSubItems.forEach(function(mid){
+    var el=document.getElementById('sub-'+mid);
+    var btn=document.getElementById('collapse-btn-'+mid);
+    if(el){el.classList.add('expanded');}
+    if(btn){btn.classList.add('expanded');}
+  });
 }
 
 function renderCostingTab(){
@@ -5722,6 +5747,387 @@ if (_portalBridgePending) {
 }
 // If bridge arrives via event after this point, the listener set at top will call _applyPortalBridge
 // which will call init() itself — so we must NOT call init() again here in that case
+
+
+
+
+
+
+
 </script>
+
+<!-- PROJECT QUOTATIONS MODAL -->
+<div class="modal-overlay" id="modal-proj-qtns" style="z-index:500">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="projqtn-title">Project Quotations</div>
+        <div style="font-size:11px;color:var(--muted)" id="projqtn-sub"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-proj-qtns')">✕</button>
+    </div>
+    <div style="padding:16px 20px">
+      <div id="projqtn-list" style="display:flex;flex-direction:column;gap:10px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-proj-qtns')">Close</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-proj-qtns');newQuotation()">+ New Quotation</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- QUOTATION FORM MODAL -->
+<div class="modal-overlay" id="modal-quotation-form" style="z-index:300;padding:0;align-items:stretch;justify-content:stretch">
+  <div style="background:var(--surface);width:100%;height:100%;overflow:auto;position:relative;display:flex;flex-direction:column">
+    <!-- Close button -->
+    <button onclick="closeQModal()" style="position:fixed;top:16px;right:20px;z-index:999;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:6px 14px;cursor:pointer;font-size:13px;color:var(--text)">✕ Close</button>
+    <!-- Quotation form content -->
+    <div style="padding:20px;flex:1">
+      <div id="q-form">
+          <div class="card" style="margin-bottom:18px">
+            <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+              <div style="display:flex;align-items:center;gap:12px">
+                <div>
+                  <div style="font-size:15px;font-weight:700;color:var(--text)" id="qf-title">Untitled</div>
+                  <div style="font-size:12px;color:var(--muted);margin-top:2px" id="qf-subtitle">No project</div>
+                </div>
+                <div class="badge badge-draft" id="qf-version-badge">v1</div>
+                <div id="qf-lock-badge" style="display:none" class="lock-indicator">🔒 Locked</div>
+              </div>
+              <div style="display:flex;gap:6px" class="no-print">
+                <button class="btn btn-ghost btn-sm" onclick="newVersion()">📋 Version</button>
+                <button class="btn btn-ghost btn-sm" onclick="duplicateQ()">📑 Duplicate</button>
+                <button class="btn btn-warning btn-sm" id="lock-btn" onclick="toggleLock()" style="display:none">🔓 Unlock</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteQ()">🗑 Delete</button>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-body">
+              <div class="tabs" id="q-tabs">
+                <div class="tab active" onclick="switchQTab(this,'qtab-info')">Info</div>
+                <div class="tab" onclick="switchQTab(this,'qtab-documents')">Documents</div>
+                <div class="tab" onclick="switchQTab(this,'qtab-costing')">Costing</div>
+                <div class="tab" onclick="switchQTab(this,'qtab-pricing')">Pricing</div>
+                <div class="tab" onclick="switchQTab(this,'qtab-terms')">Terms & Payment</div>
+                <div class="tab" onclick="switchQTab(this,'qtab-costsell')">Cost-Sell</div>
+
+              </div>
+
+              <!-- INFO TAB -->
+              <div id="qtab-info">
+                <!-- Basic Information Section -->
+                <div class="modern-card">
+                  <div class="card-section-header">
+                    <div class="section-icon">📋</div>
+                    <div class="section-title">Basic Information</div>
+                  </div>
+                  <div class="form-grid">
+                    <div class="field">
+                      <label>Quotation Number</label>
+                      <select id="q-num" onchange="autofillFromPipeline()"></select>
+                    </div>
+                    <div class="field"><label>Version</label><input id="q-version" placeholder="v1.0" onchange="saveQ()"></div>
+                    <div class="field"><label>Submission Date</label><input type="date" id="q-date" onchange="saveQ()"></div>
+                    <div class="field">
+                      <label>Status</label>
+                      <select id="q-status" onchange="saveQ()">
+                        <option>Draft</option><option>Submitted</option><option>Approved</option><option>in pricing</option><option>out</option><option>Canceled</option>
+                      </select>
+                    </div>
+                    <div class="field"><label>Quoted By</label><select id="q-by" onchange="saveQ()"></select></div>
+                  </div>
+                </div>
+
+                <!-- Project Details Section -->
+                <div class="modern-card">
+                  <div class="card-section-header">
+                    <div class="section-icon">🏗️</div>
+                    <div class="section-title">Project Details</div>
+                  </div>
+                  <div class="form-grid">
+                    <div class="field field-full"><label>Project Name</label><input id="q-project" placeholder="Enter project name..." onchange="saveQ()"></div>
+                    <div class="field"><label>Client</label><input id="q-client" placeholder="Client name..." onchange="saveQ()"></div>
+                    <div class="field"><label>Client Contact</label><input id="q-client-phone" placeholder="Phone number..." onchange="saveQ()"></div>
+                    <div class="field"><label>Address</label><input id="q-addr" placeholder="Location..." onchange="saveQ()"></div>
+                    <div class="field">
+                      <label>System Type</label>
+                      <select id="q-system" onchange="saveQ()">
+                        <option>CCTV</option><option>Security</option><option>Supplies</option><option>Fire Alarm</option><option>AV System</option><option>IT Network</option><option>Other</option>
+                      </select>
+                    </div>
+                    <div class="field"><label>Tender Reference</label><input id="q-tenderref" placeholder="Ref..." onchange="saveQ()"></div>
+                  </div>
+                </div>
+
+                <!-- Commercial Terms Section -->
+                <div class="modern-card">
+                  <div class="card-section-header">
+                    <div class="section-icon">💼</div>
+                    <div class="section-title">Commercial Terms</div>
+                  </div>
+                  <div class="form-grid">
+                    <div class="field"><label>Validity Period</label><input id="q-validity" placeholder="90 days" onchange="saveQ()"></div>
+                    <div class="field"><label>VAT %</label><input type="number" id="q-vat" value="15" min="0" max="100" onchange="saveQ()"></div>
+                    <div class="field"><label>Project Value (incl. VAT)</label><input type="number" id="q-project-value" placeholder="Enter or auto-calculated" onchange="saveQ()"></div>
+                    <div class="field"><label>Payment Terms</label><input id="q-payment-terms" placeholder="As per schedule" onchange="saveQ()"></div>
+                  </div>
+                </div>
+
+                <!-- Timeline Section -->
+                <div class="modern-card">
+                  <div class="card-section-header">
+                    <div class="section-icon">📅</div>
+                    <div class="section-title">Project Timeline</div>
+                  </div>
+                  <div class="form-grid">
+                    <div class="field"><label>Duration</label><input id="q-duration" placeholder="e.g., 6 months" onchange="saveQ()"></div>
+                    <div class="field"><label>Delivery Time</label><input id="q-delivery" placeholder="270 days from site handover" onchange="saveQ()"></div>
+                    <div class="field"><label>Implementation Period</label><input id="q-impl" placeholder="30 days from site handover" onchange="saveQ()"></div>
+                  </div>
+                </div>
+
+                <!-- Additional Information Section -->
+                <div class="modern-card">
+                  <div class="card-section-header">
+                    <div class="section-icon">📝</div>
+                    <div class="section-title">Additional Information</div>
+                  </div>
+                  <div class="form-grid">
+                    <div class="field field-full"><label>Scope of Work</label><textarea id="q-scope" rows="3" placeholder="Describe the project scope..." onchange="saveQ()"></textarea></div>
+                    <div class="field field-full"><label>Notes</label><textarea id="q-notes" rows="3" placeholder="Additional notes..." onchange="saveQ()"></textarea></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- DOCUMENTS TAB -->
+              <div id="qtab-documents" style="display:none">
+                <div style="margin-bottom:14px">
+                  <label class="btn btn-primary btn-sm" style="cursor:pointer">
+                    📎 Upload PDF Document (Max 5MB)
+                    <input type="file" accept=".pdf" style="display:none" onchange="handleDocUpload(event)">
+                  </label>
+                </div>
+                <div class="doc-list" id="doc-list"></div>
+              </div>
+
+              <!-- COSTING TAB -->
+              <div id="qtab-costing" style="display:none">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px" class="no-print">
+                  <div style="display:flex;gap:8px">
+                    <button class="btn btn-accent btn-sm" onclick="exportCostingPDF()">📄 Export BOQ (PDF)</button>
+                    <button class="btn btn-accent btn-sm" onclick="exportCostingExcel()">📊 Export BOQ (Excel)</button>
+                  </div>
+                  <div style="display:flex;gap:8px">
+                    <button class="btn btn-ghost btn-sm" onclick="importExcelItems()" title="Import full costing (Main+Sub items with all columns)">📥 Import Full</button>
+                    <button class="btn btn-ghost btn-sm" onclick="importMainItemsOnly()" title="Import main items only: Description / Qty / Unit / Notes">📋 Import Items</button>
+                    <button class="btn btn-ghost btn-sm" onclick="downloadImportTemplate()" title="Download Excel template with correct format">📋 Template</button>
+                    <button class="btn btn-primary btn-sm" onclick="addMainItem()">+ Add Item</button>
+                  </div>
+                  <input type="file" id="excel-import-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleExcelImport(event)">
+                </div>
+                <div id="cost-items-wrap"></div>
+                <div class="totals-bar" id="costing-totals"></div>
+              </div>
+
+              <!-- PRICING TAB -->
+              <div id="qtab-pricing" style="display:none">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap" class="no-print">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <label style="font-size:13px;font-weight:600">Profit %</label>
+                    <input type="number" id="profit-pct" value="25" min="0" max="100" step="5" style="width:70px;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:13px" onchange="saveQ();renderPricingTab()">
+                  </div>
+                  <div class="checkbox-field">
+                    <input type="checkbox" id="show-prices" onchange="renderPricingTab()">
+                    <label style="font-size:13px;margin:0">Show Prices</label>
+                  </div>
+                  <div style="margin-left:auto;display:flex;gap:8px">
+                    <button class="btn btn-ghost btn-sm" onclick="exportPricingPDF()">⬇ PDF</button>
+                    <button class="btn btn-ghost btn-sm" onclick="exportPricingPDF(true)">⬇ عربي</button>
+                    <button class="btn btn-ghost btn-sm" onclick="exportPricingPDF()">🖨 Print</button>
+                  </div>
+                </div>
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>#</th><th>Part #</th><th>Description</th><th>Unit</th><th>Qty</th><th>Cost Unit</th><th>Cost Total</th><th>Sell Unit</th><th>Sell Total</th><th>Optional</th></tr></thead>
+                    <tbody id="pricing-tbody"></tbody>
+                  </table>
+                </div>
+                <div class="totals-bar" id="pricing-totals"></div>
+              </div>
+
+              <!-- TERMS & PAYMENT -->
+              <div id="qtab-terms" style="display:none">
+                <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px" class="no-print">
+                  <button class="btn btn-ghost btn-sm" onclick="exportPaymentPDF()">⬇ PDF</button>
+                  <button class="btn btn-primary btn-sm" onclick="addPayRow()">+ Add Payment</button>
+                </div>
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>#</th><th>Milestone</th><th>%</th><th>Due Date</th><th>Amount (SAR)</th><th class="no-print"></th></tr></thead>
+                    <tbody id="pay-tbody"></tbody>
+                  </table>
+                </div>
+                <div class="totals-bar">
+                  <div class="total-item"><div class="total-label">% Allocated</div><div class="total-value" id="pay-pct-total" style="font-size:15px">0%</div></div>
+                  <div class="total-item"><div class="total-label">Total</div><div class="total-value tv-green" id="pay-total">SAR 0</div></div>
+                  <div class="total-item"><div class="total-label">Grand Total</div><div class="total-value tv-blue" id="pay-linked">SAR 0</div></div>
+                </div>
+              </div>
+
+              <!-- COST-SELL -->
+              <div id="qtab-costsell" style="display:none">
+                <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px" class="no-print">
+                  <button class="btn btn-ghost btn-sm" onclick="exportCostSellPDF()">⬇ PDF</button>
+                  <button class="btn btn-ghost btn-sm" onclick="exportCostSellPDF()">🖨 Print</button>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px">
+                  <div class="card">
+                    <div class="card-header"><div class="card-title">Cost by Type</div></div>
+                    <div class="card-body">
+                      <div class="chart-container"><canvas id="chart-by-type"></canvas></div>
+                      <div class="table-wrap" style="margin-top:12px">
+                        <table id="table-by-type">
+                          <thead><tr><th>Type</th><th>Amount (SAR)</th><th>% of Total</th></tr></thead>
+                          <tbody></tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="card">
+                    <div class="card-header"><div class="card-title">Cost by Vendor</div></div>
+                    <div class="card-body">
+                      <div class="chart-container"><canvas id="chart-by-vendor"></canvas></div>
+                      <div class="table-wrap" style="margin-top:12px">
+                        <table id="table-by-vendor">
+                          <thead><tr><th>Vendor</th><th>Amount (SAR)</th><th>% of Total</th><th class="no-print">Export</th></tr></thead>
+                          <tbody></tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 320px;gap:18px">
+                  <div>
+                    <div class="card">
+                      <div class="card-header"><div class="card-title">Cost vs Sell Summary</div></div>
+                      <div class="card-body"><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px" id="cs-summary-grid"></div></div>
+                    </div>
+                  </div>
+                  <div class="card">
+                    <div class="card-header"><div class="card-title">Profit Analysis</div></div>
+                    <div class="card-body" id="cs-profit-panel"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- TECHNICAL EVALUATION -->
+              
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+    </div>
+  </div>
+</div>
+
+<!-- NEW QUOTATION WIZARD -->
+<div class="modal-overlay" id="modal-new-q-wizard" style="z-index:600">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="wizard-step-title">New Quotation — Step 1 of 5</div>
+        <div style="font-size:11px;color:var(--muted)" id="wizard-step-sub">Quotation Info</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-new-q-wizard')">✕</button>
+    </div>
+    <!-- Progress bar -->
+    <div style="display:flex;gap:2px;padding:0 24px;margin-top:2px">
+      <div id="wiz-step-1" style="flex:1;height:4px;border-radius:4px 0 0 0;background:var(--accent);transition:.3s"></div>
+      <div id="wiz-step-2" style="flex:1;height:4px;background:var(--border);transition:.3s"></div>
+      <div id="wiz-step-3" style="flex:1;height:4px;background:var(--border);transition:.3s"></div>
+      <div id="wiz-step-4" style="flex:1;height:4px;background:var(--border);transition:.3s"></div>
+      <div id="wiz-step-5" style="flex:1;height:4px;border-radius:0 4px 0 0;background:var(--border);transition:.3s"></div>
+    </div>
+
+    <!-- Step 1: Quotation Info -->
+    <div id="wiz-body-1" style="padding:20px 24px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px">📋 Quotation Info</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div class="field" style="margin:0"><label>Pipeline / QTN Ref</label><select id="wiz-num" style="font-size:13px"><option value="">— New (auto) —</option></select></div>
+        <div class="field" style="margin:0"><label>Version</label><input id="wiz-version" placeholder="v1" style="font-size:13px" value="v1"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div class="field" style="margin:0"><label>Submission Date</label><input type="date" id="wiz-date" style="font-size:13px"></div>
+        <div class="field" style="margin:0"><label>Status</label><select id="wiz-status" style="font-size:13px"><option>Draft</option><option>in pricing</option><option>Submitted</option><option>Approved</option><option>out</option><option>Canceled</option></select></div>
+      </div>
+      <div class="field" style="margin:0"><label>Quoted By</label><select id="wiz-by" style="font-size:13px"><option value="">— Select —</option></select></div>
+    </div>
+
+    <!-- Step 2: Client & Project -->
+    <div id="wiz-body-2" style="padding:20px 24px;display:none">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px">🏢 Client & Project</div>
+      <div class="field" style="margin-bottom:12px"><label>Project Name *</label><input id="wiz-project" placeholder="e.g. CCTV System Supply & Installation" style="font-size:13px"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div class="field" style="margin:0"><label>Client *</label><input id="wiz-client" placeholder="Client name" list="client-datalist" style="font-size:13px"></div>
+        <div class="field" style="margin:0"><label>Client Contact</label><input id="wiz-client-phone" placeholder="Phone / email" style="font-size:13px"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="field" style="margin:0"><label>Address / Location</label><input id="wiz-addr" placeholder="City, district..." style="font-size:13px"></div>
+        <div class="field" style="margin:0"><label>Tender Reference</label><input id="wiz-tenderref" placeholder="Ref No." style="font-size:13px"></div>
+      </div>
+    </div>
+
+    <!-- Step 3: Technical -->
+    <div id="wiz-body-3" style="padding:20px 24px;display:none">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px">⚙️ Technical Details</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div class="field" style="margin:0"><label>System Type</label>
+          <select id="wiz-system" style="font-size:13px">
+            <option value="">— Select —</option>
+            <option>CCTV</option><option>Access Control</option><option>Fire Alarm</option><option>Intercom</option><option>Structured Cabling</option><option>Audio Visual</option><option>LED Screen</option><option>Other</option>
+          </select>
+        </div>
+        <div class="field" style="margin:0"><label>Duration</label><input id="wiz-duration" placeholder="e.g. 6 Weeks" style="font-size:13px"></div>
+      </div>
+      <div class="field" style="margin-bottom:12px"><label>Delivery Time</label><input id="wiz-delivery" placeholder="e.g. 270 days from site handover" style="font-size:13px"></div>
+      <div class="field" style="margin:0"><label>Scope of Work</label><textarea id="wiz-scope" rows="4" placeholder="Describe the project scope..." style="font-size:13px;resize:none"></textarea></div>
+    </div>
+
+    <!-- Step 4: Commercial -->
+    <div id="wiz-body-4" style="padding:20px 24px;display:none">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px">💼 Commercial Terms</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div class="field" style="margin:0"><label>Validity Period</label><input id="wiz-validity" placeholder="90 days" style="font-size:13px"></div>
+        <div class="field" style="margin:0"><label>VAT %</label><input id="wiz-vat" type="number" value="15" min="0" max="100" style="font-size:13px"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div class="field" style="margin:0"><label>Payment Terms</label><input id="wiz-payment" placeholder="e.g. 30 days net" style="font-size:13px"></div>
+        <div class="field" style="margin:0"><label>Project Value (incl. VAT)</label><input id="wiz-project-value" type="number" placeholder="Auto-calculated" style="font-size:13px"></div>
+      </div>
+      <div class="field" style="margin:0"><label>Warranty</label><input id="wiz-warranty" placeholder="e.g. 1 Year" style="font-size:13px"></div>
+    </div>
+
+    <!-- Step 5: Notes & Summary -->
+    <div id="wiz-body-5" style="padding:20px 24px;display:none">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px">📝 Notes & Summary</div>
+      <div class="field" style="margin-bottom:14px"><label>Notes / Exclusions</label><textarea id="wiz-notes" rows="3" placeholder="Any exclusions or special terms..." style="font-size:13px;resize:none"></textarea></div>
+      <div style="background:var(--surface2);border-radius:10px;padding:14px 16px;font-size:12px">
+        <div style="font-weight:700;margin-bottom:8px;color:var(--accent)">✅ Summary</div>
+        <div id="wiz-summary" style="color:var(--text);line-height:2;display:grid;grid-template-columns:1fr 1fr;gap:2px 16px"></div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button id="wiz-btn-back" class="btn btn-secondary" onclick="wizStep(-1)" style="display:none">← Back</button>
+      <button class="btn btn-secondary" onclick="closeModal('modal-new-q-wizard')">Cancel</button>
+      <button id="wiz-btn-next" class="btn btn-primary" onclick="wizStep(1)">Next →</button>
+    </div>
+  </div>
+</div>
+
 </body>
     return '<div style="display:grid;grid-template-columns:1fr 1fr 120px 130px 160px auto;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;cursor:pointer" onclick="window.__veOpen(this.dataset.vid)" data-vid="'+r.id+'">'+
