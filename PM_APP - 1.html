@@ -4071,10 +4071,9 @@ function afSaveSimple(){
   var rows=list?list.querySelectorAll('div[style*="grid"]'):[];
   var steps=[];
   rows.forEach(function(row){
-    var roleInput=row.querySelector('input');
-    var nameSelect=row.querySelector('select');
-    var role=roleInput?roleInput.value.trim():'';
-    var name=nameSelect?nameSelect.value.trim():'';
+    var inputs=row.querySelectorAll('input');
+    var role=inputs[0]?inputs[0].value.trim():'';
+    var name=inputs[1]?inputs[1].value.trim():'';
     if(role||name) steps.push({role:role,name:name});
   });
   if(!S.approvalFlow) S.approvalFlow={};
