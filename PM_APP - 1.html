@@ -653,88 +653,102 @@ textarea{resize:vertical;min-height:68px}
             <div style="font-size:11px;font-weight:700;color:var(--accent)" id="dd-doc-label">Document Colors</div>
             <span style="font-size:10px;color:var(--muted)">(changes apply to this document only)</span>
             <div style="margin-left:auto;display:flex;gap:6px">
+              <button class="btn btn-secondary btn-sm" onclick="ddResetAllColors()" style="font-size:11px;color:#d94040;border-color:#d94040" title="Clear ALL saved colors for ALL documents">🗑 Clear All</button>
               <button class="btn btn-secondary btn-sm" onclick="ddResetDocColors()" style="font-size:11px">↺ Reset to Global</button>
               <button class="btn btn-primary btn-sm" onclick="ddSaveDesign();saveNow()" style="font-size:11px">💾 Save</button>
               <span id="dd-saved-badge" style="font-size:11px;color:var(--accent2);display:none;align-self:center">✅</span>
             </div>
           </div>
 
-          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:10px;align-items:end">
-
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;align-items:end;margin-bottom:10px">
+            <div class="form-group" style="margin:0">
+              <label style="font-size:10px;text-transform:uppercase;letter-spacing:.5px">Header BG</label>
+              <div style="display:flex;gap:3px;align-items:center">
+                <input type="color" id="dc-hdr-bg" style="width:32px;height:26px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="syncColor2('dc-hdr-bg','dc-hdr-bg-hex');ddRefreshPreview()"/>
+                <input id="dc-hdr-bg-hex" style="flex:1;font-size:11px;padding:3px 5px" oninput="syncColor2('dc-hdr-bg','dc-hdr-bg-hex');ddRefreshPreview()"/>
+              </div>
+            </div>
+            <div class="form-group" style="margin:0">
+              <label style="font-size:10px;text-transform:uppercase;letter-spacing:.5px">Header Text</label>
+              <div style="display:flex;gap:3px;align-items:center">
+                <input type="color" id="dc-hdr-text" style="width:32px;height:26px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="syncColor2('dc-hdr-text','dc-hdr-text-hex');ddRefreshPreview()"/>
+                <input id="dc-hdr-text-hex" style="flex:1;font-size:11px;padding:3px 5px" oninput="syncColor2('dc-hdr-text','dc-hdr-text-hex');ddRefreshPreview()"/>
+              </div>
+            </div>
+            <div class="form-group" style="margin:0">
+              <label style="font-size:10px;text-transform:uppercase;letter-spacing:.5px">Table TH BG</label>
+              <div style="display:flex;gap:3px;align-items:center">
+                <input type="color" id="dc-th-bg" style="width:32px;height:26px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="syncColor2('dc-th-bg','dc-th-bg-hex');ddRefreshPreview()"/>
+                <input id="dc-th-bg-hex" style="flex:1;font-size:11px;padding:3px 5px" oninput="syncColor2('dc-th-bg','dc-th-bg-hex');ddRefreshPreview()"/>
+              </div>
+            </div>
+            <div class="form-group" style="margin:0">
+              <label style="font-size:10px;text-transform:uppercase;letter-spacing:.5px">Table TH Text</label>
+              <div style="display:flex;gap:3px;align-items:center">
+                <input type="color" id="dc-th-text" style="width:32px;height:26px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="syncColor2('dc-th-text','dc-th-text-hex');ddRefreshPreview()"/>
+                <input id="dc-th-text-hex" style="flex:1;font-size:11px;padding:3px 5px" oninput="syncColor2('dc-th-text','dc-th-text-hex');ddRefreshPreview()"/>
+              </div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;align-items:end">
+            <div class="form-group" style="margin:0">
+              <label style="font-size:10px;text-transform:uppercase;letter-spacing:.5px">Total Row</label>
+              <div style="display:flex;gap:3px;align-items:center">
+                <input type="color" id="dc-tot-bg" style="width:32px;height:26px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="syncColor2('dc-tot-bg','dc-tot-bg-hex');ddRefreshPreview()"/>
+                <input id="dc-tot-hex" style="flex:1;font-size:11px;padding:3px 5px" oninput="syncColor2('dc-tot-bg','dc-tot-hex');ddRefreshPreview()"/>
+              </div>
+            </div>
+            <div class="form-group" style="margin:0">
+              <label style="font-size:10px;text-transform:uppercase;letter-spacing:.5px">Alt Row</label>
+              <div style="display:flex;gap:3px;align-items:center">
+                <input type="color" id="dc-alt-bg" style="width:32px;height:26px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="syncColor2('dc-alt-bg','dc-alt-bg-hex');ddRefreshPreview()"/>
+                <input id="dc-alt-hex" style="flex:1;font-size:11px;padding:3px 5px" oninput="syncColor2('dc-alt-bg','dc-alt-hex');ddRefreshPreview()"/>
+              </div>
+            </div>
+            <div class="form-group" style="margin:0">
+              <label style="font-size:10px;text-transform:uppercase;letter-spacing:.5px">Accent Color</label>
+              <div style="display:flex;gap:3px;align-items:center">
+                <input type="color" id="dc-accent" style="width:32px;height:26px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="syncColor2('dc-accent','dc-accent-hex');ddRefreshPreview()"/>
+                <input id="dc-accent-hex" style="flex:1;font-size:11px;padding:3px 5px" oninput="syncColor2('dc-accent','dc-accent-hex');ddRefreshPreview()"/>
+              </div>
+            </div>
             <div id="dd-sec-color-group" class="form-group" style="margin:0;display:none">
-              <label style="font-size:10px">Sections & Table</label>
+              <label style="font-size:10px;text-transform:uppercase;letter-spacing:.5px">Sections & Table</label>
               <div style="display:flex;gap:3px;align-items:center">
-                <input type="color" id="dc-sec-color" style="width:32px;height:26px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="ddRefreshPreview()"/>
-                <input id="dc-sec-color-hex" style="flex:1;font-size:10px;padding:2px 4px" oninput="syncColor2('dc-sec-color','dc-sec-color-hex');ddRefreshPreview()"/>
+                <input type="color" id="dc-sec-color" style="width:32px;height:26px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="syncColor2('dc-sec-color','dc-sec-color-hex');ddRefreshPreview()"/>
+                <input id="dc-sec-color-hex" style="flex:1;font-size:11px;padding:3px 5px" oninput="syncColor2('dc-sec-color','dc-sec-color-hex');ddRefreshPreview()"/>
               </div>
             </div>
-
-
-
-            <div id="dd-footer-color-group" class="form-group" style="margin:0;display:none">
-              <label style="font-size:10px">Footer BG</label>
-              <div style="display:flex;gap:3px;align-items:center">
-                <input type="color" id="dc-ftr-bg" style="width:32px;height:26px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="ddRefreshPreview()"/>
-                <input id="dc-ftr-bg-hex" style="flex:1;font-size:10px;padding:2px 4px" oninput="syncColor2('dc-ftr-bg','dc-ftr-bg-hex');ddRefreshPreview()"/>
-              </div>
-            </div>
-
             <div class="form-group" style="margin:0">
-              <label style="font-size:10px">Header BG</label>
+              <label style="font-size:10px;text-transform:uppercase;letter-spacing:.5px">Footer BG</label>
               <div style="display:flex;gap:3px;align-items:center">
-                <input type="color" id="dc-hdr-bg" style="width:32px;height:26px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="ddRefreshPreview()"/>
-                <input id="dc-hdr-bg-hex" style="flex:1;font-size:10px;padding:2px 4px" oninput="syncColor2('dc-hdr-bg','dc-hdr-bg-hex');ddRefreshPreview()"/>
+                <input type="color" id="dc-ftr-bg" style="width:32px;height:26px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="syncColor2('dc-ftr-bg','dc-ftr-bg-hex');ddRefreshPreview()"/>
+                <input id="dc-ftr-bg-hex" style="flex:1;font-size:11px;padding:3px 5px" oninput="syncColor2('dc-ftr-bg','dc-ftr-bg-hex');ddRefreshPreview()"/>
               </div>
             </div>
-
             <div class="form-group" style="margin:0">
-              <label style="font-size:10px">Header Text</label>
+              <label style="font-size:10px;text-transform:uppercase;letter-spacing:.5px">Footer Text</label>
               <div style="display:flex;gap:3px;align-items:center">
-                <input type="color" id="dc-hdr-text" style="width:32px;height:26px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="ddRefreshPreview()"/>
-                <input id="dc-hdr-text-hex" style="flex:1;font-size:10px;padding:2px 4px" oninput="syncColor2('dc-hdr-text','dc-hdr-text-hex');ddRefreshPreview()"/>
+                <input type="color" id="dc-ftr-text" style="width:32px;height:26px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="syncColor2('dc-ftr-text','dc-ftr-text-hex');ddRefreshPreview()"/>
+                <input id="dc-ftr-text-hex" style="flex:1;font-size:11px;padding:3px 5px" oninput="syncColor2('dc-ftr-text','dc-ftr-text-hex');ddRefreshPreview()"/>
               </div>
             </div>
-
+          </div>
+          <div style="display:none">
             <div class="form-group" style="margin:0">
-              <label style="font-size:10px">Table TH BG</label>
+              <label style="font-size:10px;text-transform:uppercase;letter-spacing:.5px">Footer BG</label>
               <div style="display:flex;gap:3px;align-items:center">
-                <input type="color" id="dc-th-bg" style="width:32px;height:26px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="ddRefreshPreview()"/>
-                <input id="dc-th-bg-hex" style="flex:1;font-size:10px;padding:2px 4px" oninput="syncColor2('dc-th-bg','dc-th-bg-hex');ddRefreshPreview()"/>
+                <input type="color" id="dc-ftr-bg" style="width:32px;height:26px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="syncColor2('dc-ftr-bg','dc-ftr-bg-hex');ddRefreshPreview()"/>
+                <input id="dc-ftr-bg-hex" style="flex:1;font-size:11px;padding:3px 5px" oninput="syncColor2('dc-ftr-bg','dc-ftr-bg-hex');ddRefreshPreview()"/>
               </div>
             </div>
-
             <div class="form-group" style="margin:0">
-              <label style="font-size:10px">Table TH Text</label>
+              <label style="font-size:10px;text-transform:uppercase;letter-spacing:.5px">Footer Text</label>
               <div style="display:flex;gap:3px;align-items:center">
-                <input type="color" id="dc-th-text" style="width:32px;height:26px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="ddRefreshPreview()"/>
-                <input id="dc-th-text-hex" style="flex:1;font-size:10px;padding:2px 4px" oninput="syncColor2('dc-th-text','dc-th-text-hex');ddRefreshPreview()"/>
+                <input type="color" id="dc-ftr-text" style="width:32px;height:26px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="syncColor2('dc-ftr-text','dc-ftr-text-hex');ddRefreshPreview()"/>
+                <input id="dc-ftr-text-hex" style="flex:1;font-size:11px;padding:3px 5px" oninput="syncColor2('dc-ftr-text','dc-ftr-text-hex');ddRefreshPreview()"/>
               </div>
             </div>
-
-            <div class="form-group" style="margin:0">
-              <label style="font-size:10px">Total Row</label>
-              <div style="display:flex;gap:3px;align-items:center">
-                <input type="color" id="dc-tot-bg" style="width:32px;height:26px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="ddRefreshPreview()"/>
-                <input id="dc-tot-hex" style="flex:1;font-size:10px;padding:2px 4px" oninput="syncColor2('dc-tot-bg','dc-tot-hex');ddRefreshPreview()"/>
-              </div>
-            </div>
-
-            <div class="form-group" style="margin:0">
-              <label style="font-size:10px">Alt Row</label>
-              <div style="display:flex;gap:3px;align-items:center">
-                <input type="color" id="dc-alt-bg" style="width:32px;height:26px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="ddRefreshPreview()"/>
-                <input id="dc-alt-hex" style="flex:1;font-size:10px;padding:2px 4px" oninput="syncColor2('dc-alt-bg','dc-alt-hex');ddRefreshPreview()"/>
-              </div>
-            </div>
-
-            <div class="form-group" style="margin:0">
-              <label style="font-size:10px">Accent Color</label>
-              <div style="display:flex;gap:3px;align-items:center">
-                <input type="color" id="dc-accent" style="width:32px;height:26px;padding:2px;border-radius:5px;cursor:pointer;border:1.5px solid var(--border)" oninput="ddRefreshPreview()"/>
-                <input id="dc-accent-hex" style="flex:1;font-size:10px;padding:2px 4px" oninput="syncColor2('dc-accent','dc-accent-hex');ddRefreshPreview()"/>
-              </div>
-            </div>
-
           </div>
         </div>
 
@@ -2185,8 +2199,10 @@ function _pH(doc)  {
   return _dcGet(d,'thBg', S.pdfTableHeader||S.headerBgColor||'#1a4fa0');
 }
 function _pHo_doc(doc,hex,op){ return _pHo(hex,op); }
-function _pDocHdr(doc)  { var d=doc||_ddCurrentDoc||''; return _dcGet(d,'docHdrBg', _dcGet(d,'hdrBg', S.headerBgColor||S.pdfTableHeader||'#1a4fa0')); }
-function _pDocHdrT(doc) { var d=doc||_ddCurrentDoc||''; return _dcGet(d,'docHdrText', _dcGet(d,'hdrText', S.headerFontColor||'#ffffff')); }
+function _pDocHdr(doc)  { var d=doc||_ddCurrentDoc||''; return _dcGet(d,'hdrBg', _dcGet(d,'docHdrBg', S.headerBgColor||S.pdfTableHeader||'#1a4fa0')); }
+function _pFtrBg(doc)  { var d=doc||_ddCurrentDoc||''; return _dcGet(d,'footerBg', _pDocHdr(d)); }
+function _pFtrText(doc){ var d=doc||_ddCurrentDoc||''; return _dcGet(d,'footerText', '#ffffff'); }
+function _pDocHdrT(doc) { var d=doc||_ddCurrentDoc||''; return _dcGet(d,'hdrText', _dcGet(d,'docHdrText', S.headerFontColor||'#ffffff')); }
 function _pSec(doc) { var d=doc||_ddCurrentDoc||''; return _dcGet(d,'secColor', _dcGet(d,'thBg', S.pdfTableHeader||S.headerBgColor||'#1a4fa0')); }
 function _pTB() { return S.docTableBorder    || '#e2e6ef'; }  // table border color
 function _pAlt(doc)  { var d=doc||_ddCurrentDoc||''; return _dcGet(d,'altRow', S.docTableAltRow||S.pdfAltRow||'transparent'); }
@@ -2202,9 +2218,10 @@ function _pHo(hex, opacity) {
 }
 
 // ── Shared print CSS (same as CostingAPP quotation style) ────────
-function _printCSS(sec){
-  sec=sec||_pSec();
-  var hdr=_pH(_ddCurrentDoc), hdrT=_pHT(_ddCurrentDoc), tot=_pT(_ddCurrentDoc), totT=_pTT(_ddCurrentDoc), alt=_pAlt(_ddCurrentDoc);
+function _printCSS(sec, docType){
+  var _doc=docType||_ddCurrentDoc||'';
+  sec=sec||_pSec(_doc);
+  var hdr=_pH(_doc), hdrT=_pHT(_doc), tot=_pT(_doc), totT=_pTT(_doc), alt=_pAlt(_doc);
   return [
     '@page{margin:14mm 12mm;size:A4 portrait}',
     '*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;box-sizing:border-box;margin:0;padding:0}',
@@ -2279,10 +2296,10 @@ function getDocHeader(docType, opts){
   if(S.letterheadData){
     return '<div style="width:100%;line-height:0"><img src="'+S.letterheadData+'" style="width:100%;display:block;"/></div>';
   }
-  var color  = (docType?_pH(docType):null)||S.headerBgColor||'#1a4fa0';
+  var color  = (docType?_pDocHdr(docType):null)||S.headerBgColor||'#1a4fa0';
   var txtSize= (S.headerTextSize||'15')+'px';
   var pad    = (S.headerPadding||'14')+'px 20px';
-  var fontColor      = (docType?_pHT(docType):null)||S.headerFontColor||'#ffffff';
+  var fontColor      = (docType?_pDocHdrT(docType):null)||S.headerFontColor||'#ffffff';
   var fontColorMuted = fontColor+'cc';
   var logoHTML = S.logoData
     ? '<img src="'+S.logoData+'" style="height:52px;max-width:140px;object-fit:contain"/>'
@@ -5976,10 +5993,10 @@ function getPOHTML(po){
   var aftDisc = sub-disc;
   var vat     = isIntl?0:Math.round((aftDisc*0.15+Number.EPSILON)*100)/100;
   var total   = Math.round((aftDisc+aftDisc*(isIntl?0:0.15)+Number.EPSILON)*100)/100;
-  var hdr     = _dcGet('po','hdrBg',_pH('po'));    // Doc header bg
-  var hdrT    = _dcGet('po','hdrText',_pHT('po')); // Doc header text
-  var thBg    = _pH('po');                          // Table TH bg
-  var thT     = _pHT('po');                         // Table TH text
+  var hdr     = _pDocHdr('po');   // Doc header bg  ← dc-hdr-bg
+  var hdrT    = _pDocHdrT('po'); // Doc header text ← dc-hdr-text
+  var thBg    = _pH('po');       // Table TH bg     ← dc-th-bg
+  var thT     = _pHT('po');      // Table TH text   ← dc-th-text
   var totBg   = _pT('po');
   var altBg   = _pAlt('po');
 
@@ -6053,13 +6070,7 @@ function getPOHTML(po){
   var lblStyle  = 'color:#333;font-weight:600;width:72px;'+cellStyle;
 
   return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+po.num+'</title>'+
-    '<style>'+
-      '@page{margin:12mm 14mm;size:A4 portrait}'+
-      '*{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
-      'body{font-family:'+( S.docFontFamily||'Calibri,Arial,sans-serif')+';font-size:11.5px;color:#111;background:#fff;margin:0;line-height:1.45}'+
-      'table{width:100%;border-collapse:collapse}'+
-      '@media print{.no-print{display:none!important}}'+
-    '</style></head><body>'+
+    '<style>'+_printCSS(_pSec('po'),'po')+'</style></head><body>'+
 
     // ── HEADER ───────────────────────────────────────────────
     '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">'+
@@ -6351,7 +6362,7 @@ function getPettyHTML(pc){
   if(pc.notes) body+='<div style="margin-top:12px;padding:8px;background:#f5f8ff;border-radius:6px"><b>\u0645\u0644\u0627\u062d\u0638\u0627\u062a:</b> '+pc.notes+'</div>';
   body+=buildSigBlock('pc', pc, pc.owner||getSubmittedBy())+'</div>';
   // Footer
-  var ftrBgColor=(_dcGet('inv','footerBg',null))||hdr;
+  var ftrBgColor=_pFtrBg('pc');
   var footerParts=[S.companyEn,S.addressEn,S.phone,S.email,S.cr?'CR: '+S.cr:'',S.vat?'VAT: '+S.vat:''].filter(Boolean);
 
   return '<div style="'+getDocStyle()+'">'+
@@ -6801,7 +6812,7 @@ function getInvoiceHTML(inv){
   // Signature block with approval stamps
   body+=buildSigBlock('inv', inv, inv.reqBy||getSubmittedBy())+'</div>';
   // Footer
-  var ftrBgColor=(_dcGet('inv','footerBg',null))||hdr;
+  var ftrBgColor=_pFtrBg('inv');
   var footerParts=[S.companyEn,S.addressEn,S.phone,S.email,S.cr?'CR: '+S.cr:'',S.vat?'VAT: '+S.vat:''].filter(Boolean);
 
   return '<div style="'+getDocStyle()+'">'+
@@ -6934,7 +6945,7 @@ function printProjectProgress(projId){
     '.prog-bar{height:12px;background:#e2e6ef;border-radius:6px;overflow:hidden;margin:4px 0}'+
     '.prog-fill{height:100%;border-radius:6px}'+
     '</style></head><body>';
-  html+=getDocHeader('po');
+  html+=getDocHeader('ppr',{hideAddress:true,hidePhone:true,hideEmail:true,hideCR:true,hideVAT:true,companyRight:true,centerTitle:'Project Progress Report',centerTitleAr:'تقرير تقدم المشروع'});
   html+='<div style="padding:14px 22px;border-bottom:1px solid #e2e6ef;display:flex;justify-content:space-between;align-items:center;background:'+_pHo(_pH('ppr'),0.05)+'">';
   html+='<div><div style="font-size:20px;font-weight:900;color:'+_pH('ppr')+'">PROJECT PROGRESS REPORT</div>';
   html+='<div style="font-size:12px;color:#888">'+esc(p.ref)+' — '+esc(p.name||p.client)+'</div></div>';
@@ -6962,6 +6973,9 @@ function printProjectProgress(projId){
     '</tr></thead>';
     html+='<tbody>'+mainBOQHTML+'</tbody></table>';
   }
+  var _pFtrBg2=_pFtrBg('ppr');
+  var _pFtrParts2=[S.companyEn,S.addressEn,S.phone,S.email,S.cr?'CR: '+S.cr:'',S.vat?'VAT: '+S.vat:''].filter(Boolean);
+  html+='<div style="-webkit-print-color-adjust:exact;background:'+_pFtrBg2+';color:'+_pFtrText('ppr')+';padding:6px 20px;font-size:10px;text-align:center">'+_pFtrParts2.join(' &nbsp;|&nbsp; ')+'</div>';
   html+='</div></body></html>';
   _printDoc(html,'Project Progress — '+p.ref);
 }
@@ -7169,7 +7183,11 @@ function getBOQHTML(boq, hidePrices){
   body+='<div style="text-align:center"><div style="border-top:1px solid #333;padding-top:5px;margin-top:26px">Prepared By<br><em>'+(boq.preparedBy||getSubmittedBy())+'</em></div></div>';
   body+='<div style="text-align:center"><div style="border-top:1px solid #333;padding-top:5px;margin-top:26px">Received By<br>&nbsp;</div></div>';
   body+='</div></div>';
-  return '<div style="'+getDocStyle()+'">'+getDocHeader('boq')+wrapBody(body)+'</div>';
+    var _ftrBg=_dcGet('boq','footerBg',null)||_pDocHdr('boq');
+  var _ftrParts=[S.companyEn,S.addressEn,S.phone,S.email,S.cr?'CR: '+S.cr:'',S.vat?'VAT: '+S.vat:''].filter(Boolean);
+  return '<div style="'+getDocStyle()+'">'+getDocHeader('boq',{hideAddress:true,hidePhone:true,hideEmail:true,hideCR:true,hideVAT:true,companyRight:true,centerTitle:'Bill of Quantities',centerTitleAr:'جدول الكميات'})+wrapBody(body)+
+    '<div style="-webkit-print-color-adjust:exact;background:'+_ftrBg+';color:'+_pFtrText('boq')+';padding:6px 20px;font-size:10px;text-align:center">'+_ftrParts.join(' &nbsp;|&nbsp; ')+'</div>'+
+  '</div>';
 }
 function previewBOQ(){
   currentBOQId=null; boqHidePrices=false;
@@ -7287,7 +7305,7 @@ function getDeliveryNoteHTML(boq, dn){
 
   // Footer with company address
   var footerParts=[S.companyEn,S.addressEn,S.phone,S.email,S.cr?'CR: '+S.cr:'',S.vat?'VAT: '+S.vat:''].filter(Boolean);
-  var ftrBgColor=(_dcGet('dn','footerBg',null))||hdr;
+  var ftrBgColor=_pFtrBg('dn');
   var ftrTxtColor=hdrT;
   html+='<div style="-webkit-print-color-adjust:exact;background:'+ftrBgColor+';color:'+ftrTxtColor+';padding:6px 20px;font-size:10px;text-align:center;margin-top:8px">'+
     footerParts.join('&nbsp;&nbsp;|&nbsp;&nbsp;')+
@@ -8692,6 +8710,23 @@ function _applyPayload(record){
   DB.projects.forEach(function(p){if(!p.docs)p.docs=[];if(!p.siteType)p.siteType='Single Site';if(!p.sites)p.sites=[];});
   if(Object.keys(settings).length){
     Object.assign(S,settings);
+    // v2 migration: clear docColors entirely if they contain bad values
+    // (values saved before the color system was fixed)
+    if(S.docColors){
+      var _needsReset=false;
+      Object.keys(S.docColors).forEach(function(doc){
+        var dc=S.docColors[doc];
+        // Detect corrupt data: secColor or footerBg that aren't valid bright colors
+        if(dc.secColor&&!dc.secColor.match(/^#[3-9a-fA-F][0-9a-fA-F]{5}$/)&&dc.secColor!=='') _needsReset=true;
+        if(dc.footerBg&&dc.footerBg==='#000000') _needsReset=true;
+        if(dc.thBg&&dc.thBg==='#000000') _needsReset=true;
+      });
+      if(_needsReset){
+        // Wipe corrupt docColors — user will reconfigure
+        S.docColors={};
+        console.log('[PM_APP] docColors reset: corrupt values detected and cleared');
+      }
+    }
     if(!S.approvalFlow) S.approvalFlow={};
     if(!S.approvalFlow._enabled) S.approvalFlow._enabled=['po','pc','inv'];
     ['po','pc','inv'].forEach(function(mod){
@@ -8755,11 +8790,17 @@ function syncColor2(colorId, hexId){
 }
 
 function ddLoadDocColors(type){
+  // Migrate old docHdrBg key to hdrBg
+  if(S.docColors&&S.docColors[type]){
+    var _c=S.docColors[type];
+    if(!_c.hdrBg && _c.docHdrBg) { _c.hdrBg=_c.docHdrBg; }
+    if(!_c.hdrText && _c.docHdrText) { _c.hdrText=_c.docHdrText; }
+  }
   // Load colors for this doc type from S.docColors (fallback to globals)
   var dc = (S.docColors&&S.docColors[type])||{};
   var set=function(id,val){var e=document.getElementById(id);if(e){e.value=val;}};
-  var hdrBg   = dc.hdrBg   || S.headerBgColor   || '#1a4fa0';
-  var hdrText = dc.hdrText  || S.headerFontColor  || '#ffffff';
+  var hdrBg   = dc.hdrBg || dc.docHdrBg || S.headerBgColor || '#1a4fa0';
+  var hdrText = dc.hdrText || dc.docHdrText || S.headerFontColor || '#ffffff';
   var thBg    = dc.thBg    || S.pdfTableHeader    || '#1a4fa0';
   var thText  = dc.thText   || S.pdfTableHeaderText|| '#ffffff';
   var totBg   = dc.totBg   || S.pdfTotalRow       || '#e4f7f0';
@@ -8778,15 +8819,30 @@ function ddLoadDocColors(type){
   var _c=S.docColors&&S.docColors[type]||{};
   var ftrEl=document.getElementById('dc-ftr-bg');if(ftrEl)ftrEl.value=(_c.footerBg||'');
   var ftrHexEl=document.getElementById('dc-ftr-bg-hex');if(ftrHexEl)ftrHexEl.value=(_c.footerBg||'');
-  var dhEl=document.getElementById('dc-doc-hdr-bg');if(dhEl)dhEl.value=(_c.docHdrBg||'');
-  var dhHexEl=document.getElementById('dc-doc-hdr-bg-hex');if(dhHexEl)dhHexEl.value=(_c.docHdrBg||'');
-  var dhtEl=document.getElementById('dc-doc-hdr-text');if(dhtEl)dhtEl.value=(_c.docHdrText||'');
-  var dhtHexEl=document.getElementById('dc-doc-hdr-text-hex');if(dhtHexEl)dhtHexEl.value=(_c.docHdrText||'');
+
   var secEl=document.getElementById('dc-sec-color');if(secEl)secEl.value=(_c.secColor||'');
   var secHexEl=document.getElementById('dc-sec-color-hex');if(secHexEl)secHexEl.value=(_c.secColor||'');
+  var ftrEl=document.getElementById('dc-ftr-bg');if(ftrEl)ftrEl.value=(_c.footerBg||'');
+  var ftrHexEl=document.getElementById('dc-ftr-bg-hex');if(ftrHexEl)ftrHexEl.value=(_c.footerBg||'');
+  var ftrTEl=document.getElementById('dc-ftr-text');if(ftrTEl)ftrTEl.value=(_c.footerText||'');
+  var ftrTHexEl=document.getElementById('dc-ftr-text-hex');if(ftrTHexEl)ftrTHexEl.value=(_c.footerText||'');
+}
+
+function _cleanDocColors(){
+  if(!S.docColors) return;
+  Object.keys(S.docColors).forEach(function(doc){
+    var dc=S.docColors[doc];
+    // Remove clearly bad values from specific keys
+    ['secColor','footerBg','footerText'].forEach(function(k){
+      if(dc[k]==='#000000'||dc[k]==='') delete dc[k];
+    });
+    // Remove empty strings from all keys
+    Object.keys(dc).forEach(function(k){ if(!dc[k]||dc[k]==='') delete dc[k]; });
+  });
 }
 
 function ddSelectDoc(type){
+  _cleanDocColors();
   _ddCurrentDoc = type;
   var _extDoc=(type==='dn'||type==='dr'||type==='inv');
   var ftrGroup=document.getElementById('dd-footer-color-group');if(ftrGroup)ftrGroup.style.display=_extDoc?'':'none';
@@ -8867,12 +8923,37 @@ function ddGetSampleHTML(type){
       case 'po':  return ddBuildSamplePO();
       case 'dr':  return ddBuildSampleDR();
       case 'dn':  return ddBuildSampleDN();
-      case 'pc':  return buildPettyHTML&&buildPettyHTML({num:'PC-001',date:today(),projRef:'PRJ-001',owner:getSubmittedBy(),total:1500,notes:'Miscellaneous expenses'}) || ddGenericPreview('Petty Cash Request','PC-2026-001');
-      case 'inv': return buildInvoiceHTML&&buildInvoiceHTML({}) || ddGenericPreview('Invoice Request','INV-2026-001');
-      case 'boq': return buildBOQHTML&&buildBOQHTML({}) || ddGenericPreview('Bill of Quantities','BOQ-001');
+      case 'pc': {
+        var _samplePC={id:-1,num:'PC-2026-001',date:today(),proj:'PRJ-001',projRef:'PRJ-001',type:'Material',owner:getSubmittedBy(),ownerRef:'EMP-01',approvalStatus:'Approved',total:2875,notes:'Site materials and tools',lines:[{item:'CCTV Camera 4MP',itemRef:'CAM-001',unit:'Pcs',qty:5,unitPrice:460,extPrice:2300},{item:'CAT6 Cable (100m)',itemRef:'CAB-001',unit:'Roll',qty:1,unitPrice:250,extPrice:250}]};
+        return getPettyHTML(_samplePC);
+      }
+      case 'inv': {
+        var _sampleInv={id:-1,num:'INV-2026-001',date:today(),projRef:'PRJ-001',client:'Saudi Aramco',address:'Dhahran, Eastern Province',tenderRef:'T-2026-100',paymentTerms:'30 days net',approvalStatus:'Approved',paymentStatus:'Pending Collection',total:57500,lines:[{item:'CCTV System Supply & Installation',itemRef:'CCTV-001',unit:'Set',qty:1,unitPrice:50000,extPrice:50000},{item:'Access Control System',itemRef:'AC-001',unit:'Set',qty:1,unitPrice:0,extPrice:0}]};
+        return getInvoiceHTML(_sampleInv);
+      }
+      case 'boq': {
+        var _sampleBOQ={id:-1,num:'BOQ-2026-001',projId:-1,client:'Saudi Aramco',preparedBy:getSubmittedBy(),scope:'CCTV Supply & Installation',rev:'Rev.1',lines:[{partNum:'CAM-4MP-01',desc:'CCTV Camera 4MP Outdoor',unit:'Pcs',qty:10,unitPrice:1200,extPrice:12000},{partNum:'NVR-16-01',desc:'NVR 16 Channel 4K',unit:'Set',qty:1,unitPrice:8500,extPrice:8500},{partNum:'CAB-CAT6-01',desc:'CAT6 UTP Cable',unit:'Roll',qty:5,unitPrice:250,extPrice:1250}],subtotal:21750};
+        return getBOQHTML(_sampleBOQ, false);
+      }
       case 'ppr': {
-        var p = DB.projects&&DB.projects[0];
-        return p ? printProjectProgress(p.id,true)||ddGenericPreview('Project Progress Report','PPR-001') : ddGenericPreview('Project Progress Report','PPR-001');
+        var _samplePPR=DB.projects&&DB.projects[0];
+        if(_samplePPR){
+          // Build PPR html without printing
+          var _impl=getProjectImplementation(_samplePPR.id,_samplePPR.ref,_samplePPR.budget);
+          var _pct=Math.round(_impl.overall*100);
+          var _clr=_pct>=80?'#1a7a4a':_pct>=50?'#1a4fa0':'#e67e22';
+          var _ftrBg=_dcGet('ppr','footerBg',null)||_pDocHdr('ppr');
+          var _ftrParts=[S.companyEn,S.addressEn,S.phone,S.email,S.cr?'CR: '+S.cr:'',S.vat?'VAT: '+S.vat:''].filter(Boolean);
+          var _pHtml='<!DOCTYPE html><html><head><meta charset="UTF-8"><style>'+_printCSS(_pSec('ppr'))+'</style></head><body><div style="'+getDocStyle()+'">';
+          _pHtml+=getDocHeader('ppr',{hideAddress:true,hidePhone:true,hideEmail:true,hideCR:true,hideVAT:true,companyRight:true,centerTitle:'Project Progress Report',centerTitleAr:'تقرير تقدم المشروع'});
+          _pHtml+='<div style="padding:14px 22px;border-bottom:1px solid #e2e6ef;display:flex;justify-content:space-between;align-items:center">';
+          _pHtml+='<div style="font-size:22px;font-weight:900;color:'+_clr+'">'+_pct+'%</div>';
+          _pHtml+='<div style="font-size:13px;color:#555">'+esc(_samplePPR.name||'')+'</div></div>';
+          _pHtml+='<div style="-webkit-print-color-adjust:exact;background:'+_ftrBg+';color:'+_pFtrText('boq')+';padding:6px 20px;font-size:10px;text-align:center">'+_ftrParts.join(' &nbsp;|&nbsp; ')+'</div>';
+          _pHtml+='</div></body></html>';
+          return _pHtml;
+        }
+        return ddGenericPreview('Project Progress Report','PPR-001','ppr');
       }
       default: return ddGenericPreview(type, type.toUpperCase()+'-001');
     }
@@ -8917,17 +8998,22 @@ function ddRefreshPreview(){
   if(!S.docColors) S.docColors={};
   if(!S.docColors[doc]) S.docColors[doc]={};
   var dc = S.docColors[doc];
-  var g  = function(id){ var e=document.getElementById(id); return (e&&e.value&&e.value.length>2)?e.value:''; };
+  var g  = function(id){
+    // Read hex input first (user typed directly)
+    var hexEl=document.getElementById(id+'-hex');
+    if(hexEl&&hexEl.value&&hexEl.value.match(/^#[0-9a-fA-F]{3,6}$/)&&hexEl.value!=='#000000') return hexEl.value;
+    // Fall back to color picker — but only if hex input is empty (not set by default)
+    var colEl=document.getElementById(id);
+    if(colEl&&colEl.value&&colEl.value.length>2&&colEl.value!=='#000000') return colEl.value;
+    return '';
+  };
   var sv = function(k,v){ if(v) dc[k]=v; };
-  sv('hdrBg',  g('dc-hdr-bg'));   sv('hdrText', g('dc-hdr-text'));
-  sv('thBg',   g('dc-th-bg'));    sv('thText',  g('dc-th-text'));
-  sv('totBg',  g('dc-tot-bg'));   sv('altRow',  g('dc-alt-bg'));
-  sv('accent', g('dc-accent'));
-  // DN-specific
-  sv('docHdrBg',   g('dc-doc-hdr-bg'));
-  sv('docHdrText', g('dc-doc-hdr-text'));
-  sv('footerBg',   g('dc-ftr-bg'));
-  sv('secColor',   g('dc-sec-color'));
+  sv('hdrBg',    g('dc-hdr-bg'));   sv('hdrText',  g('dc-hdr-text'));
+  sv('docHdrBg', g('dc-hdr-bg'));   sv('docHdrText',g('dc-hdr-text'));
+  sv('thBg',     g('dc-th-bg'));    sv('thText',   g('dc-th-text'));
+  sv('totBg',    g('dc-tot-bg'));   sv('altRow',   g('dc-alt-bg'));
+  sv('accent',   g('dc-accent'));   sv('secColor', g('dc-sec-color'));
+  sv('footerBg', g('dc-ftr-bg'));   sv('footerText',g('dc-ftr-text'));
 
   // ── Generate full HTML with updated colors ────────────────
   var html = ddGetSampleHTML(doc);
@@ -8963,6 +9049,7 @@ function ddRefreshPreview(){
 
 function ddSaveDesign(){
   // Save per-doc colors (already synced in ddRefreshPreview — just commit)
+  _cleanDocColors();
   ddRefreshPreview();
 
   saveToCloud();
@@ -8979,7 +9066,17 @@ function ddSaveDesign(){
   }
 }
 
+function ddResetAllColors(){
+  if(!confirm('Clear ALL saved colors for ALL documents? This cannot be undone.')) return;
+  S.docColors={};
+  saveToCloud();
+  ddLoadDocColors(_ddCurrentDoc);
+  ddRefreshPreview();
+  showToast('✅ All document colors reset to defaults.');
+}
+
 function ddResetDocColors(){
+  _cleanDocColors();
   // Remove per-doc override, fall back to globals
   if(!_ddCurrentDoc) return;
   if(S.docColors) delete S.docColors[_ddCurrentDoc];
@@ -9231,8 +9328,8 @@ function renderProjPCModal(){
         '<td style="padding:8px 12px"><span style="'+stStyle+';padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">'+esc(st)+'</span></td>'+
         '<td style="padding:8px 12px;text-align:right;font-weight:700;font-family:monospace">'+SAR2(parseFloat(pc.total)||0)+'</td>'+
         '<td style="padding:8px 12px;text-align:center">'+(function(){
-          var u=getCurrentUser();
-          if(!u||!['superadmin','Admin'].includes(u.role)) return '<span style="color:var(--muted);font-size:11px">—</span>';
+          var u=currentUser;
+          if(!u||!['superadmin','Admin','SuperAdmin'].includes(u.role)) return '<span style="color:var(--muted);font-size:11px">—</span>';
           if(st==='Approved') return '<button class="btn btn-danger btn-sm" onclick="projPCReject('+pc.id+')" style="font-size:11px">✕ Reject</button>';
           if(st==='Rejected') return '<button class="btn btn-primary btn-sm" onclick="projPCApprove('+pc.id+')" style="font-size:11px">✓ Approve</button>';
           return '<button class="btn btn-primary btn-sm" onclick="projPCApprove('+pc.id+')" style="font-size:11px;margin-right:4px">✓ Approve</button>'+
@@ -10056,21 +10153,23 @@ function renderDuePayments(){
     }
     var isIntl=(po.supplierType||'').toLowerCase()==='international';
     var cur=isIntl&&po.currency&&po.currency!=='SAR'?po.currency+' ':'SAR ';
+    var exRate=isIntl?(parseFloat(po.exchangeRate)||3.75):1;
     if(po.paymentSchedule&&po.paymentSchedule.length){
       po.paymentSchedule.forEach(function(sched,si){
         var amt=parseFloat(sched.pct||0)/100*sub;
+        var amtSAR=isIntl?amt*exRate:amt; // convert to SAR for totals
         var st=sched.paid?'Paid':(sched.dueDate&&new Date(sched.dueDate)<new Date(todayStr)?'Overdue':'Pending');
         if(statusFilter&&st!==statusFilter)return;
-        if(st==='Paid')totalPaid+=amt;else{totalDue+=amt;if(st==='Overdue')totalOverdue+=amt;else totalPending+=amt;}
+        if(st==='Paid')totalPaid+=amtSAR;else{totalDue+=amtSAR;if(st==='Overdue')totalOverdue+=amtSAR;else totalPending+=amtSAR;}
         var poVendorObj=DB.suppliers.find(function(s){return s.name===po.vendor;});
         var poIBAN=po.vendorIBAN||(poVendorObj&&poVendorObj.iban)||'—';
         var poBank=po.vendorBank||(poVendorObj&&poVendorObj.bankName)||'—';
         rows.push({type:'po',id:po.id,si:si,projRef:po.projRef||'—',docNum:po.num||'PO',vendor:po.vendor||'—',iban:poIBAN,bank:poBank,desc:sched.desc||('Payment '+(si+1)),dueDate:sched.dueDate||'—',amount:amt,cur:cur,status:st,paidDate:sched.paidDate||''});
       });
     } else {
-      var amt2=sub;var st2=po.paymentAck?'Paid':'Pending';
+      var amt2=sub;var amt2SAR=isIntl?amt2*exRate:amt2;var st2=po.paymentAck?'Paid':'Pending';
       if(statusFilter&&st2!==statusFilter)return;
-      if(st2==='Paid')totalPaid+=amt2;else{totalDue+=amt2;totalPending+=amt2;}
+      if(st2==='Paid')totalPaid+=amt2SAR;else{totalDue+=amt2SAR;totalPending+=amt2SAR;}
       var poVendorObj2=DB.suppliers.find(function(s){return s.name===po.vendor;});
       var po2IBAN=po.vendorIBAN||(poVendorObj2&&poVendorObj2.iban)||'—';
       var po2Bank=po.vendorBank||(poVendorObj2&&poVendorObj2.bankName)||'—';
@@ -10095,6 +10194,7 @@ function renderDuePayments(){
   el('dp-total-paid','SAR '+fmt(totalPaid));
   el('dp-total-pending','SAR '+fmt(totalPending));
   el('dp-total-overdue','SAR '+fmt(totalOverdue));
+  // Note: international PO amounts converted to SAR using their exchange rates
 
   // Render table
   var wrap=document.getElementById('dp-table-wrap');if(!wrap)return;
