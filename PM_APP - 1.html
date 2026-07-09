@@ -1079,10 +1079,24 @@ textarea{resize:vertical;min-height:68px}
       </div>
     </div>
     <div style="padding:16px 20px">
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
-        <div class="ss" style="padding:14px;text-align:center;margin:0"><div class="kpi-label">Total</div><div class="kpi-value" id="ppc-total">SAR 0</div></div>
-        <div class="ss" style="padding:14px;text-align:center;margin:0"><div class="kpi-label">Approved Total</div><div class="kpi-value" style="color:var(--green,#1a9e72)" id="ppc-approved">SAR 0</div></div>
-        <div class="ss" style="padding:14px;text-align:center;margin:0"><div class="kpi-label">Count</div><div class="kpi-value" id="ppc-count">0</div></div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+        <div style="padding:14px 16px;border-radius:10px;background:#e8f0fb;border:1.5px solid #b8d0f0">
+          <div style="font-size:10px;font-weight:700;color:#1a4fa0;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">Approved Total</div>
+          <div style="font-size:18px;font-weight:800;color:#1a4fa0;font-family:monospace" id="ppc-approved">SAR 0.00</div>
+        </div>
+        <div style="padding:14px 16px;border-radius:10px;background:#e6f7f0;border:1.5px solid #a3dfc7">
+          <div style="font-size:10px;font-weight:700;color:#1a9e72;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">Paid Out</div>
+          <div style="font-size:18px;font-weight:800;color:#1a9e72;font-family:monospace" id="ppc-paidout">SAR 0.00</div>
+        </div>
+        <div style="padding:14px 16px;border-radius:10px;background:#fef9e7;border:1.5px solid #f9e4a0">
+          <div style="font-size:10px;font-weight:700;color:#d97706;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">Pending</div>
+          <div style="font-size:18px;font-weight:800;color:#d97706;font-family:monospace" id="ppc-pending">SAR 0.00</div>
+        </div>
+        <div style="padding:14px 16px;border-radius:10px;background:#fef9e7;border:1.5px solid #f9e4a0">
+          <div style="font-size:10px;font-weight:700;color:#d97706;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">Balance</div>
+          <div style="font-size:18px;font-weight:800;color:#d97706;font-family:monospace" id="ppc-balance">SAR 0.00</div>
+          <div style="font-size:10px;color:#b45309;margin-top:3px">Paid Out – Expenses</div>
+        </div>
       </div>
       <div class="ss" style="padding:0;overflow:hidden;margin:0">
         <table style="width:100%;border-collapse:collapse">
@@ -1401,7 +1415,7 @@ textarea{resize:vertical;min-height:68px}
 </div></div>
 
 <!-- Daily Report Modal -->
-<div class="modal-overlay" id="modal-daily">
+<div class="modal-overlay" id="modal-daily" style="z-index:700">
 <div class="modal modal-lg">
   <div class="modal-header"><div class="modal-title">New Daily Report</div><button class="modal-close" onclick="closeModal('modal-daily')">✕</button></div>
   <div class="form-grid">
@@ -1982,7 +1996,7 @@ textarea{resize:vertical;min-height:68px}
 </div>
 
 <!-- Site Modal -->
-<div class="modal-overlay" id="modal-site">
+<div class="modal-overlay" id="modal-site" style="z-index:700">
   <div class="modal" style="max-width:780px">
     <div class="modal-header">
       <div class="modal-title" id="site-modal-title">Add Site</div>
@@ -4352,44 +4366,71 @@ function renderProjects(){
   var h=isLimited
     ? '<thead><tr><th>Ref</th><th>Project Name</th><th>Client</th><th>Status</th><th>Assigned To</th><th>Impl %</th><th></th></tr></thead><tbody>'
     : '<thead><tr><th>Ref</th><th>Project Name</th><th>Client</th><th>PO #</th><th>Budget</th><th>Amount</th><th>Cost</th><th>Net</th><th title="Implementation %: weighted average of approved PO commitment (50%) and BOQ material installed (50%)">Impl %</th><th>Status</th><th></th></tr></thead><tbody>';
-  rows.forEach(function(p){
-    var docCount=p.docs&&p.docs.length?p.docs.length:0;
-    var viewBtn='<button class="btn btn-secondary btn-sm" onclick="viewProject('+p.id+')">View'+(docCount?' <span style="background:var(--accent);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:3px">'+docCount+'</span>':'')+'</button>';
-    var impl=getProjectImplementation(p.id, p.ref, p.budget);
-    var assignedNames=(p.assignedUserIds||[]).map(function(uid){var u=DB.users.find(function(x){return x.id===uid;});return u?u.name:'?';}).join(', ')||p.assigned||'—';
-    if(isLimited){
-      h+='<tr>';
-      h+='<td style="color:var(--muted);font-size:12px;white-space:nowrap">'+p.ref+'</td>';
-      h+='<td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+p.name+'">'+p.name+'</td>';
-      h+='<td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">'+p.client+'</td>';
-      h+='<td>'+sBadge(p.status)+'</td>';
-      h+='<td style="font-size:12px;color:var(--muted)">'+assignedNames+'</td>';
-      h+='<td>'+implPctBar(impl)+'</td>';
-      h+='<td style="white-space:nowrap">'+viewBtn+'<button class="btn btn-secondary btn-sm" onclick="openBOQModal('+p.id+')" style="margin-left:4px;background:var(--accent4-lt);color:var(--accent4);border-color:rgba(33,118,199,.3)" title="SOW BOQ">📋 SOW BOQ</button></td></tr>';
-    } else {
-      h+='<tr><td style="color:var(--muted);font-size:12px;white-space:nowrap">'+p.ref+'</td>';
-      h+='<td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+p.name+'">'+p.name+'</td>';
-      h+='<td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">'+p.client+'</td>';
-      h+='<td style="font-size:12px;color:var(--accent4);white-space:nowrap">'+(p.poNum||'—')+'</td>';
-      h+='<td style="white-space:nowrap;color:var(--muted)" title="excl. VAT: '+SAR(p.budget)+'">'+(p.budget?SAR(p.budget*1.15):'—')+'</td>';
-      var boqTbl=DB.boqs.filter(function(b){return b.projId==p.id;}).reduce(function(a,b){return a+(parseFloat(b.subtotal||0)||Math.round(parseFloat(b.total||0)/1.15*100)/100);},0);var pAmt=boqTbl||parseFloat(p.amount)||0;
-      h+='<td class="color-gold fw7" style="white-space:nowrap" title="From BOQs: '+SAR(pAmt)+'">'+SAR(pAmt)+'</td>';
-      var pCost=getProjectCost(p.ref); var pBoqT2=DB.boqs.filter(function(b){return b.projId==p.id;}).reduce(function(a,b){return a+(parseFloat(b.subtotal||0)||Math.round(parseFloat(b.total||0)/1.15*100)/100);},0);var pAmt2=pBoqT2||parseFloat(p.amount)||0;var pNet=pAmt2-pCost;
-      h+='<td style="white-space:nowrap;color:var(--muted)" title="Manual: '+SAR(p.cost)+'">'+SAR(pCost)+'</td>';
-      h+='<td class="color-green fw7" style="white-space:nowrap">'+SAR(pNet)+'</td>';
-      h+='<td>'+implPctBar(impl)+'</td>';
-      h+='<td>'+sBadge(p.status)+'</td>';
-      h+='<td style="white-space:nowrap">'+viewBtn+'<button class="btn btn-secondary btn-sm" onclick="openBOQModal('+p.id+')" style="margin-left:4px;background:var(--accent4-lt);color:var(--accent4);border-color:rgba(33,118,199,.3)" title="SOW BOQ">📋 SOW BOQ</button><button class="btn btn-secondary btn-sm" onclick="editProject('+p.id+')" style="margin-left:4px">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteProject('+p.id+')" style="margin-left:4px">🗑</button></td></tr>';
-    }
-  });
-  if(!isLimited){
-    h+='</tbody><tfoot><tr><td colspan="4" class="fw7" style="padding:11px 15px">TOTAL ('+rows.length+')</td>';
-    h+='<td style="color:var(--muted)">'+SAR(rows.reduce(function(a,p){return a+(p.budget||0)*1.15;},0))+'</td>';
-    h+='<td class="color-gold fw7">'+SAR(rows.reduce(function(a,p){var amt=DB.boqs.filter(function(b){return b.projId===p.id;}).reduce(function(x,b){return x+(b.total||0);},0)||p.amount;return a+amt;},0))+'</td>';
-    h+='<td style="color:var(--muted)">'+SAR(rows.reduce(function(a,p){return a+getProjectCost(p.ref);},0))+'</td>';
-    h+='<td class="color-green fw7">'+SAR(rows.reduce(function(a,p){return a+(p.amount-getProjectCost(p.ref));},0))+'</td><td colspan="3"></td></tr></tfoot>';
+  if(!rows.length){
+    h='<div style="text-align:center;color:var(--muted);padding:48px;font-size:14px">No projects found</div>';
   } else {
-    h+='</tbody>';
+    h='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px">';
+    rows.forEach(function(p){
+      var impl=getProjectImplementation(p.id, p.ref, p.budget);
+      var assignedNames=(p.assignedUserIds||[]).map(function(uid){var u=DB.users.find(function(x){return x.id===uid;});return u?u.name:'?';}).join(', ')||p.assigned||'—';
+      var boqAmt=DB.boqs.filter(function(b){return b.projId==p.id;}).reduce(function(a,b){return a+(parseFloat(b.subtotal||0)||Math.round(parseFloat(b.total||0)/1.15*100)/100);},0);
+      var pAmt=boqAmt||parseFloat(p.amount)||0;
+      var pCost=getProjectCost(p.ref);
+      var pNet=pAmt-pCost;
+      var statusColors={
+        'Active':      {bg:'#fff7ed',border:'#f97316',hdr:'#ffedd5'},
+        'In Progress': {bg:'#fff7ed',border:'#f97316',hdr:'#ffedd5'},
+        'Completed':   {bg:'#d1fae5',border:'#10b981',hdr:'#ecfdf5'},
+        'Cancelled':   {bg:'#fee2e2',border:'#ef4444',hdr:'#fef2f2'},
+        'Canceled':    {bg:'#fee2e2',border:'#ef4444',hdr:'#fef2f2'},
+        'On Hold':     {bg:'#dbeafe',border:'#3b82f6',hdr:'#eff6ff'},
+        'Holded':      {bg:'#dbeafe',border:'#3b82f6',hdr:'#eff6ff'},
+        'Hold':        {bg:'#dbeafe',border:'#3b82f6',hdr:'#eff6ff'},
+      };
+      var sc=statusColors[p.status]||{bg:'#f3f4f6',border:'#d1d5db',hdr:'#f9fafb'};
+      var logo=p.clientLogo||(DB.clients.find(function(c){return c.name===p.client;})||{}).logo||'';
+      h+='<div onclick="viewProject('+p.id+')" style="background:'+sc.bg+';border:1.5px solid '+sc.border+';border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);display:flex;flex-direction:column;cursor:pointer;transition:.15s" onmouseover="this.style.boxShadow=\'0 4px 16px rgba(0,0,0,.13)\'" onmouseout="this.style.boxShadow=\'0 2px 8px rgba(0,0,0,.06)\'">';
+      h+='<div style="background:'+sc.hdr+';padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid '+sc.border+'44">';
+      h+='<div style="display:flex;align-items:center;gap:8px">';
+      if(logo) h+='<img src="'+logo+'" style="height:28px;max-width:60px;object-fit:contain;border-radius:4px;background:#fff;padding:2px">';
+      h+='<div><div style="font-size:15px;font-family:monospace;color:var(--muted)">'+esc(p.ref)+'</div>';
+      h+='<div style="font-size:17px;font-weight:700">'+esc(p.client||'—')+'</div></div></div>';
+      h+='<span style="background:'+sc.border+';color:#fff;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:700">'+esc(p.status||'—')+'</span>';
+      h+='</div>';
+      h+='<div style="padding:12px 14px;flex:1;background:var(--surface)">';
+      h+='<div style="font-size:17px;font-weight:700;margin-bottom:12px;line-height:1.4">'+esc(p.name)+'</div>';
+      if(!isLimited){
+        h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:15px;margin-bottom:14px">';
+        h+='<div><span style="color:var(--muted)">Amount</span><br><span style="font-weight:700;color:var(--accent4)">'+SAR(pAmt)+'</span></div>';
+        h+='<div><span style="color:var(--muted)">Net Profit</span><br><span style="font-weight:700;color:'+(pNet>=0?'var(--accent2)':'var(--accent3)')+'">'+SAR(pNet)+'</span></div>';
+        h+='<div><span style="color:var(--muted)">Cost</span><br><span style="font-weight:700;color:var(--muted)">'+SAR(pCost)+'</span></div>';
+        h+='<div><span style="color:var(--muted)">Assigned</span><br><span style="font-size:13px">'+esc(assignedNames)+'</span></div>';
+        h+='</div>';
+      } else {
+        h+='<div style="font-size:15px;color:var(--muted);margin-bottom:10px">👤 '+esc(assignedNames)+'</div>';
+      }
+      h+='<div style="margin-bottom:10px">';
+      h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:5px"><span>Implementation</span><span style="font-weight:700">'+impl+'%</span></div>';
+      h+='<div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+impl+'%;background:'+(impl>=80?'#1a9e72':impl>=40?'#2176c7':'#e67e22')+';border-radius:3px"></div></div>';
+      h+='</div>';
+      h+='</div>';
+      if(!isLimited){
+        h+='<div style="padding:8px 14px;border-top:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap">';
+        h+='<button class="btn btn-secondary btn-xs" onclick="event.stopPropagation();editProject('+p.id+')">✏️ Edit</button>';
+        h+='<button class="btn btn-danger btn-xs" onclick="event.stopPropagation();deleteProject('+p.id+')">🗑</button>';
+        h+='</div>';
+      }
+      h+='</div>';
+    });
+    h+='</div>';
+    if(!isLimited){
+      h+='<div style="margin-top:14px;padding:12px 16px;background:var(--surface2);border-radius:10px;display:flex;gap:24px;font-size:12px">';
+      h+='<span><b>'+rows.length+'</b> projects</span>';
+      h+='<span>Amount: <b class="color-gold">'+SAR(rows.reduce(function(a,p){return a+(DB.boqs.filter(function(b){return b.projId===p.id;}).reduce(function(x,b){return x+(b.total||0);},0)||p.amount||0);},0))+'</b></span>';
+      h+='<span>Cost: <b>'+SAR(rows.reduce(function(a,p){return a+getProjectCost(p.ref);},0))+'</b></span>';
+      h+='<span>Net: <b class="color-green">'+SAR(rows.reduce(function(a,p){var amt=DB.boqs.filter(function(b){return b.projId===p.id;}).reduce(function(x,b){return x+(b.total||0);},0)||p.amount||0;return a+(amt-getProjectCost(p.ref));},0))+'</b></span>';
+      h+='</div>';
+    }
   }
   document.getElementById('proj-table').innerHTML=h;
 }
@@ -4641,7 +4682,7 @@ function viewProject(id){
   }
 
   // ── SITES SECTION (Multiple Sites) ──
-  var sitesHTML = renderSitesSection(p);
+  var sitesHTML = '';
 
   // ── SOW BOQ SECTION ──
   var projBOQs=DB.boqs.filter(function(b){return b.projId===p.id;});
@@ -4924,22 +4965,8 @@ function viewProject(id){
   }
   boqHTML+='</div>';
   var _pcId='proj-petty';
-  var pettyHTML='<div class="section-sep"></div><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><div class="card-title" onclick="_projSecToggle(\''+_pcId+'\')" style="cursor:pointer;display:flex;align-items:center;gap:8px"><span>Petty Cash ('+pcs.length+')</span><span id="proj-sec-arr-'+_pcId+'" style="font-size:12px;transition:transform .2s;display:inline-block">▼</span></div><button class="btn btn-primary btn-sm" onclick="closeModal(\'modal-proj-detail\');openPettyModalForProject(\''+p.ref+'\')">+ New Request</button></div>';
-  // Compute total balance = sum of getPettyBalance for all PCs
-  var totalPCBalance=pcs.reduce(function(a,pc){return a+getPettyBalance(pc);},0);
-  var _balClr=totalPCBalance<0?'#d94040':totalPCBalance===0?'#e67e22':'#7c3aed';
-  var _balBg=totalPCBalance<0?'#fff0f0':totalPCBalance===0?'#fff8e6':'#f5f0ff';
-  var _balBorder=totalPCBalance<0?'#f5a0a0':totalPCBalance===0?'#f5d98a':'#d4c1fd';
-
-  pettyHTML+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">';
-  pettyHTML+='<div style="background:var(--accent-lt);border:1px solid rgba(26,79,160,.15);border-radius:8px;padding:10px 14px"><div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:4px">Approved Total</div><div style="font-size:15px;font-weight:800;color:var(--accent)">'+SAR(totalApproved)+'</div></div>';
-  pettyHTML+='<div style="background:var(--accent2-lt);border:1px solid rgba(26,158,114,.15);border-radius:8px;padding:10px 14px"><div style="font-size:10px;color:var(--accent2);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:4px">Paid Out</div><div style="font-size:15px;font-weight:800;color:var(--accent2)">'+SAR(totalPaid)+'</div></div>';
-  pettyHTML+='<div style="background:#fff8e6;border:1px solid #f5d98a;border-radius:8px;padding:10px 14px"><div style="font-size:10px;color:#a06800;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:4px">Pending</div><div style="font-size:15px;font-weight:800;color:#a06800">'+SAR(totalPending)+'</div></div>';
-  pettyHTML+='<div style="background:'+_balBg+';border:1px solid '+_balBorder+';border-radius:8px;padding:10px 14px"><div style="font-size:10px;color:'+_balClr+';text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:4px">Balance</div><div style="font-size:15px;font-weight:800;color:'+_balClr+'">'+SAR(totalPCBalance)+'</div><div style="font-size:9.5px;color:var(--muted);margin-top:2px">Paid Out − Expenses</div></div>';
-  pettyHTML+='</div>';
-  pettyHTML+='<table style="width:100%;border-collapse:collapse;font-size:12px;border:1px solid var(--border)"><thead><tr><th style="padding:8px 12px;text-align:left;background:var(--panel);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase">Req #</th><th style="padding:8px 12px;text-align:left;background:var(--panel);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase">Date</th><th style="padding:8px 12px;text-align:left;background:var(--panel);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase">Custodian</th><th style="padding:8px 12px;text-align:right;background:var(--panel);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase">Amount</th><th style="padding:8px 12px;text-align:center;background:var(--panel);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase">Approval</th><th style="padding:8px 12px;text-align:center;background:var(--panel);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase">Payment</th><th style="padding:8px 12px;text-align:right;background:var(--panel);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase">Balance</th><th style="padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--border)"></th></tr></thead><tbody>'+pcRows+'</tbody></table>';
-
-  // Build docsHTML last (so it appears after pettyHTML)
+  var pettyHTML='';
+    // Build docsHTML last (so it appears after pettyHTML)
   pettyHTML+='</div>';
   var docsHTML='<div class="section-sep"></div>'+
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'+
@@ -5090,6 +5117,34 @@ function viewProject(id){
       var projBOMs=DB.boqs.filter(function(b){return b.projId===p.id||b.projRef===p.ref;});
       var bomLines=projBOMs.reduce(function(a,b){return a+(b.lines||[]).length;},0);
       window.__currentProjBOMs=projBOMs;
+      // Daily Reports summary
+      var projReports=DB.reports.filter(function(r){return r.projRef===p.ref;});
+      var totalPettyExp=projReports.reduce(function(a,r){return a+(r.pettyExp||[]).reduce(function(b,e){return b+parseFloat(e.amount||0);},0);},0);
+      var drCard='<div style="margin-top:10px"><div class="ss" style="padding:14px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin:0" onclick="openProjReportsModal()">'+
+        '<div style="display:flex;align-items:center;gap:10px">'+
+          '<span style="font-size:18px">📋</span>'+
+          '<div><div class="kpi-label" style="color:#7c3aed;margin-bottom:2px">Daily Reports</div>'+
+          '<div style="font-size:12px;color:var(--muted)">'+projReports.length+' report'+(projReports.length!==1?'s':'')+
+            (totalPettyExp?' · Petty Exp: '+SAR(totalPettyExp):'')+'</div></div>'+
+        '</div>'+
+        '<div class="btn btn-ghost btn-sm" style="pointer-events:none">View →</div>'+
+      '</div></div>';
+
+      // Sites card (only for Multiple Sites projects)
+      var sitesCard='';
+      if(p.siteType==='Multiple Sites'){
+        var sites=p.sites||[];
+        sitesCard='<div style="margin-top:10px"><div class="ss" style="padding:14px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin:0" onclick="openProjSitesModal()" >'+
+          '<div style="display:flex;align-items:center;gap:10px">'+
+            '<span style="font-size:18px">📍</span>'+
+            '<div><div class="kpi-label" style="color:#7c3aed;margin-bottom:2px">Sites</div>'+
+            '<div style="font-size:12px;color:var(--muted)">'+sites.length+' site'+(sites.length!==1?'s':'')+
+              (sites.length?' · Click to manage':'')+'</div></div>'+
+          '</div>'+
+          '<div class="btn btn-ghost btn-sm" style="pointer-events:none">Manage →</div>'+
+        '</div></div>';
+      }
+
       return '<div style="margin-top:12px"><div class="ss" style="padding:14px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin:0" onclick="openProjBOMModal()">'+
         '<div style="display:flex;align-items:center;gap:10px">'+
           '<span style="font-size:18px">📦</span>'+
@@ -5097,7 +5152,7 @@ function viewProject(id){
           '<div style="font-size:12px;color:var(--muted)">'+projBOMs.length+' BOQ'+(projBOMs.length!==1?'s':'')+' · '+bomLines+' items</div></div>'+
         '</div>'+
         '<div class="btn btn-ghost btn-sm" style="pointer-events:none">View →</div>'+
-      '</div></div>';
+      '</div></div>'+drCard+sitesCard;
     }())+
     renderProjTeamInDetail(p.team||'')+reportsHTML+sitesHTML+pettyHTML+docsHTML;
   var titleEl=document.getElementById('proj-detail-title');
@@ -9409,11 +9464,18 @@ function renderProjPCModal(){
   var pcs=statusFilter?allPC.filter(function(pc){return (pc.approvalStatus||pc.status||'Pending')===statusFilter;}):allPC;
   var total=pcs.reduce(function(a,pc){return a+(parseFloat(pc.total)||0);},0);
   var approvedTotal=allPC.filter(function(pc){return pc.approvalStatus==='Approved'||pc.status==='Approved';}).reduce(function(a,pc){return a+(parseFloat(pc.total)||0);},0);
+  var paidOut=allPC.filter(function(pc){return pc.paidOut===true||pc.paid===true;}).reduce(function(a,pc){return a+(parseFloat(pc.total)||0);},0);
+  var pendingTotal=allPC.filter(function(pc){return (pc.approvalStatus||pc.status||'Pending')==='Pending';}).reduce(function(a,pc){return a+(parseFloat(pc.total)||0);},0);
+  // Balance = Approved - daily report petty expenses
+  var projRef=window.__currentProjRef||'';
+  var pettyExpenses=(DB.reports||[]).filter(function(r){return r.projRef===projRef;}).reduce(function(a,r){return a+(r.pettyExp||[]).reduce(function(b,e){return b+parseFloat(e.amount||0);},0);},0);
+  var balance=approvedTotal-pettyExpenses;
   var SAR2=function(n){return 'SAR '+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});};
   var el=function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};
-  el('ppc-total',SAR2(total));
   el('ppc-approved',SAR2(approvedTotal));
-  el('ppc-count',allPC.length);
+  el('ppc-paidout',SAR2(paidOut));
+  el('ppc-pending',SAR2(pendingTotal));
+  el('ppc-balance',SAR2(balance));
   el('ppc-total-foot',SAR2(total));
   var tbody=document.getElementById('ppc-tbody');
   if(tbody){
@@ -9685,6 +9747,113 @@ function exportBOMPDF(){
     '</body></html>';
 
   _printDoc(html, 'BOM - '+projName);
+}
+
+function openProjSitesModal(){
+  var projRef=window.__currentProjRef||'';
+  var p=DB.projects.find(function(x){return x.ref===projRef;});
+  if(!p) return;
+  var sites=p.sites||[];
+
+  var subEl=document.getElementById('proj-sites-sub');
+  if(subEl) subEl.textContent=(p.name||'')+'  ·  '+sites.length+' site'+(sites.length!==1?'s':'');
+
+  var body=document.getElementById('proj-sites-body');
+  if(!body) return;
+
+  // Use existing buildSitesHTML which renders identical to project detail
+  body.innerHTML=renderSitesSection(p)||'<div style="text-align:center;color:var(--muted);padding:32px">No sites added yet.</div>';
+  openModal('modal-proj-sites');
+}
+
+function openDailyModalForProject(){
+  var projRef=window.__currentProjRef||'';
+  openDailyModal();
+  // Pre-fill project ref
+  var drProjEl=document.getElementById('dr-proj');
+  if(drProjEl&&projRef){
+    drProjEl.value=projRef;
+    drCheckBOQ();
+    // Auto-fill team from project
+    var proj=DB.projects.find(function(p){return p.ref===projRef;});
+    if(proj&&(proj.team||[]).length){
+      document.getElementById('dr-team-rows').innerHTML='';
+      proj.team.forEach(function(m){if(m.name) addTeamRow(m.name);});
+    }
+  }
+}
+
+function openProjReportsModal(){
+  var projRef=window.__currentProjRef||'';
+  var projName=window.__currentProjName||'Project';
+  var reports=DB.reports.filter(function(r){return r.projRef===projRef;});
+  reports=reports.slice().sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+
+  var subEl=document.getElementById('proj-reports-sub');
+  if(subEl) subEl.textContent=projName+' · '+reports.length+' report'+(reports.length!==1?'s':'');
+
+  var body=document.getElementById('proj-reports-body');
+  if(!body) return;
+
+  if(!reports.length){
+    body.innerHTML='<div style="text-align:center;color:var(--muted);padding:32px">No daily reports for this project.</div>';
+    openModal('modal-proj-reports');
+    return;
+  }
+
+  body.innerHTML=reports.map(function(r,i){
+    var tasks=r.tasks||[];
+    var petty=r.pettyExp||r.pettyExpenses||[];
+    var pettyTotal=petty.reduce(function(a,e){return a+parseFloat(e.amount||0);},0);
+    var doneTasks=tasks.filter(function(t){return t.done;}).length;
+
+    return '<div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px">' +
+      // Header
+      '<div style="background:var(--surface2);padding:10px 14px;display:flex;justify-content:space-between;align-items:center">' +
+        '<div>' +
+          '<div style="font-weight:700;font-size:14px">'+esc(r.num||('DR-'+(i+1)))+'</div>' +
+          '<div style="font-size:12px;color:var(--muted)">'+esc(r.date||'—')+(r.preparedBy?' · '+esc(r.preparedBy):'')+' · '+tasks.length+' tasks</div>' +
+        '</div>' +
+        (pettyTotal>0?'<span style="background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:600">Petty: '+SAR(pettyTotal)+'</span>':'')+
+      '</div>' +
+      // Tasks table
+      (tasks.length?
+        '<div style="padding:10px 14px"><table style="width:100%;border-collapse:collapse;font-size:12px">' +
+        '<thead><tr style="background:var(--surface2)">' +
+        '<th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase">#</th>' +
+        '<th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase">Task</th>' +
+        '<th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase">SOW Item</th>' +
+        '<th style="padding:5px 8px;text-align:right;font-size:10px;color:var(--muted);text-transform:uppercase">Qty</th>' +
+        '<th style="padding:5px 8px;text-align:center;font-size:10px;color:var(--muted);text-transform:uppercase">Done</th>' +
+        '</tr></thead><tbody>' +
+        tasks.map(function(t,ti){
+          return '<tr style="border-bottom:1px solid var(--border);'+(ti%2===1?'background:var(--surface2)':'')+'">' +
+            '<td style="padding:5px 8px;color:var(--muted)">'+(ti+1)+'</td>' +
+            '<td style="padding:5px 8px">'+esc(t.desc||'—')+'</td>' +
+            '<td style="padding:5px 8px;color:var(--muted)">'+esc(t.sowItem||'—')+'</td>' +
+            '<td style="padding:5px 8px;text-align:right;font-weight:600">'+esc(String(t.qty||'—'))+'</td>' +
+            '<td style="padding:5px 8px;text-align:center">'+(t.done?'<span style="color:#10b981;font-weight:700">✓</span>':'<span style="color:#e67e22">○</span>')+'</td>' +
+          '</tr>';
+        }).join('') +
+        '</tbody></table></div>'
+      :'<div style="padding:12px 14px;color:var(--muted);font-size:12px">No tasks.</div>') +
+      // Petty expenses
+      (petty.length?
+        '<div style="padding:0 14px 10px"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Petty Cash Expenses</div>' +
+        '<table style="width:100%;border-collapse:collapse;font-size:12px">' +
+        petty.map(function(e,ei){
+          return '<tr style="border-bottom:1px solid var(--border);'+(ei%2===1?'background:var(--surface2)':'')+'">' +
+            '<td style="padding:5px 8px">'+esc(e.supplier||'—')+'</td>' +
+            '<td style="padding:5px 8px;color:var(--muted)">'+esc(e.type||'—')+'</td>' +
+            '<td style="padding:5px 8px;text-align:right;font-weight:600">'+SAR(parseFloat(e.amount||0))+'</td>' +
+          '</tr>';
+        }).join('') +
+        '</table></div>'
+      :'') +
+    '</div>';
+  }).join('');
+
+  openModal('modal-proj-reports');
 }
 
 function openProjPCModal(){
@@ -11201,7 +11370,49 @@ if(_portalBridgePending){
 }
 // If bridge arrives via event, the listener above calls _applyPortalBridge
 
+
+
+
+
 </script>
+
+<!-- PROJECT SITES MODAL -->
+<div class="modal-overlay" id="modal-proj-sites" style="z-index:500">
+  <div class="modal modal-lg" style="max-width:860px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">📍 Sites</div>
+        <div style="font-size:11px;color:var(--muted)" id="proj-sites-sub"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-proj-sites')">✕</button>
+    </div>
+    <div style="padding:16px 20px;max-height:75vh;overflow-y:auto" id="proj-sites-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-proj-sites')">Close</button>
+      <button class="btn btn-primary" onclick="var _p=DB.projects.find(function(x){return x.ref===window.__currentProjRef;});if(_p)openAddSiteModal(_p.id)">+ Add Site</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- PROJECT DAILY REPORTS MODAL -->
+<div class="modal-overlay" id="modal-proj-reports" style="z-index:500">
+  <div class="modal modal-lg" style="max-width:820px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">📋 Daily Reports</div>
+        <div style="font-size:11px;color:var(--muted)" id="proj-reports-sub"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-proj-reports')">✕</button>
+    </div>
+    <div style="padding:16px 20px;max-height:70vh;overflow-y:auto" id="proj-reports-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-proj-reports')">Close</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-proj-reports');openDailyModalForProject()">+ New Report</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html
   var ptEl=document.getElementById('po-title');if(ptEl)ptEl.value=S.poTitle||'';
