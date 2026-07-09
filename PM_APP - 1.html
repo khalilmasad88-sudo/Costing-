@@ -1924,7 +1924,7 @@ textarea{resize:vertical;min-height:68px}
 </div></div>
 
 <!-- Invoice Preview -->
-<div class="modal-overlay" id="modal-invoice-preview">
+<div class="modal-overlay" id="modal-invoice-preview" style="z-index:700">
 <div class="modal modal-lg">
   <div class="modal-header"><div class="modal-title">Invoice Request Preview</div><button class="modal-close" onclick="closeModal('modal-invoice-preview')">✕</button></div>
   <div id="invoice-preview-content"></div>
@@ -1942,9 +1942,10 @@ textarea{resize:vertical;min-height:68px}
 <!-- Project Detail -->
 <div class="modal-overlay" id="modal-proj-detail">
 <div class="modal modal-lg">
-  <div class="modal-header" style="display:flex;align-items:center;gap:12px;flex-wrap:nowrap">
+  <div class="modal-header" id="proj-detail-header" style="display:flex;align-items:center;gap:12px;flex-wrap:nowrap;transition:.3s">
     <div id="proj-detail-client-logo" style="flex-shrink:0;display:none"><img id="proj-detail-client-logo-img" style="height:40px;max-width:100px;object-fit:contain;border-radius:6px;border:1px solid var(--border);background:#fff;padding:3px" src=""/></div>
     <div class="modal-title" id="proj-detail-title" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📁 Project Detail</div>
+    <span id="proj-detail-status-badge" style="font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;white-space:nowrap;display:none"></span>
     <button class="modal-close" onclick="closeModal('modal-proj-detail')">✕</button>
   </div>
   <div id="proj-detail-content"></div>
@@ -3831,8 +3832,8 @@ function renderSitesSection(p){
 
     // Toggle button
     html+='<div style="height:28px;display:flex;align-items:center;padding:0 16px;background:var(--surface2);cursor:pointer;user-select:none" onclick="siteToggleCollapse(this)">';
-    html+='<span class="site-toggle" style="font-size:10px;color:var(--muted);margin-right:6px">▼</span><span style="font-size:11px;color:var(--muted)">Click to expand/collapse</span></div>';
-    html+='<div class="site-collapsible">';
+    html+='<span class="site-toggle" style="font-size:10px;color:var(--muted);margin-right:6px">▶</span><span style="font-size:11px;color:var(--muted)">Click to expand/collapse</span></div>';
+    html+='<div class="site-collapsible" style="display:none">';
 
     // Progress bar
     html+='<div style="height:5px;background:var(--border)"><div style="height:100%;width:'+prog.pct+'%;background:'+barColor+';transition:width .4s"></div></div>';
@@ -4675,299 +4676,7 @@ function viewProject(id){
   } else { pettyExpHTML=''; }
 
   var reportsHTML='';
-  if(relR.length){
-    var _drId='proj-reports';
-  reportsHTML='<div class="section-sep"></div><div class="card-title mb12" onclick="_projSecToggle(\''+_drId+'\')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between"><span>Daily Reports ('+relR.length+')</span><span id="proj-sec-arr-'+_drId+'" style="font-size:12px;transition:transform .2s;display:inline-block">▼</span></div><div id="proj-sec-'+_drId+'" style="display:none">';
-    relR.forEach(function(r){reportsHTML+='<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span class="color-gold">'+r.date+'</span> \u2014 '+(r.location||'\u2014')+' \u2014 '+r.tasks.length+' tasks</div>';});
-  }
-
-  // ── SITES SECTION (Multiple Sites) ──
-  var sitesHTML = '';
-
-  // ── SOW BOQ SECTION ──
-  var projBOQs=DB.boqs.filter(function(b){return b.projId===p.id;});
-  var isMultiSite=p.siteType==='Multiple Sites';
-  var mainBOQs=projBOQs.filter(function(b){return !b.boqType||b.boqType==='Main';});
-  var siteBOQs=projBOQs.filter(function(b){return b.boqType==='Site';});
-  var grandTotal=projBOQs.reduce(function(a,b){return a+b.total;},0);
-  var mainTotal=mainBOQs.reduce(function(a,b){return a+b.total;},0);
-  var siteTotal=siteBOQs.reduce(function(a,b){return a+b.total;},0);
-  var boqHTML='<div class="section-sep"></div>';
-  boqHTML+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">';
-  boqHTML+='<div class="section-sep">'+'<div class="card-title">SOW BOQ ('+projBOQs.length+')</div>';
-  var addBtns='<button class="btn btn-primary btn-sm" onclick="closeModal(\'modal-proj-detail\');openBOQModal('+p.id+',\'Main\')" style="margin-left:4px">+ Main SOW BOQ</button>';
   
-  boqHTML+='<div style="display:flex;gap:4px;align-items:center">'+addBtns+'</div></div>';
-  if(projBOQs.length){
-    // Summary cards for multi-site
-    if(isMultiSite){
-      boqHTML+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">';
-      boqHTML+='<div style="background:var(--accent-lt);border:1px solid rgba(26,79,160,.15);border-radius:8px;padding:10px 14px"><div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:4px">Grand Total</div><div style="font-size:15px;font-weight:800;color:var(--accent)">'+SAR(mainTotal)+'</div></div>';
-      boqHTML+='<div style="background:var(--accent2-lt);border:1px solid rgba(26,158,114,.15);border-radius:8px;padding:10px 14px"><div style="font-size:10px;color:var(--accent2);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:4px">Sites Total ('+siteBOQs.length+' sites)</div><div style="font-size:15px;font-weight:800;color:var(--accent2)">'+SAR(siteTotal)+'</div></div>';
-      boqHTML+='<div style="background:#fff8e6;border:1px solid #f5d98a;border-radius:8px;padding:10px 14px"><div style="font-size:10px;color:#a06800;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:4px">All BOQs Combined</div><div style="font-size:15px;font-weight:800;color:#a06800">'+SAR(grandTotal)+'</div></div>';
-      boqHTML+='</div>';
-    }
-    var thStyle='padding:8px 12px;text-align:left;background:var(--panel);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase';
-    // Render Main SOW BOQs
-    // Register boq toggle helper
-    window.__dboqT=function(cid){
-      var el=document.getElementById(cid);
-      if(!el) return;
-      var hidden=el.style.display==='none';
-      el.style.display=hidden?'block':'none';
-      var pid=cid.replace('dboq-body-','');
-      var arr=document.getElementById('dboq-arr-'+pid);
-      if(arr) arr.textContent=hidden?'▼':'▶';
-    };
-    window.__bt=function(bid){
-      var cid='boq-body-'+bid;
-      boqToggle(cid);
-    };
-    if(mainBOQs.length){
-      boqHTML+='<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">'+(isMultiSite?'Main SOW BOQ':'BOQ')+'</div>';
-      mainBOQs.forEach(function(b){
-        var colId='boq-body-'+b.id;
-        boqHTML+='<div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px">';
-        boqHTML+='<div style="padding:10px 14px;display:flex;align-items:center;justify-content:space-between;background:var(--accent-lt)">';
-        var _boqIdx=mainBOQs.indexOf(b);
-        boqHTML+='<div style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1" onclick="window.__bt('+b.id+')">';
-        boqHTML+='<span class="boq-arrow-'+b.id+'" style="font-size:11px;color:var(--accent)">▶</span>';
-        boqHTML+='<span style="font-weight:700;color:var(--accent)">'+esc(b.num)+'</span>';
-        boqHTML+='<span class="badge badge-blue">'+esc(b.rev||'')+'</span>';
-        boqHTML+=(b.scope?'<span style="font-size:12px;color:var(--muted)">'+esc(b.scope)+'</span>':'');
-        boqHTML+='</div>';
-        boqHTML+='<div style="display:flex;align-items:center;gap:6px">';
-        boqHTML+='<span style="font-size:12px;font-weight:700;color:var(--accent2)">'+SAR(b.total)+'</span>';
-        boqHTML+='<button class="btn btn-secondary btn-sm" onclick="viewBOQ('+b.id+')">View</button>';
-        boqHTML+='<button class="btn btn-secondary btn-sm" onclick="openDeliveryNote('+b.id+')" title="DN">📄 DN</button>';
-        boqHTML+='<button class="btn btn-secondary btn-sm" onclick="editBOQFromDetail('+b.id+')">Edit</button>';
-        boqHTML+='<button class="btn btn-danger btn-sm" onclick="deleteBOQ('+b.id+')" title="Delete">🗑</button>';
-        boqHTML+='</div></div>';
-        boqHTML+='<div id="'+colId+'" style="display:none">';
-
-        if((b.lines||[]).length){
-          boqHTML+='<div style="padding:12px 14px">';
-          boqHTML+='<table style="width:100%;border-collapse:collapse;font-size:12px">';
-          boqHTML+='<thead><tr style="background:var(--surface2)">';
-          boqHTML+='<th style="padding:6px 8px;text-align:left">#</th>';
-          boqHTML+='<th style="padding:6px 8px;text-align:left">Description</th>';
-          boqHTML+='<th style="padding:6px 8px;text-align:center">Unit</th>';
-          boqHTML+='<th style="padding:6px 8px;text-align:right">Total Qty</th>';
-          if(isMultiSite) boqHTML+='<th style="padding:6px 8px;text-align:right">Sites Qty</th>';
-          boqHTML+='<th style="padding:6px 8px;text-align:right">Done</th>';
-          boqHTML+='<th style="padding:6px 8px;text-align:right">Balance</th>';
-          boqHTML+='<th style="padding:6px 8px;text-align:right">Progress</th>';
-          boqHTML+='</tr></thead><tbody>';
-
-          b.lines.forEach(function(l,li){
-            var totalQty=parseFloat(l.qty)||0;
-            var sitesQty=0;
-            (p.sites||[]).forEach(function(site){
-              (site.items||[]).forEach(function(si){
-                if((si.desc||'').toLowerCase()===(l.desc||'').toLowerCase())
-                  sitesQty+=parseFloat(si.qty)||0;
-              });
-            });
-            var doneQty=0;
-            if(isMultiSite){
-              (p.sites||[]).forEach(function(site){
-                var si=(site.items||[]).find(function(x){return (x.desc||'').toLowerCase()===(l.desc||'').toLowerCase();});
-                if(si){var sp=getSiteItemProgress(p.id,site.id,l.desc);doneQty+=Math.round((si.qty||0)*sp/100);}
-              });
-            } else {
-              DB.reports.forEach(function(r){
-                if(r.projRef!==p.ref) return;
-                (r.tasks||[]).forEach(function(t){
-                  if((t.sowItem||'').toLowerCase()===(l.desc||'').toLowerCase()){
-                    if(t.done){doneQty=totalQty;}
-                    else{doneQty=Math.min(totalQty,doneQty+Math.round(totalQty*getTaskWeight(t.desc)/100));}
-                  }
-                });
-              });
-            }
-            var balance=Math.max(0,totalQty-(isMultiSite?sitesQty:doneQty));
-            var pct=0;
-            if(isMultiSite){
-              var sitePcts=[];
-              (p.sites||[]).forEach(function(site){
-                var si=(site.items||[]).find(function(x){return (x.desc||'').toLowerCase()===(l.desc||'').toLowerCase();});
-                if(si) sitePcts.push(getSiteItemProgress(p.id,site.id,l.desc));
-              });
-              pct=sitePcts.length?Math.round(sitePcts.reduce(function(a,b){return a+b;},0)/sitePcts.length):0;
-            } else {
-              pct=totalQty?Math.min(100,Math.round(doneQty/totalQty*100)):0;
-            }
-            var barClr=pct>=100?'#1a9e72':pct>=50?'#2176c7':'#e67e22';
-            var rowBg=li%2?'':'background:var(--surface2)';
-            boqHTML+='<tr style="'+rowBg+';border-bottom:1px solid var(--border)">';
-            boqHTML+='<td style="padding:5px 8px;color:var(--muted)">'+(li+1)+'</td>';
-            boqHTML+='<td style="padding:5px 8px;font-weight:500">'+esc(l.desc||'')+'</td>';
-            boqHTML+='<td style="padding:5px 8px;text-align:center;color:var(--muted)">'+esc(l.unit||'')+'</td>';
-            boqHTML+='<td style="padding:5px 8px;text-align:right;font-weight:700">'+totalQty+'</td>';
-            if(isMultiSite) boqHTML+='<td style="padding:5px 8px;text-align:right;color:#2176c7;font-weight:700">'+sitesQty+'</td>';
-            boqHTML+='<td style="padding:5px 8px;text-align:right;color:#1a9e72;font-weight:700">'+doneQty+'</td>';
-            boqHTML+='<td style="padding:5px 8px;text-align:right;color:'+(balance>0?'#e67e22':'#1a9e72')+';font-weight:700">'+balance+'</td>';
-            boqHTML+='<td style="padding:5px 8px;text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:5px"><div style="width:55px;height:5px;background:var(--border);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+barClr+'"></div></div><span style="font-size:11px;font-weight:700;color:'+barClr+'">'+pct+'%</span></div></td>';
-            boqHTML+='</tr>';
-          });
-          boqHTML+='</tbody></table></div>';
-        } else {
-          boqHTML+='<div style="padding:12px;text-align:center;color:var(--muted);font-size:12px">No items.</div>';
-        }
-        boqHTML+='</div></div>';
-      });
-    }
-        // Render Site SOW BOQs grouped by parent
-    if(isMultiSite&&siteBOQs.length){
-      boqHTML+='<div style="font-size:11px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Site SOW BOQs</div>';
-      boqHTML+='<table style="width:100%;border-collapse:collapse;font-size:12px;border:1px solid var(--border)">';
-      boqHTML+='<thead><tr><th style="'+thStyle+'">Site SOW BOQ No.</th><th style="'+thStyle+'">Site Name</th><th style="'+thStyle+'">Linked To</th><th style="'+thStyle+'">Date</th><th style="'+thStyle+'">Revision</th><th style="'+thStyle+'">Items</th><th style="'+thStyle+';text-align:right">Total</th><th style="'+thStyle+'"></th></tr></thead><tbody>';
-      siteBOQs.forEach(function(b){
-        var parent=DB.boqs.find(function(x){return x.id===b.parentBOQId;});
-        boqHTML+='<tr style="border-top:1px solid var(--border)">';
-        boqHTML+='<td style="padding:9px 12px;font-weight:700;color:var(--accent4)">'+b.num+'</td>';
-        boqHTML+='<td style="padding:9px 12px;font-weight:600">'+(b.siteName||'—')+'</td>';
-        boqHTML+='<td style="padding:9px 12px"><span class="badge badge-blue" style="font-size:10px">'+(parent?parent.num:'None')+'</span></td>';
-        boqHTML+='<td style="padding:9px 12px;color:var(--muted)">'+b.date+'</td>';
-        boqHTML+='<td style="padding:9px 12px"><span class="badge badge-gray">'+b.rev+'</span></td>';
-        boqHTML+='<td style="padding:9px 12px;color:var(--muted)">'+b.lines.length+' items</td>';
-        boqHTML+='<td style="padding:9px 12px;text-align:right;font-weight:700;color:var(--accent2)">'+SAR(b.total)+'</td>';
-        boqHTML+='<td style="padding:9px 12px;text-align:right;white-space:nowrap"><button class="btn btn-secondary btn-sm" onclick="viewBOQ('+b.id+')">View</button><button class="btn btn-secondary btn-sm" onclick="openDeliveryNote('+b.id+')" style="margin-left:4px" title="Delivery Note">📄 DN</button><button class="btn btn-secondary btn-sm" onclick="closeModal(\'modal-proj-detail\');editBOQ('+b.id+')" style="margin-left:4px">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteBOQ('+b.id+')" style="margin-left:4px" title="Delete">🗑</button></td>';
-        boqHTML+='</tr>';
-      });
-      boqHTML+='</tbody></table>';
-    }
-  } else {
-    boqHTML+='<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px;background:var(--panel);border-radius:8px;border:1px dashed var(--border)">No BOQ created yet. '+(isMultiSite?'Add a Main SOW BOQ first, then add Site SOW BOQs linked to it.':'Click "+ Main SOW BOQ" to add one.')+'</div>';
-  }
-
-  // ── DETAILED BOQ SECTION ──
-  var dboqRec=DB.detailedBOQ&&DB.detailedBOQ[p.id]?DB.detailedBOQ[p.id]:null;
-  var dboqLines=dboqRec?dboqRec.lines||[]:[];
-  var dboqTotal=dboqLines.reduce(function(a,l){return a+(l.extPrice||0);},0);
-  var _dboqColId='dboq-body-'+p.id;
-  var dboqHTML='<div class="section-sep"></div>';
-  dboqHTML+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
-  dboqHTML+='<div style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="window.__dboqT(this.dataset.id)" data-id="'+_dboqColId+'">';
-  dboqHTML+='<span id="dboq-arr-'+p.id+'" style="font-size:11px;color:var(--accent)">▼</span>';
-  dboqHTML+='<div class="card-title" style="margin:0">📦 Inventory '+(dboqRec?'<span style="font-size:11px;color:var(--muted);font-weight:400">— '+dboqLines.length+' items · '+SAR(dboqTotal*1.15)+'</span>':'')+'</div>';
-  dboqHTML+='</div>';
-  dboqHTML+='<div style="display:flex;gap:6px">';
-  if(dboqRec) dboqHTML+='<button class="btn btn-secondary btn-sm" onclick="closeModal(\'modal-proj-detail\');dboqOpenPreview('+p.id+')">👁 View</button>';
-  dboqHTML+='<button class="btn btn-primary btn-sm" onclick="closeModal(\'modal-proj-detail\');openDetailedBOQ('+p.id+')">'+( dboqRec?'✏ Edit':'+ Create')+'</button>';
-  dboqHTML+='</div></div>';
-  dboqHTML+='<div id="'+_dboqColId+'">';
-  if(dboqRec&&dboqLines.length){
-    dboqHTML+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;border:1px solid var(--border)">';
-    dboqHTML+='<thead><tr>';
-    ['#','PO Ref','Vendor','Description','Unit','Qty','Unit Price','Ext. Price'].forEach(function(h,hi){dboqHTML+='<th style="padding:7px 10px;background:var(--panel);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase;text-align:'+(hi>=5?'right':'left')+'">'+h+'</th>';});
-    dboqHTML+='</tr></thead><tbody>';
-    dboqLines.forEach(function(l,i){
-      dboqHTML+='<tr style="border-top:1px solid var(--border);background:'+(i%2?'var(--panel)':'var(--surface)')+'">'+
-        '<td style="padding:7px 10px;color:var(--muted)">'+(i+1)+'</td>'+
-        '<td style="padding:7px 10px;font-weight:600;color:var(--accent)">'+(l.poRef||'—')+'</td>'+
-        '<td style="padding:7px 10px">'+(l.vendor||'—')+'</td>'+
-        '<td style="padding:7px 10px">'+(l.desc||'—')+'</td>'+
-        '<td style="padding:7px 10px;color:var(--muted)">'+(l.unit||'—')+'</td>'+
-        '<td style="padding:7px 10px;text-align:right">'+(l.qty||0)+'</td>'+
-        '<td style="padding:7px 10px;text-align:right">'+SAR(l.unitPrice||0)+'</td>'+
-        '<td style="padding:7px 10px;text-align:right;font-weight:700;color:var(--accent2)">'+SAR(l.extPrice||0)+'</td>'+
-      '</tr>';
-    });
-    var dboqVat=dboqTotal*0.15;
-    dboqHTML+='</tbody><tfoot>';
-    dboqHTML+='<tr style="background:var(--panel)"><td colspan="7" style="padding:7px 10px;text-align:right;font-weight:700">Subtotal</td><td style="padding:7px 10px;text-align:right;font-weight:700">'+SAR(dboqTotal)+'</td></tr>';
-    dboqHTML+='<tr><td colspan="7" style="padding:6px 10px;text-align:right;color:var(--muted)">VAT 15%</td><td style="padding:6px 10px;text-align:right">'+SAR(dboqVat)+'</td></tr>';
-    dboqHTML+='<tr style="background:var(--accent-lt)"><td colspan="7" style="padding:8px 10px;text-align:right;font-weight:800;color:var(--accent)">Total incl. VAT</td><td style="padding:8px 10px;text-align:right;font-weight:800;color:var(--accent)">'+SAR(dboqTotal+dboqVat)+'</td></tr>';
-    dboqHTML+='</tfoot></table></div>';
-  } else {
-    dboqHTML+='<div style="padding:14px;text-align:center;color:var(--muted);font-size:13px;background:var(--panel);border-radius:8px;border:1px dashed var(--border)">No Detailed BOQ yet. Click <strong>+ Create</strong> to build one.</div>';
-  }
-  dboqHTML+='</div>';
-
-  var invs=DB.invoices.filter(function(inv){return inv.proj===p.ref;});
-  var invTotalInvoiced=invs.reduce(function(a,inv){return a+inv.total;},0);
-  var invTotalCollected=invs.filter(function(inv){return inv.paymentStatus==='Collected';}).reduce(function(a,inv){return a+inv.total;},0);
-  var invTotalPending=invs.filter(function(inv){return inv.paymentStatus==='Pending Collection';}).reduce(function(a,inv){return a+inv.total;},0);
-  var invRows='';
-  if(invs.length){
-    invs.forEach(function(inv){
-      var pbtn='';
-      if(inv.paymentStatus==='Pending Collection') pbtn='<button class="btn btn-primary btn-sm" onclick="markCollected('+inv.id+')" style="margin-left:2px">✓ Collected</button>';
-      if(inv.paymentStatus==='Collected') pbtn='<span style="background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600">✅ Collected'+(inv.collectedDate?' · '+inv.collectedDate:'')+'</span>';
-      invRows+='<tr style="border-top:1px solid var(--border)"><td style="padding:9px 12px;font-weight:700;color:var(--accent)">'+inv.num+'</td><td style="padding:9px 12px;color:var(--muted)">'+inv.date+'</td><td style="padding:9px 12px;color:var(--muted)">'+(inv.dueDate||'—')+'</td><td style="padding:9px 12px;text-align:right;font-weight:700;color:var(--accent2)">'+SAR(inv.total||0)+'</td><td style="padding:9px 12px;text-align:center">'+invPaymentBadge(inv.paymentStatus)+'</td><td style="padding:9px 12px;white-space:nowrap;text-align:right"><button class="btn btn-secondary btn-sm" onclick="viewInvoice('+inv.id+')">View</button>'+pbtn+'</td></tr>';
-    });
-  } else {
-    invRows='<tr><td colspan="6" style="padding:16px;text-align:center;color:var(--muted)">No invoice requests for this project yet.</td></tr>';
-  }
-  var invHTML='<div class="section-sep"></div>';
-  invHTML+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div class="card-title">Invoice Requests ('+invs.length+')</div><button class="btn btn-primary btn-sm" onclick="closeModal(\'modal-proj-detail\');openInvoiceModalForProject(\''+p.ref+'\')">+ New Invoice</button></div>';
-  invHTML+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">';
-  invHTML+='<div style="background:var(--accent-lt);border:1px solid rgba(26,79,160,.15);border-radius:8px;padding:10px 14px"><div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:4px">Total Invoiced</div><div style="font-size:15px;font-weight:800;color:var(--accent)">'+SAR(invTotalInvoiced)+'</div></div>';
-  invHTML+='<div style="background:var(--accent2-lt);border:1px solid rgba(26,158,114,.15);border-radius:8px;padding:10px 14px"><div style="font-size:10px;color:var(--accent2);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:4px">Collected</div><div style="font-size:15px;font-weight:800;color:var(--accent2)">'+SAR(invTotalCollected)+'</div></div>';
-  invHTML+='<div style="background:#fff8e6;border:1px solid #f5d98a;border-radius:8px;padding:10px 14px"><div style="font-size:10px;color:#a06800;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:4px">Pending Collection</div><div style="font-size:15px;font-weight:800;color:#a06800">'+SAR(invTotalPending)+'</div></div></div>';
-  invHTML+='<table style="width:100%;border-collapse:collapse;font-size:12px;border:1px solid var(--border)">';
-  invHTML+='<thead><tr><th style="padding:8px 12px;text-align:left;background:var(--panel);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase">Invoice #</th><th style="padding:8px 12px;text-align:left;background:var(--panel);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase">Date</th><th style="padding:8px 12px;text-align:left;background:var(--panel);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase">Due Date</th><th style="padding:8px 12px;text-align:right;background:var(--panel);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase">Amount</th><th style="padding:8px 12px;text-align:center;background:var(--panel);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase">Collection</th><th style="padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--border)"></th></tr></thead>';
-  invHTML+='<tbody>'+invRows+'</tbody></table>';
-
-    // ── PO SECTION ──
-  var pos=DB.pos.filter(function(po){return po.projRef&&(po.projRef===p.ref||po.projRef.indexOf(p.ref)!==-1);});
-  var poTotalApproved=pos.filter(function(po){return po.approvalStatus==='Approved';}).reduce(function(a,po){return a+getPOAmountSAR(po);},0);
-  var poTotalPaid=pos.filter(function(po){return po.paymentStatus==='Paid';}).reduce(function(a,po){return a+getPOAmountSAR(po);},0);
-  var poTotalPending=pos.filter(function(po){return po.approvalStatus==='Pending';}).reduce(function(a,po){return a+getPOAmountSAR(po);},0);
-  var poRows='';
-  if(pos.length){
-    pos.forEach(function(po){
-      var abtns=afBuildBtns('po',po),pbtn='';
-      if(po.approvalStatus==='Approved'&&po.paymentStatus==='Pending Payment') pbtn='<button class="btn btn-primary btn-sm" onclick="markPOPaid('+po.id+')" style="margin-left:2px">Paid</button>';
-      var payCol=po.approvalStatus==='Approved'?poPaymentBadge(po.paymentStatus):'<span style="color:var(--muted)">—</span>';
-      var _delivBtn=po.approvalStatus==='Approved'?'<button class="btn btn-secondary btn-sm" onclick="deliverPOToInventory('+po.id+')" style="margin-left:3px;font-size:10px" title="Deliver to Inventory">📦 Delivered</button>':'';
-      poRows+='<tr style="border-top:1px solid var(--border)"><td style="padding:9px 12px;font-weight:700;color:var(--accent)">'+po.num+'</td><td style="padding:9px 12px;color:var(--muted)">'+po.date+'</td><td class="no-print" style="padding:9px 12px">'+(po.vendor||'—')+'</td><td style="padding:9px 12px">'+po.vendor+'</td><td style="padding:9px 12px;text-align:right;font-weight:700;color:var(--accent2)">'+SAR(po.amount)+'</td><td style="padding:9px 12px;text-align:center">'+poApprovalBadge(po.approvalStatus)+'</td><td style="padding:9px 12px;text-align:center">'+payCol+'</td><td style="padding:9px 12px;white-space:nowrap;text-align:right"><button class="btn btn-secondary btn-sm" onclick="viewPO('+po.id+')">View</button>'+_delivBtn+abtns+pbtn+'</td></tr>';
-    });
-  } else {
-    poRows='<tr><td colspan="7" style="padding:16px;text-align:center;color:var(--muted)">No purchase orders linked to this project yet.</td></tr>';
-  }
-  var poHTML='<div class="section-sep"></div>';
-  poHTML+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div class="card-title">Purchase Orders ('+pos.length+')</div><button class="btn btn-primary btn-sm" onclick="closeModal(\'modal-proj-detail\');openPOModalForProject(\''+p.ref+'\')">+ New PO</button></div>';
-  poHTML+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">';
-  poHTML+='<div style="background:var(--accent-lt);border:1px solid rgba(26,79,160,.15);border-radius:8px;padding:10px 14px"><div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:4px">Approved Total</div><div style="font-size:15px;font-weight:800;color:var(--accent)">'+SAR(poTotalApproved)+'</div></div>';
-  poHTML+='<div style="background:var(--accent2-lt);border:1px solid rgba(26,158,114,.15);border-radius:8px;padding:10px 14px"><div style="font-size:10px;color:var(--accent2);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:4px">Paid Out</div><div style="font-size:15px;font-weight:800;color:var(--accent2)">'+SAR(poTotalPaid)+'</div></div>';
-  poHTML+='<div style="background:#fff8e6;border:1px solid #f5d98a;border-radius:8px;padding:10px 14px"><div style="font-size:10px;color:#a06800;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:4px">Pending Approval</div><div style="font-size:15px;font-weight:800;color:#a06800">'+SAR(poTotalPending)+'</div></div></div>';
-  poHTML+='<table style="width:100%;border-collapse:collapse;font-size:12px;border:1px solid var(--border)">';
-  poHTML+='<thead><tr><th style="padding:8px 12px;text-align:left;background:var(--panel);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase">PO #</th><th style="padding:8px 12px;text-align:left;background:var(--panel);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase">Date</th><th style="padding:8px 12px;text-align:left;background:var(--panel);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase">Vendor</th><th style="padding:8px 12px;text-align:right;background:var(--panel);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase">Amount</th><th style="padding:8px 12px;text-align:center;background:var(--panel);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase">Approval</th><th style="padding:8px 12px;text-align:center;background:var(--panel);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase">Payment</th><th style="padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--border)"></th></tr></thead>';
-  poHTML+='<tbody>'+poRows+'</tbody></table>';
-
-    var pcs=DB.petty.filter(function(pc){return pc.proj===p.ref;});
-  var totalApproved=pcs.filter(function(pc){return pc.approvalStatus==='Approved';}).reduce(function(a,pc){return a+(pc.total||0);},0);
-  var totalPaid=pcs.filter(function(pc){return pc.paymentStatus==='Paid';}).reduce(function(a,pc){return a+(pc.total||0);},0);
-  var totalPending=pcs.filter(function(pc){return pc.approvalStatus==='Pending';}).reduce(function(a,pc){return a+(pc.total||0);},0);
-  var pcRows='';
-  if(pcs.length){
-    pcs.forEach(function(pc){
-      var abtns=afBuildBtns('pc',pc),pbtn='';
-      // Payment acknowledged from Due Payments page only
-      var payCol=pc.approvalStatus==='Approved'?pcPaymentBadge(pc.paymentStatus):'<span style="color:var(--muted)">—</span>';
-      var _pcbal=getPettyBalance(pc);
-      pcRows+='<tr style="border-top:1px solid var(--border)">'+
-        '<td style="padding:9px 12px;font-weight:700;color:var(--accent)">'+pc.num+'</td>'+
-        '<td style="padding:9px 12px;color:var(--muted)">'+pc.date+'</td>'+
-        '<td style="padding:9px 12px">'+(pc.owner||'—')+'</td>'+
-        '<td style="padding:9px 12px;text-align:right;font-weight:700;color:var(--accent2)">'+SAR(pc.total||0)+'</td>'+
-        '<td style="padding:9px 12px;text-align:center">'+pcStatusWithBalance(pc)+'</td>'+
-        '<td style="padding:9px 12px;text-align:center">'+payCol+'</td>'+
-        '<td style="padding:9px 12px;text-align:right;font-weight:700;color:'+(_pcbal<0?'#d94040':_pcbal===0?'#e67e22':'#1a9e72')+'">'+SAR(_pcbal)+'</td>'+
-        '<td style="padding:9px 12px;white-space:nowrap;text-align:right">'+
-          '<button class="btn btn-secondary btn-sm" onclick="viewPetty('+pc.id+')">View</button>'+abtns+pbtn+
-        '</td></tr>';
-    });
-  } else {
-    pcRows='<tr><td colspan="7" style="padding:16px;text-align:center;color:var(--muted)">No petty cash requests for this project yet.</td></tr>';
-  }
-  boqHTML+='</div>';
-  var _pcId='proj-petty';
-  var pettyHTML='';
-    // Build docsHTML last (so it appears after pettyHTML)
-  pettyHTML+='</div>';
   var docsHTML='<div class="section-sep"></div>'+
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'+
       '<div class="card-title">Documents ('+docs.length+')</div>'+
@@ -4998,7 +4707,7 @@ function viewProject(id){
         var impl=getProjectImplementation(p.id,p.ref,p.budget);
         var pct2=Math.min(100,Math.round((impl.overall||impl.pct||0)*100));
         var clr=pct2>=80?'var(--green)':pct2>=50?'var(--accent)':'var(--accent3)';
-        return '<div class="kpi" style="background:#eff6ff;border:1.5px solid #3b82f6;border-top:4px solid #3b82f6">'+
+        return '<div class="kpi" style="background:#eff6ff;border:1.5px solid #3b82f6;border-top:4px solid #3b82f6;cursor:pointer" onclick="openProjProgressModal()">'+
           '<div class="kpi-label" style="color:#1d4ed8;display:flex;justify-content:space-between;align-items:center">PROJECT PROGRESS'+
             '<button onclick="printProjectProgress('+p.id+')" class="btn btn-ghost btn-xs no-print" style="font-size:9px;padding:2px 6px">🖨</button>'+
           '</div>'+
@@ -5145,6 +4854,23 @@ function viewProject(id){
         '</div></div>';
       }
 
+      // Project Team card
+      var teamMembers=p.team||[];
+      var teamCard='<div style="margin-top:10px"><div class="ss" style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;margin:0;cursor:pointer" onclick="openProjTeamModal()">'+
+        '<div style="display:flex;align-items:center;gap:10px">'+
+          '<span style="font-size:18px">👥</span>'+
+          '<div>'+
+            '<div class="kpi-label" style="color:#059669;margin-bottom:4px">Project Team</div>'+
+            '<div style="display:flex;flex-wrap:wrap;gap:6px">'+
+            (teamMembers.length?
+              teamMembers.map(function(m){return '<span style="background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600">👤 '+esc(m.name||m)+'</span>';}).join(''):
+              '<span style="font-size:12px;color:var(--muted)">No team members assigned</span>')+
+            '</div>'+
+          '</div>'+
+        '</div>'+
+        '<span style="font-size:12px;color:var(--muted)">'+teamMembers.length+' member'+(teamMembers.length!==1?'s':'')+'</span>'+
+      '</div></div>';
+
       return '<div style="margin-top:12px"><div class="ss" style="padding:14px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin:0" onclick="openProjBOMModal()">'+
         '<div style="display:flex;align-items:center;gap:10px">'+
           '<span style="font-size:18px">📦</span>'+
@@ -5152,11 +4878,26 @@ function viewProject(id){
           '<div style="font-size:12px;color:var(--muted)">'+projBOMs.length+' BOQ'+(projBOMs.length!==1?'s':'')+' · '+bomLines+' items</div></div>'+
         '</div>'+
         '<div class="btn btn-ghost btn-sm" style="pointer-events:none">View →</div>'+
-      '</div></div>'+drCard+sitesCard;
+      '</div></div>'+drCard+sitesCard+teamCard;
     }())+
-    renderProjTeamInDetail(p.team||'')+reportsHTML+sitesHTML+pettyHTML+docsHTML;
+    docsHTML;
   var titleEl=document.getElementById('proj-detail-title');
   if(titleEl) titleEl.textContent='📁 '+(p.name||p.ref||'Project Detail');
+  // Status-based header color
+  var _statusPalette={
+    'Active':      {bg:'#fff7ed',border:'#f97316',text:'#c2410c',badge:'#f97316'},
+    'In Progress': {bg:'#fff7ed',border:'#f97316',text:'#c2410c',badge:'#f97316'},
+    'Completed':   {bg:'#ecfdf5',border:'#10b981',text:'#065f46',badge:'#10b981'},
+    'On Hold':     {bg:'#eff6ff',border:'#3b82f6',text:'#1d4ed8',badge:'#3b82f6'},
+    'Hold':        {bg:'#eff6ff',border:'#3b82f6',text:'#1d4ed8',badge:'#3b82f6'},
+    'Cancelled':   {bg:'#fef2f2',border:'#ef4444',text:'#991b1b',badge:'#ef4444'},
+    'Canceled':    {bg:'#fef2f2',border:'#ef4444',text:'#991b1b',badge:'#ef4444'},
+  };
+  var _sp=_statusPalette[p.status]||{bg:'var(--surface2)',border:'var(--border)',text:'var(--text)',badge:'#6b7280'};
+  var _hdr=document.getElementById('proj-detail-header');
+  if(_hdr){_hdr.style.background=_sp.bg;_hdr.style.borderBottom='2px solid '+_sp.border;}
+  var _badge=document.getElementById('proj-detail-status-badge');
+  if(_badge){_badge.textContent=p.status||'';_badge.style.display='inline-block';_badge.style.background=_sp.badge;_badge.style.color='#fff';}
   // Show client logo if available
   var clientLogoWrap=document.getElementById('proj-detail-client-logo');
   var clientLogoImg=document.getElementById('proj-detail-client-logo-img');
@@ -9396,7 +9137,7 @@ function renderProjInvModal(){
     tbody.innerHTML=invs.length?invs.map(function(inv,i){
       var ps=inv.paymentStatus||'Pending Collection';
       var psBg=ps==='Collected'?'background:#d1fae5;color:#065f46':'background:#fff3cd;color:#856404';
-      return '<tr style="border-bottom:1px solid var(--border);'+(i%2===1?'background:var(--surface2)':'')+'">'+
+      return '<tr style="border-bottom:1px solid var(--border);'+(i%2===1?'background:var(--surface2)':'')+';cursor:pointer" onclick="viewInvoice('+inv.id+')">'+
         '<td style="padding:8px 12px;font-size:12px;color:var(--muted)">'+(i+1)+'</td>'+
         '<td style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--accent)">'+esc(inv.num||'—')+'</td>'+
         '<td style="padding:8px 12px;font-size:12px">'+esc(inv.client||'—')+'</td>'+
@@ -9747,6 +9488,212 @@ function exportBOMPDF(){
     '</body></html>';
 
   _printDoc(html, 'BOM - '+projName);
+}
+
+function openProjProgressModal(){
+  var projId=window.__currentProjId;
+  if(!projId) return;
+  var p=DB.projects.find(function(x){return x.id===projId;});
+  if(!p) return;
+  var impl=getProjectImplementation(p.id,p.ref,p.budget);
+  var pct=Math.round(impl.overall*100);
+  var clr=pct>=80?'#1a7a4a':pct>=50?'#1a4fa0':'#e67e22';
+  var body=document.getElementById('proj-progress-body');
+  if(!body) return;
+
+  // Build inline preview using same data as printProjectProgress
+  var sitesRows='';
+  (p.sites||[]).forEach(function(site){
+    var sp=getSiteProgress(p.id,site.id);
+    var bc=sp.pct>=80?'#1a7a4a':sp.pct>=50?'#1a4fa0':'#e67e22';
+    sitesRows+='<tr style="border-bottom:1px solid #e5e7eb">'+
+      '<td style="padding:8px 12px;font-weight:600">'+esc(site.ref||'')+'</td>'+
+      '<td style="padding:8px 12px">'+esc(site.name||'')+'</td>'+
+      '<td style="padding:8px 12px">'+esc(site.location||'')+'</td>'+
+      '<td style="padding:8px 12px;text-align:center">'+sp.done+' / '+sp.total+'</td>'+
+      '<td style="padding:8px 12px;text-align:center;font-weight:800;color:'+bc+'">'+sp.pct+'%</td>'+
+    '</tr>';
+  });
+
+  var teamRows=(p.team||[]).map(function(m){
+    return '<tr style="border-bottom:1px solid #e5e7eb">'+
+      '<td style="padding:8px 12px;font-weight:600">'+esc(m.name||m)+'</td>'+
+      '<td style="padding:8px 12px;color:#666">'+esc(m.role||'—')+'</td>'+
+      '<td style="padding:8px 12px;color:#666">'+esc(m.phone||'—')+'</td>'+
+    '</tr>';
+  }).join('');
+
+  var thStyle='padding:8px 12px;background:#f1f5f9;font-size:10px;text-transform:uppercase;color:#64748b;font-weight:600;border-bottom:2px solid #e2e8f0';
+
+  body.innerHTML=
+    '<div style="padding:24px">'+
+    // Header
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid #e2e8f0">'+
+      '<div>'+
+        '<div style="font-size:18px;font-weight:800;color:#1e293b">'+esc(p.name)+'</div>'+
+        '<div style="font-size:13px;color:#64748b;margin-top:2px">'+esc(p.ref)+' · '+esc(p.client||'—')+'</div>'+
+      '</div>'+
+      '<div style="text-align:center;background:'+clr+'18;border:2px solid '+clr+';border-radius:12px;padding:10px 20px">'+
+        '<div style="font-size:32px;font-weight:900;color:'+clr+'">'+pct+'%</div>'+
+        '<div style="font-size:11px;color:'+clr+'">Overall Progress</div>'+
+      '</div>'+
+    '</div>'+
+    // Progress bar
+    '<div style="margin-bottom:20px">'+
+      '<div style="height:14px;background:#e2e8f0;border-radius:7px;overflow:hidden">'+
+        '<div style="height:100%;width:'+pct+'%;background:'+clr+';border-radius:7px;transition:width .4s"></div>'+
+      '</div>'+
+      '<div style="font-size:11px;color:#94a3b8;margin-top:4px">'+esc(impl.detail||'')+'</div>'+
+    '</div>';
+    // Main SOW BOQ table
+    var mainBOQ=DB.boqs&&DB.boqs.find(function(b){return b.projId===p.id&&(b.type==='Main'||!b.siteId);});
+    var sowRows='';
+    if(mainBOQ&&(mainBOQ.lines||[]).length){
+      (mainBOQ.lines||[]).forEach(function(l){
+        var totalQty=parseFloat(l.qty||0);
+        // Delivered from daily reports
+        var deliveredQty=0;
+        (DB.reports||[]).forEach(function(r){
+          if(r.projRef!==p.ref) return;
+          (r.tasks||[]).forEach(function(t){
+            if((t.sowItem||'').toLowerCase()===(l.desc||'').toLowerCase())
+              deliveredQty+=parseFloat(t.qty||0);
+          });
+        });
+        var balance=Math.max(0,totalQty-deliveredQty);
+        var pctDone=totalQty>0?Math.min(100,Math.round(deliveredQty/totalQty*100)):0;
+        var barClr=pctDone>=100?'#10b981':pctDone>=50?'#3b82f6':'#f59e0b';
+        sowRows+='<tr style="border-bottom:1px solid #e5e7eb">'+
+          '<td style="padding:8px 12px;font-family:monospace;font-size:11px;color:#888">'+esc(l.partNum||'—')+'</td>'+
+          '<td style="padding:8px 12px;font-weight:500">'+esc(l.desc||'—')+'</td>'+
+          '<td style="padding:8px 12px;text-align:center;color:#888">'+esc(l.unit||'—')+'</td>'+
+          '<td style="padding:8px 12px;text-align:right">'+totalQty+'</td>'+
+          '<td style="padding:8px 12px;text-align:right;color:#10b981;font-weight:600">'+deliveredQty+'</td>'+
+          '<td style="padding:8px 12px;text-align:right;color:'+(balance>0?'#f59e0b':'#10b981')+';font-weight:600">'+balance+'</td>'+
+          '<td style="padding:8px 12px;min-width:120px">'+
+            '<div style="display:flex;align-items:center;gap:6px">'+
+              '<div style="flex:1;height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden">'+
+                '<div style="height:100%;width:'+pctDone+'%;background:'+barClr+';border-radius:3px"></div>'+
+              '</div>'+
+              '<span style="font-size:10px;font-weight:700;color:'+barClr+'">'+pctDone+'%</span>'+
+            '</div>'+
+          '</td>'+
+        '</tr>';
+      });
+    }
+
+    // Sites table
+    (sowRows?
+      '<div style="margin-bottom:20px">'+
+        '<div style="font-size:12px;font-weight:700;color:#1e293b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📋 Main SOW — Bill of Quantities</div>'+
+        '<table style="width:100%;border-collapse:collapse;font-size:12px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">'+
+          '<thead><tr>'+
+            '<th style="'+thStyle+'">Part No.</th>'+
+            '<th style="'+thStyle+'">Description</th>'+
+            '<th style="'+thStyle+';text-align:center">Unit</th>'+
+            '<th style="'+thStyle+';text-align:right">Total Qty</th>'+
+            '<th style="'+thStyle+';text-align:right">Delivered</th>'+
+            '<th style="'+thStyle+';text-align:right">Balance</th>'+
+            '<th style="'+thStyle+'">Progress</th>'+
+          '</tr></thead><tbody>'+sowRows+'</tbody>'+
+        '</table>'+
+      '</div>'
+    :'')+
+    (sitesRows?
+      '<div style="margin-bottom:20px">'+
+        '<div style="font-size:12px;font-weight:700;color:#1e293b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📍 Sites Progress</div>'+
+        '<table style="width:100%;border-collapse:collapse;font-size:12px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">'+
+          '<thead><tr>'+
+            '<th style="'+thStyle+'">Ref</th>'+
+            '<th style="'+thStyle+'">Site</th>'+
+            '<th style="'+thStyle+'">Location</th>'+
+            '<th style="'+thStyle+';text-align:center">Units</th>'+
+            '<th style="'+thStyle+';text-align:center">Progress</th>'+
+          '</tr></thead><tbody>'+sitesRows+'</tbody>'+
+        '</table>'+
+      '</div>'
+    :'')+
+    // Team table
+    (teamRows?
+      '<div>'+
+        '<div style="font-size:12px;font-weight:700;color:#1e293b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">👥 Project Team</div>'+
+        '<table style="width:100%;border-collapse:collapse;font-size:12px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">'+
+          '<thead><tr>'+
+            '<th style="'+thStyle+'">Name</th>'+
+            '<th style="'+thStyle+'">Role</th>'+
+            '<th style="'+thStyle+'">Phone</th>'+
+          '</tr></thead><tbody>'+teamRows+'</tbody>'+
+        '</table>'+
+      '</div>'
+    :'')+
+    '</div>';
+
+  openModal('modal-proj-progress');
+}
+
+function openProjTeamModal(){
+  var projRef=window.__currentProjRef||'';
+  var p=DB.projects.find(function(x){return x.ref===projRef;});
+  if(!p) return;
+  var team=p.team||[];
+  var subEl=document.getElementById('proj-team-sub');
+  if(subEl) subEl.textContent=(p.name||'')+' · '+team.length+' member'+(team.length!==1?'s':'');
+  projTeamRender(p);
+  openModal('modal-proj-team');
+}
+
+function projTeamRender(p){
+  var team=p?p.team||[]:[];
+  var body=document.getElementById('proj-team-body');
+  if(!body) return;
+  if(!team.length){
+    body.innerHTML='<div style="text-align:center;color:var(--muted);padding:24px;font-size:13px">No team members yet. Click + Add Member.</div>';
+    return;
+  }
+  body.innerHTML='<div style="display:flex;flex-direction:column;gap:8px">'+
+    team.map(function(m,i){
+      var name=m.name||m||'';
+      var role=m.role||'';
+      var phone=m.phone||'';
+      return '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">'+
+        '<div style="width:36px;height:36px;background:#d1fae5;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:#065f46;font-size:14px">'+
+          esc(name.charAt(0).toUpperCase())+
+        '</div>'+
+        '<div style="flex:1">'+
+          '<div style="font-weight:700;font-size:13px">'+esc(name)+'</div>'+
+          '<div style="font-size:11px;color:var(--muted)">'+esc(role)+(phone?' · '+esc(phone):'')+'</div>'+
+        '</div>'+
+        '<button class="del-btn" onclick="projTeamRemove('+i+')">✕</button>'+
+      '</div>';
+    }).join('')+
+  '</div>';
+}
+
+function projTeamAddMember(){
+  var name=prompt('Member Name:');
+  if(!name||!name.trim()) return;
+  var role=prompt('Role / Position (optional):','')||'';
+  var phone=prompt('Phone (optional):','')||'';
+  var projRef=window.__currentProjRef||'';
+  var p=DB.projects.find(function(x){return x.ref===projRef;});
+  if(!p) return;
+  if(!p.team) p.team=[];
+  p.team.push({name:name.trim(),role:role.trim(),phone:phone.trim()});
+  saveToCloud();
+  projTeamRender(p);
+  var subEl=document.getElementById('proj-team-sub');
+  if(subEl) subEl.textContent=(p.name||'')+' · '+p.team.length+' member'+(p.team.length!==1?'s':'');
+  showToast('✅ '+name.trim()+' added to team');
+}
+
+function projTeamRemove(idx){
+  var projRef=window.__currentProjRef||'';
+  var p=DB.projects.find(function(x){return x.ref===projRef;});
+  if(!p||!p.team) return;
+  if(!confirm('Remove '+esc(p.team[idx].name||p.team[idx])+'?')) return;
+  p.team.splice(idx,1);
+  saveToCloud();
+  projTeamRender(p);
 }
 
 function openProjSitesModal(){
@@ -11374,7 +11321,46 @@ if(_portalBridgePending){
 
 
 
+
+
+
+
 </script>
+
+<!-- PROJECT PROGRESS MODAL -->
+<div class="modal-overlay" id="modal-proj-progress" style="z-index:500">
+  <div class="modal modal-lg" style="max-width:860px">
+    <div class="modal-header">
+      <div class="modal-title">📊 Project Progress Report</div>
+      <button class="modal-close" onclick="closeModal('modal-proj-progress')">✕</button>
+    </div>
+    <div style="padding:0;max-height:80vh;overflow-y:auto" id="proj-progress-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-proj-progress')">Close</button>
+      <button class="btn btn-primary" onclick="printProjectProgress(window.__currentProjId)">🖨 Print / PDF</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- PROJECT TEAM MODAL -->
+<div class="modal-overlay" id="modal-proj-team" style="z-index:500">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">👥 Project Team</div>
+        <div style="font-size:11px;color:var(--muted)" id="proj-team-sub"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-proj-team')">✕</button>
+    </div>
+    <div style="padding:16px 20px" id="proj-team-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-proj-team')">Close</button>
+      <button class="btn btn-primary" onclick="projTeamAddMember()">+ Add Member</button>
+    </div>
+  </div>
+</div>
+
 
 <!-- PROJECT SITES MODAL -->
 <div class="modal-overlay" id="modal-proj-sites" style="z-index:500">
@@ -11387,10 +11373,7 @@ if(_portalBridgePending){
       <button class="modal-close" onclick="closeModal('modal-proj-sites')">✕</button>
     </div>
     <div style="padding:16px 20px;max-height:75vh;overflow-y:auto" id="proj-sites-body"></div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('modal-proj-sites')">Close</button>
-      <button class="btn btn-primary" onclick="var _p=DB.projects.find(function(x){return x.ref===window.__currentProjRef;});if(_p)openAddSiteModal(_p.id)">+ Add Site</button>
-    </div>
+
   </div>
 </div>
 
