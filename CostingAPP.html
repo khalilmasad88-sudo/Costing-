@@ -486,9 +486,18 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
           <div class="card-body" style="padding:0">
             <div style="padding:8px 10px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px">
               <input type="text" id="ql-search" placeholder="🔍 Search quotations..." style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:6px 8px;font-size:12px;color:var(--text)" oninput="renderQList()">
-              <select id="ql-project-filter" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;color:var(--text)" onchange="renderQList()">
-                <option value="">All Projects</option>
-              </select>
+              <div style="display:flex;gap:6px">
+                <select id="ql-project-filter" style="flex:1;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;color:var(--text)" onchange="renderQList()">
+                  <option value="">All Projects</option>
+                </select>
+                <select id="ql-status-filter" style="flex:1;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;color:var(--text)" onchange="renderQList()">
+                  <option value="">All Status</option>
+                  <option>Draft</option><option>in pricing</option><option>Submitted</option><option>Approved</option><option>out</option><option>Canceled</option><option>Value Engineering</option>
+                </select>
+                <select id="ql-by-filter" style="flex:1;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;color:var(--text)" onchange="renderQList()">
+                  <option value="">All Quoted By</option>
+                </select>
+              </div>
             </div>
             <div id="q-list"></div>
           </div>
@@ -690,7 +699,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
           <button class="btn btn-primary" onclick="saveSupabaseConfig()">💾 Save Config</button>
           <button class="btn btn-ghost" onclick="testSupabaseConnection()" style="margin-left:8px">🔌 Test</button>
           <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
-            <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Share configuration with other devices:</div>
+            <div style="font-size:13px;color:var(--muted);margin-bottom:8px">Share configuration with other devices:</div>
             <button class="btn btn-success btn-sm" onclick="copySupabaseConfig()">📋 Copy Config</button>
             <button class="btn btn-ghost btn-sm" onclick="pasteSupabaseConfig()" style="margin-left:8px">📥 Paste Config</button>
           </div>
@@ -735,7 +744,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
               <input type="file" id="letterhead-upload" accept="image/*" style="display:none" onchange="handleLetterheadUpload(event)">
               <div id="letterhead-preview" style="margin-bottom:8px"></div>
               <div style="font-size:24px;margin-bottom:4px">📄</div>
-              <div style="font-size:12px;color:var(--muted)">Click to upload letterhead</div>
+              <div style="font-size:13px;color:var(--muted)">Click to upload letterhead</div>
             </div>
           </div>
           <div class="checkbox-field" style="margin-bottom:12px">
@@ -782,7 +791,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
               <input type="file" id="logo-upload" accept="image/*" style="display:none" onchange="handleLogoUpload(event)">
               <div id="logo-preview" style="margin-bottom:8px"></div>
               <div style="font-size:24px;margin-bottom:4px">🏢</div>
-              <div style="font-size:12px;color:var(--muted)">Click to upload company logo</div>
+              <div style="font-size:13px;color:var(--muted)">Click to upload company logo</div>
             </div>
           </div>
           <div class="field" style="margin-bottom:12px">
@@ -918,7 +927,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <div style="border:2px dashed var(--border);border-radius:6px;padding:16px;text-align:center;cursor:pointer;background:var(--surface2)" onclick="document.getElementById('logo-upload').click()">
           <input type="file" id="logo-upload" accept="image/*" style="display:none" onchange="handleLogoUpload(event)">
           <div style="font-size:24px;margin-bottom:4px">🖼️</div>
-          <div style="font-size:12px;color:var(--muted)">Click to upload</div>
+          <div style="font-size:13px;color:var(--muted)">Click to upload</div>
         </div>
       </div>
       <div class="field"><label>Accent Color</label><input type="color" id="co-color" value="#3b82f6" style="width:56px;height:34px;border:none;background:none;cursor:pointer"></div>
@@ -960,6 +969,12 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <div class="field"><label>Quoted By</label><select id="pm-by"></select></div>
 
         <div class="field"><label>Status</label><select id="pm-status"><option>Submitted</option><option>Approved</option><option>in pricing</option><option>out</option><option>Canceled</option></select></div>
+        <div class="field field-full"><label>Link to Quotation <span style="color:var(--muted);font-size:10px">ربط بعرض سعر</span></label>
+          <select id="pm-qtn-link" style="width:100%" onchange="onPmQtnLink()">
+            <option value="">— None —</option>
+          </select>
+          <div id="pm-qtn-link-info" style="margin-top:4px;font-size:11px;color:var(--accent);display:none"></div>
+        </div>
         <div class="field field-full"><label>Note</label><input id="pm-note" placeholder="Notes…"></div>
       </div>
     </div>
@@ -993,7 +1008,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
 </div>
 
 <!-- NOTE MODAL -->
-<div class="modal-overlay" id="noteModal">
+<div class="modal-overlay" id="noteModal" style="z-index:700">
   <div class="modal">
     <div class="modal-header"><div class="modal-title">Sub-Item Notes</div><button class="modal-close" onclick="closeModal('noteModal')">×</button></div>
     <div class="modal-body">
@@ -2000,7 +2015,7 @@ function renderVE(){
         '<div style="font-weight:700;color:var(--text)">'+esc(r.name||'—')+(r.veManual?'<span style="font-size:10px;background:var(--accent-lt);color:var(--accent);padding:1px 6px;border-radius:8px;margin-left:5px;font-weight:600">Direct</span>':'')+' </div>'+
         '<div style="font-size:11px;color:var(--muted);margin-top:1px">'+(r.ref||'')+(r.ref&&r.client?' · ':'')+esc(r.client||'')+'</div>'+
       '</div>'+
-      '<div style="font-size:12px;color:var(--muted)">'+(veData.notes?esc(veData.notes.slice(0,60))+(veData.notes.length>60?'...':''):'<span style="color:var(--muted);font-style:italic">No VE notes yet</span>')+'</div>'+
+      '<div style="font-size:13px;color:var(--muted)">'+(veData.notes?esc(veData.notes.slice(0,60))+(veData.notes.length>60?'...':''):'<span style="color:var(--muted);font-style:italic">No VE notes yet</span>')+'</div>'+
       '<div style="font-weight:700;color:var(--accent)">SAR '+fmt(amt)+'</div>'+
       '<div style="font-size:11px">'+qCount+' quotation'+(qCount!==1?'s':'')+'</div>'+
       '<div>'+veStatusBadge(vs)+'</div>'+
@@ -2060,9 +2075,9 @@ function openVEDetail(pid){
       '<div class="card" style="padding:14px 16px">'+
         '<div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Project Info</div>'+
         '<div style="font-size:13px;font-weight:700;margin-bottom:4px">'+esc(r.name||'')+'</div>'+
-        '<div style="font-size:12px;color:var(--muted)">Client: '+esc(r.client||'—')+'</div>'+
-        '<div style="font-size:12px;color:var(--muted)">Ref: '+(r.ref||'—')+'</div>'+
-        '<div style="font-size:12px;color:var(--muted)">Location: '+(r.loc||'—')+'</div>'+
+        '<div style="font-size:13px;color:var(--muted)">Client: '+esc(r.client||'—')+'</div>'+
+        '<div style="font-size:13px;color:var(--muted)">Ref: '+(r.ref||'—')+'</div>'+
+        '<div style="font-size:13px;color:var(--muted)">Location: '+(r.loc||'—')+'</div>'+
         '<div style="font-size:13px;font-weight:700;color:var(--green);margin-top:8px">SAR '+fmt(amt)+'</div>'+
       '</div>'+
       // VE Status control
@@ -2337,18 +2352,18 @@ function updateDashboard(){
   });
   const latestQ = Object.values(byBase);
 
-  const qSellTotal  = latestQ.reduce((s,q)=>s+(typeof qSellWithVAT==='function'?qSellWithVAT(q):0),0);
+  const qSellTotalVal = latestQ.reduce((s,q)=>s+(typeof qSellWithVAT==='function'?qSellWithVAT(q):0),0);
   const qCostTotalV = latestQ.reduce((s,q)=>s+(typeof qCostTotal==='function'?qCostTotal(q):0),0);
 
-  document.getElementById('dash-qtotal').textContent = fmt(qSellTotal);
+  document.getElementById('dash-qtotal').textContent = fmt(qSellTotalVal);
   document.getElementById('dash-qcount').textContent = latestQ.length+' quotations';
-  document.getElementById('dash-cost').textContent   = fmt(qCostTotalV);
-  document.getElementById('dash-cost-sub').textContent = 'from '+latestQ.length+' quotations';
+  var _dc=document.getElementById('dash-cost'); if(_dc) _dc.textContent=fmt(qCostTotalV);
+  var _dcs=document.getElementById('dash-cost-sub'); if(_dcs) _dcs.textContent='from '+latestQ.length+' quotations';
 
   // Avg Profit Margin
   const margins = latestQ.map(q=>{
     const cost=typeof qCostTotal==='function'?qCostTotal(q):0;
-    const sell=typeof qSellTotal==='function'?qSellTotal(q):0;
+    const sell=typeof qSellWithVAT==='function'?qSellWithVAT(q):0;
     return sell>0?(sell-cost)/sell*100:0;
   });
   const avgMargin = margins.length>0 ? Math.round(margins.reduce((a,b)=>a+b,0)/margins.length) : 0;
@@ -2403,7 +2418,7 @@ function updateDashboard(){
     <div style="padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="showPage('quotation');openQuotation(${q.id})">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:12px;font-weight:700;font-family:var(--mono);color:var(--accent)">${esc(q.num||'No #')}
-          <span style="font-weight:400;color:var(--muted);font-size:11px">${esc(q.version||'v1')}</span>
+          <span style="font-weight:400;color:var(--muted);font-size:12px">${esc(q.version||'v1')}</span>
         </span>
         <span style="font-size:12px;font-family:var(--mono);color:var(--green);font-weight:600">${fmt(qSellWithVAT(q))}</span>
       </div>
@@ -2435,12 +2450,12 @@ function updateDashboard(){
   // ── Upcoming Deadlines ────────────────────────────────────────
   const today=new Date(); today.setHours(0,0,0,0);
   const upcoming=[...pl]
-    .filter(r=>r.date&&r.status!=='Canceled'&&r.status!=='out')
-    .map(r=>{const d=new Date(r.date);d.setHours(0,0,0,0);return{...r,_days:Math.ceil((d-today)/(864e5))};})
-    .sort((a,b)=>a._days-b._days).slice(0,7);
+    .filter(r=>getPipelineDate(r)&&r.status!=='Canceled')
+    .map(r=>{const d=new Date(getPipelineDate(r));d.setHours(0,0,0,0);return{...r,_days:Math.ceil((d-today)/(864e5))};})
+    .sort((a,b)=>a._days-b._days).slice(0,10);
   document.getElementById('dash-deadlines').innerHTML=upcoming.length?upcoming.map(r=>{
-    const color=r._days<0?'var(--accent)':r._days<4?'var(--red)':r._days<=7?'var(--amber)':'var(--green)';
-    const label=r._days<0?`${Math.abs(r._days)}d overdue`:r._days===0?'Today':r._days===1?'Tomorrow':`${r._days}d left`;
+    const color=r._days<0?'var(--red)':r._days<4?'#ef4444':r._days<=7?'var(--amber)':'var(--green)';
+    const label=r._days<0?`⚠️ ${Math.abs(r._days)}d overdue`:r._days===0?'🔴 Today':r._days===1?'🟡 Tomorrow':`${r._days}d left`;
     return`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
       <div style="overflow:hidden">
         <div style="font-size:12px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px">${esc(r.name||r.qtn||'—')}</div>
@@ -2525,7 +2540,7 @@ function renderPipeline(data){
         '<span style="background:'+sc.c+'22;color:'+sc.c+';padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">'+(r.status||'—')+'</span>'+
       '</div>'+
       '<div style="padding:12px 14px">'+
-        '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;line-height:1.4">'+esc(r.name||'—')+'</div>'+
+        '<div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px;line-height:1.4">'+esc(r.name||'—')+'</div>'+
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;color:var(--muted);margin-bottom:10px">'+
           (r.client?'<div>👤 '+esc(r.client)+'</div>':'')+
           (r.loc?'<div>📍 '+esc(r.loc)+'</div>':'')+
@@ -2612,6 +2627,23 @@ function populatePipelineFilters(){
 // ── PIPELINE WIZARD ──────────────────────────────────────────────────
 var _plWizStep=1;
 var _plTechEval=[];
+
+function onPmQtnLink(){
+  var qId=parseInt(document.getElementById('pm-qtn-link').value)||0;
+  var infoEl=document.getElementById('pm-qtn-link-info');
+  if(!qId){if(infoEl)infoEl.style.display='none';return;}
+  var q=S.quotations.find(function(x){return x.id===qId;});
+  if(!q){if(infoEl)infoEl.style.display='none';return;}
+  // Auto-fill fields from quotation
+  var nameEl=document.getElementById('pm-name'); if(nameEl&&!nameEl.value) nameEl.value=q.project||'';
+  var clientEl=document.getElementById('pm-client'); if(clientEl&&!clientEl.value) clientEl.value=q.client||'';
+  var byEl=document.getElementById('pm-by'); if(byEl&&!byEl.value) byEl.value=q.by||'';
+  var dateEl=document.getElementById('pm-date'); if(dateEl&&!dateEl.value) dateEl.value=q.date||'';
+  if(infoEl){
+    infoEl.textContent='🔗 '+esc(q.num||'')+(q.project?' — '+esc(q.project):'');
+    infoEl.style.display='block';
+  }
+}
 
 function plWizStep(dir){
   if(dir===1&&_plWizStep===2){savePipelineItem();return;}
@@ -2743,6 +2775,8 @@ function savePipelineItem(){
   };
   if(_newItem.status==='Approved') veOnApprove(_newItem);
   S.pipeline.push(_newItem);
+  var _qLink=parseInt((document.getElementById('pm-qtn-link')||{}).value)||0;
+  if(_qLink) _newItem.quotationId=_qLink;
   if(window._teResult&&_plTechEval.length){_newItem.techEval=_plTechEval.slice();_newItem.teResult={score:window._teResult.score,pct:window._teResult.pct,pass:window._teResult.pass};}
   populateQNumDropdown();save();renderPipeline();updateDashboard();renderVE();closeModal('plModal');
   if(_newItem.status==='Approved'){showPage('ve');showToast&&showToast('✅ Project moved to Value Engineering');}
@@ -2915,7 +2949,17 @@ function openAddPipelineModal(){
   var _anEl=document.getElementById('pm-amount-note'); if(_anEl) _anEl.textContent='';
   var _liEl=document.getElementById('pm-link-indicator'); if(_liEl) _liEl.style.display='none';
   document.getElementById('pm-date').value=''; // will be filled from quotation
-  _plWizStep=1;_plTechEval=[];window._teResult=null;window._plEditId=null;plWizRender();
+  _plWizStep=1;_plTechEval=[];window._teResult=null;window._plEditId=null;
+  // Populate quotation link dropdown
+  var qLinkEl=document.getElementById('pm-qtn-link');
+  if(qLinkEl){
+    var co=getCurrentCompany();
+    var qtns=(S.quotations||[]).filter(function(q){return !q.companyId||q.companyId===S.currentCompanyId;}).sort(function(a,b){return b.id-a.id;});
+    qLinkEl.innerHTML='<option value="">— None —</option>'+qtns.map(function(q){return '<option value="'+q.id+'">'+esc((q.num||''))+' — '+esc(q.project||q.client||'')+'</option>';}).join('');
+    qLinkEl.value='';
+  }
+  var infoEl=document.getElementById('pm-qtn-link-info'); if(infoEl) infoEl.style.display='none';
+  plWizRender();
   openModal('plModal');
 }
 
@@ -2941,6 +2985,13 @@ function editPipelineItem(pId){
   // Change Save button to update existing row
   const saveBtn=document.querySelector('#plModal .btn-primary');
   // plwiz-next handles all saving via plWizStep
+  var _qLinkEdit=document.getElementById('pm-qtn-link');
+  if(_qLinkEdit){
+    var _coE=getCurrentCompany();
+    var _qtnsE=(S.quotations||[]).filter(function(q){return !q.companyId||q.companyId===S.currentCompanyId;}).sort(function(a,b){return b.id-a.id;});
+    _qLinkEdit.innerHTML='<option value="">— None —</option>'+_qtnsE.map(function(q){return '<option value="'+q.id+'">'+esc((q.num||''))+' — '+esc(q.project||q.client||'')+'</option>';}).join('');
+    _qLinkEdit.value=r.quotationId||'';
+  }
   document.querySelector('#plModal .modal-title').textContent='Edit Pipeline Project';
   _plWizStep=1;
   if(r.teScores){window._teScores=Object.assign({},r.teScores);}else{window._teScores={};}
@@ -3102,24 +3153,52 @@ function renderQList(){
     projSel.innerHTML='<option value="">All Projects</option>'+
       projects.map(p=>`<option value="${esc(p)}" ${p===curProj?'selected':''}>${esc(p)}</option>`).join('');
   }
+  const bySel=document.getElementById('ql-by-filter');
+  if(bySel){
+    const bys=[...new Set(list.map(q=>q.by||'').filter(Boolean))].sort();
+    const curBy=bySel.value;
+    bySel.innerHTML='<option value="">All Quoted By</option>'+
+      bys.map(b=>`<option value="${esc(b)}" ${b===curBy?'selected':''}>${esc(b)}</option>`).join('');
+  }
 
   // Apply filters
+  const statusFilter=(document.getElementById('ql-status-filter')||{}).value||'';
+  const byFilter=(document.getElementById('ql-by-filter')||{}).value||'';
   if(projFilter) list=list.filter(q=>(q.project||q.client||'')===projFilter);
-  if(search) list=list.filter(q=>(q.num+q.project+q.client).toLowerCase().includes(search.toLowerCase()));
+  if(statusFilter) list=list.filter(q=>q.status===statusFilter);
+  if(byFilter) list=list.filter(q=>(q.by||'')===byFilter);
+  if(search) list=list.filter(q=>(q.num+q.project+q.client+(q.tenderref||'')).toLowerCase().includes(search.toLowerCase()));
 
   // Sort: active project first, then by date desc
   // Always sort newest first (by id descending)
   list.sort((a,b)=>b.id-a.id);
 
   document.getElementById('q-list').innerHTML=list.length?list.map(q=>`
-    <div class="q-list-item ${q.id===S.activeQId?'active':''}" onclick="openQuotation(${q.id})">
-      <div class="ql-num">${esc((q.num||'No #').replace(/ v\d+$/i,''))} <span style="font-weight:400">${esc(q.version||'v1')}</span> ${q.locked?'🔒':''}</div>
-      <div class="ql-name">${(function(){
-        var name=q.client||'';
-        if(!name){var p=q.project||'';name=(/^QTN/i.test(p))?'':p;}
-        return esc(name||q.project||'Untitled');
-      })()}</div>
-      <div class="ql-meta">${statusBadge(q.status)}<span class="ql-total">${fmt(qSellWithVAT(q))}</span></div>
+    <div class="q-list-item ${q.id===S.activeQId?'active':''}" style="${(function(){var sc={'Approved':'border-left:4px solid #10b981;background:#f0fdf4','Submitted':'border-left:4px solid #3b82f6;background:#eff6ff','in pricing':'border-left:4px solid #f59e0b;background:#fffbeb','out':'border-left:4px solid #ef4444;background:#fef2f2','Canceled':'border-left:4px solid #9ca3af;background:#f9fafb','Draft':'border-left:4px solid #d1d5db;background:var(--surface)'};return sc[q.status]||'border-left:4px solid var(--border)';})()}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+            <span style="font-family:var(--mono);font-size:15px;font-weight:700;color:var(--accent)">${esc((q.num||'No #').replace(/ v\d+$/i,''))} <span style="font-weight:400;font-size:12px">${esc(q.version||'v1')}</span></span>
+            <span style="font-size:15px;font-weight:700;color:var(--text)">${esc(q.project||'Untitled')}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted)">
+            ${q.client?'<span>👤 '+esc(q.client)+'</span>':''}
+            ${q.date?'<span>📅 '+esc(q.date)+'</span>':''}
+            ${q.by?'<span>✍️ '+esc(q.by)+'</span>':''}
+            ${q.tenderref?'<span>📋 '+esc(q.tenderref)+'</span>':''}
+            <span>${statusBadge(q.status)}</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+          <span style="font-size:20px;font-weight:900;font-family:monospace;color:var(--green)">${fmtN(qSellWithVAT(q))}</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <select style="font-size:12px;padding:5px 8px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer" onchange="updateQStatus(${q.id},this.value)" onclick="event.stopPropagation()">
+              ${['Draft','in pricing','Submitted','Approved','out','Canceled','Value Engineering'].map(function(s){return '<option value="'+s+'"'+(q.status===s?' selected':'')+'>'+s+'</option>';}).join('')}
+            </select>
+            <button class="btn btn-primary" style="font-size:14px;padding:7px 20px" onclick="openQuotation(${q.id})">👁 View</button>
+          </div>
+        </div>
+      </div>
     </div>`).join(''):`<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">No quotations</div>`;
 }
 
@@ -3254,8 +3333,12 @@ function newQuotation(){
   // Populate pipeline dropdown
   var numEl=document.getElementById('wiz-num');
   if(numEl){
-    var pipeRows=(S.pipeline||[]).filter(function(r){return !r.companyId||r.companyId===S.currentCompanyId;});
-    numEl.innerHTML='<option value="">— New (auto) —</option>'+pipeRows.map(function(r){return '<option value="'+r.id+'">'+esc((r.printRef||r.qtn||''))+' — '+esc(r.name||r.client||'')+'</option>';}).join('');
+    var pipeRows=(S.pipeline||[]).filter(function(r){
+      return !r.companyId||r.companyId===S.currentCompanyId;
+    });
+    numEl.innerHTML='<option value="">— New (auto) —</option>'+pipeRows.map(function(r){
+      return '<option value="'+r.id+'">'+esc((r.printRef||r.qtn||''))+' — '+esc(r.name||r.client||'')+'</option>';
+    }).join('');
   }
   wizRender();
   openModal('modal-new-q-wizard');
@@ -3403,7 +3486,7 @@ function openProjQtnsModal(pipelineId){
           '<div style="font-weight:700;font-family:monospace;color:var(--accent);font-size:13px">'+esc((q.num||'').replace(/ v\d+$/i,''))+' <span style="font-weight:400;font-size:11px">'+esc(q.version||'v1')+'</span></div>'+
           '<span style="background:'+sc.bg+';color:'+sc.c+';padding:2px 10px;border-radius:10px;font-size:11px;font-weight:600">'+esc(q.status||'Draft')+'</span>'+
         '</div>'+
-        '<div style="font-size:12px;color:var(--muted);margin-bottom:6px">'+esc(q.project||q.client||'Untitled')+'</div>'+
+        '<div style="font-size:13px;color:var(--muted);margin-bottom:6px">'+esc(q.project||q.client||'Untitled')+'</div>'+
         '<div style="display:flex;justify-content:space-between;align-items:center">'+
           '<div style="font-size:11px;color:var(--muted)">'+esc(q.date||'—')+'</div>'+
           '<div style="font-weight:800;font-family:monospace;color:var(--green);font-size:14px">SAR '+fmtN(tot)+'</div>'+
@@ -3424,6 +3507,15 @@ function statusColors(){
     'Draft':      {bg:'#f3f4f6',c:'#6b7280'},
     'Value Engineering':{bg:'#ede9fe',c:'#5b21b6'},
   };
+}
+
+function updateQStatus(id, status){
+  var q=S.quotations.find(function(x){return x.id===id;});
+  if(!q) return;
+  q.status=status;
+  save();
+  renderQList();
+  showToast&&showToast('Status updated: '+status);
 }
 
 function closeQModal(){
@@ -5790,7 +5882,7 @@ if (_portalBridgePending) {
               <div style="display:flex;align-items:center;gap:12px">
                 <div>
                   <div style="font-size:15px;font-weight:700;color:var(--text)" id="qf-title">Untitled</div>
-                  <div style="font-size:12px;color:var(--muted);margin-top:2px" id="qf-subtitle">No project</div>
+                  <div style="font-size:13px;color:var(--muted);margin-top:2px" id="qf-subtitle">No project</div>
                 </div>
                 <div class="badge badge-draft" id="qf-version-badge">v1</div>
                 <div id="qf-lock-badge" style="display:none" class="lock-indicator">🔒 Locked</div>
