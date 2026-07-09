@@ -2223,7 +2223,7 @@ function _printCSS(sec, docType){
   sec=sec||_pSec(_doc);
   var hdr=_pH(_doc), hdrT=_pHT(_doc), tot=_pT(_doc), totT=_pTT(_doc), alt=_pAlt(_doc);
   return [
-    '@page{margin:14mm 12mm;size:A4 portrait}',
+    '@page{margin:5.08mm;size:A4 portrait}',
     '*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;box-sizing:border-box;margin:0;padding:0}',
     'body{font-family:'+(S.docFontFamily||'Calibri,Arial,sans-serif')+';font-size:'+(S.docFontSize||'11.5')+'px;color:#1a1a2e;background:#fff;line-height:1.55}',
 
@@ -10088,7 +10088,7 @@ function dpPrintSelected(){
   var fmt2=function(n){return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});};
 
   var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Payment Request</title>'+
-    '<style>@page{margin:12mm 14mm;size:A4 portrait}*{box-sizing:border-box;-webkit-print-color-adjust:exact!important}'+
+    '<style>@page{margin:5.08mm;size:A4 portrait}*{box-sizing:border-box;-webkit-print-color-adjust:exact!important}'+
     'body{font-family:Calibri,Arial,sans-serif;font-size:12px;color:#1a1a2e;background:#fff;margin:0}'+
     'table{width:100%;border-collapse:collapse}th{background:'+hdrBg+';color:'+hdrT+';padding:8px 10px;font-size:10px;font-weight:700;letter-spacing:.5px;text-align:left}'+
     '</style></head><body>'+
