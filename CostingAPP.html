@@ -446,32 +446,28 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
 
   <!-- PIPELINE -->
   <div class="page" id="page-pipeline">
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">Pipeline 2026</div>
-        <button class="btn btn-primary btn-sm no-print" onclick="openAddPipelineModal()">+ Add Project</button>
-      </div>
-      <div class="card-body">
-        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px" class="no-print">
-          <input type="text" id="pl-search" placeholder="🔍 Search..." style="flex:2;min-width:160px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px" oninput="filterPipeline()">
-          <select id="pl-status" style="flex:1;min-width:120px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px" onchange="filterPipeline()">
-            <option value="">All Status</option>
-            <option value="Approved">Approved</option>
-            <option value="Submitted">Submitted</option>
-            <option value="in pricing">in pricing</option>
-            <option value="out">out</option>
-            <option value="Canceled">Canceled</option>
-          </select>
-          <select id="pl-client-filter" style="flex:1;min-width:120px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px" onchange="filterPipeline()">
-            <option value="">All Clients</option>
-          </select>
-          <select id="pl-by-filter" style="flex:1;min-width:120px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px" onchange="filterPipeline()">
-            <option value="">All Quoted By</option>
-          </select>
-        </div>
-        <div id="pipeline-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;padding:4px 0"></div>
-      </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="font-size:16px;font-weight:700;color:var(--text)">Pipeline <span style="color:var(--accent)">2026</span></div>
+      <button class="btn btn-primary btn-sm no-print" onclick="openAddPipelineModal()">+ Add Project</button>
     </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px" class="no-print">
+      <input type="text" id="pl-search" placeholder="🔍 Search..." style="flex:2;min-width:160px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px" oninput="filterPipeline()">
+      <select id="pl-status" style="flex:1;min-width:120px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px" onchange="filterPipeline()">
+        <option value="">All Status</option>
+        <option value="Approved">Approved</option>
+        <option value="Submitted">Submitted</option>
+        <option value="in pricing">in pricing</option>
+        <option value="out">out</option>
+        <option value="Canceled">Canceled</option>
+      </select>
+      <select id="pl-client-filter" style="flex:1;min-width:120px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px" onchange="filterPipeline()">
+        <option value="">All Clients</option>
+      </select>
+      <select id="pl-by-filter" style="flex:1;min-width:120px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px" onchange="filterPipeline()">
+        <option value="">All Quoted By</option>
+      </select>
+    </div>
+    <div id="pipeline-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;align-items:start"></div>
   </div>
 
   <!-- QUOTATIONS -->
@@ -2560,7 +2556,8 @@ function renderPipeline(data){
                 '<span style="font-size:13px;font-weight:700">'+(r.teResult.pass?'✓ PASS':'✗ FAIL')+'</span>'+
               '</div>'
             :'')+
-            '<button class="btn btn-ghost btn-xs" onclick="event.stopPropagation();openQFromPipeline('+r.id+')" title="Open Quotation">📄 View</button>'+
+            ''+
+            +(r.techEval&&r.techEval.length?'<button class="btn btn-secondary btn-xs" onclick="event.stopPropagation();openPipelineTEModal('+r.id+')" title="TE">🔬 TE</button>':'')+
             '<button class="btn btn-secondary btn-xs" onclick="event.stopPropagation();editPipelineItem('+r.id+')" title="Edit">✏️</button>'+
             '<button class="del-btn" onclick="event.stopPropagation();deletePipeline('+r.id+')">✕</button>'+
           '</div>'+
@@ -3456,6 +3453,76 @@ function toggleLock(){
   save();
   openQuotation(q.id);
   renderQList();
+}
+
+function openPipelineTEModal(pipelineId){
+  var r=(S.pipeline||[]).find(function(x){return x.id===pipelineId;});
+  if(!r) return;
+  var te=r.techEval||[];
+  var teResult=r.teResult||null;
+
+  var totalReq=te.reduce(function(a,x){return a+(parseFloat(x.reqWeight)||0);},0);
+  var totalAchieve=te.reduce(function(a,x){return a+(parseFloat(x.reqWeight)||0)*(parseFloat(x.ourAchieve)||0)/100;},0);
+  var pct=totalReq>0?Math.round(totalAchieve/totalReq*100):0;
+  var pass=teResult?teResult.pass:(pct>=60);
+  var clr=pass?'#10b981':'#ef4444';
+
+  var rows=te.length?te.map(function(t,i){
+    var achieve=(parseFloat(t.reqWeight)||0)*(parseFloat(t.ourAchieve)||0)/100;
+    return '<tr style="border-bottom:1px solid var(--border)'+(i%2?' background:var(--surface2)':'')+'">' +
+      '<td style="padding:7px 10px;font-size:12px">'+esc(t.desc||'—')+'</td>'+
+      '<td style="padding:7px 10px;text-align:center;font-size:12px">'+(t.reqWeight||0)+'%</td>'+
+      '<td style="padding:7px 10px;text-align:center;font-size:12px">'+(t.ourAchieve||0)+'%</td>'+
+      '<td style="padding:7px 10px;text-align:center;font-size:12px;font-weight:700;color:'+clr+'">'+achieve.toFixed(1)+'</td>'+
+    '</tr>';
+  }).join(''):'<tr><td colspan="4" style="padding:20px;text-align:center;color:var(--muted)">No TE data</td></tr>';
+
+  var body='<div style="padding:16px 20px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">'+
+      '<div><div style="font-size:14px;font-weight:700">'+esc(r.name||r.client||'—')+'</div>'+
+      '<div style="font-size:11px;color:var(--muted)">'+esc(r.client||'—')+'</div></div>'+
+      '<div style="text-align:center;background:'+clr+'18;border:2px solid '+clr+';border-radius:10px;padding:8px 20px">'+
+        '<div style="font-size:28px;font-weight:900;color:'+clr+'">'+pct+'%</div>'+
+        '<div style="font-size:11px;color:'+clr+';font-weight:600">'+(pass?'✅ PASS':'❌ FAIL')+'</div>'+
+      '</div>'+
+    '</div>'+
+    '<table style="width:100%;border-collapse:collapse">'+
+      '<thead><tr style="background:var(--surface2)">'+
+        '<th style="padding:8px 10px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase">Description</th>'+
+        '<th style="padding:8px 10px;text-align:center;font-size:10px;color:var(--muted);text-transform:uppercase">Req Weight%</th>'+
+        '<th style="padding:8px 10px;text-align:center;font-size:10px;color:var(--muted);text-transform:uppercase">Our Achievement%</th>'+
+        '<th style="padding:8px 10px;text-align:center;font-size:10px;color:var(--muted);text-transform:uppercase">Score</th>'+
+      '</tr></thead><tbody>'+rows+'</tbody>'+
+      '<tfoot><tr style="background:var(--surface2);font-weight:700">'+
+        '<td colspan="3" style="padding:8px 10px;font-size:12px">Total Score</td>'+
+        '<td style="padding:8px 10px;text-align:center;font-size:14px;color:'+clr+'">'+pct+'%</td>'+
+      '</tr></tfoot>'+
+    '</table>'+
+  '</div>';
+
+  // Use a simple modal
+  var m=document.getElementById('modal-pl-te');
+  if(!m){
+    m=document.createElement('div');
+    m.id='modal-pl-te';
+    m.className='modal-overlay';
+    m.style.zIndex='700';
+    var inner=document.createElement('div');
+    inner.className='modal modal-lg';inner.style.maxWidth='680px';
+    var hdr=document.createElement('div');hdr.className='modal-header';
+    var ttl=document.createElement('div');ttl.className='modal-title';ttl.textContent='🔬 Technical Evaluation';
+    var cls=document.createElement('button');cls.className='modal-close';cls.textContent='✕';cls.onclick=function(){closeModal('modal-pl-te');};
+    hdr.appendChild(ttl);hdr.appendChild(cls);
+    var bd=document.createElement('div');bd.id='modal-pl-te-body';
+    var ftr=document.createElement('div');ftr.className='modal-footer';
+    var closebtn=document.createElement('button');closebtn.className='btn btn-secondary';closebtn.textContent='Close';closebtn.onclick=function(){closeModal('modal-pl-te');};
+    ftr.appendChild(closebtn);
+    inner.appendChild(hdr);inner.appendChild(bd);inner.appendChild(ftr);
+    m.appendChild(inner);
+    document.body.appendChild(m);
+  }
+  document.getElementById('modal-pl-te-body').innerHTML=body;
+  openModal('modal-pl-te');
 }
 
 function openProjQtnsModal(pipelineId){
