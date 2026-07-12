@@ -467,7 +467,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <option value="">All Quoted By</option>
       </select>
     </div>
-    <div id="pipeline-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;align-items:start"></div>
+    <div id="pipeline-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;align-items:stretch"></div>
   </div>
 
   <!-- QUOTATIONS -->
@@ -2527,7 +2527,7 @@ function renderPipeline(data){
       'Canceled':   {bg:'#e5e7eb',c:'#6b7280',border:'#9ca3af'},
     };
     const sc=statusColors[r.status]||{bg:'#f3f4f6',c:'#6b7280',border:'#d1d5db'};
-    return '<div style="background:var(--surface);border:1.5px solid '+sc.border+';border-radius:12px;overflow:hidden;transition:.2s;box-shadow:0 2px 8px rgba(0,0,0,.06);cursor:pointer" onclick="openProjQtnsModal('+r.id+')">'+
+    return '<div style="background:var(--surface);border:1.5px solid '+sc.border+';border-radius:12px;overflow:hidden;transition:.2s;box-shadow:0 2px 8px rgba(0,0,0,.06);cursor:pointer;display:flex;flex-direction:column;height:100%" onclick="openProjQtnsModal('+r.id+')">'+
       '<div style="background:'+sc.bg+';padding:10px 14px;display:flex;justify-content:space-between;align-items:center">'+
         '<div>'+
           '<div style="font-family:var(--mono);font-size:12px;font-weight:700;color:'+sc.c+'">'+esc((r.printRef||r.qtn||'—').replace(/ v\d+$/i,''))+'</div>'+
@@ -2551,8 +2551,8 @@ function renderPipeline(data){
           '</div>'+
           '<div style="display:flex;align-items:center;gap:6px">'+
             (r.teResult?
-              '<div style="margin-top:6px;background:'+(r.teResult.pass?'#d1fae5':'#fee2e2')+';color:'+(r.teResult.pass?'#065f46':'#991b1b')+';padding:6px 14px;border-radius:10px;display:inline-flex;align-items:center;gap:8px">'+
-                '<span style="font-size:20px;font-weight:900;font-family:monospace">'+r.teResult.score+'%</span>'+
+              '<div onclick="event.stopPropagation();openPipelineTEModal('+r.id+')" style="cursor:pointer;margin-top:6px;background:'+(r.teResult.pass?'#d1fae5':'#fee2e2')+';color:'+(r.teResult.pass?'#065f46':'#991b1b')+';padding:6px 14px;border-radius:10px;display:inline-flex;align-items:center;gap:8px">'+
+                '<span style="font-size:20px;font-weight:900;font-family:monospace">'+(r.teResult.pct||r.teResult.score||0)+'%</span>'+
                 '<span style="font-size:13px;font-weight:700">'+(r.teResult.pass?'✓ PASS':'✗ FAIL')+'</span>'+
               '</div>'
             :'')+
@@ -2853,6 +2853,7 @@ function migratePipelineQuotationIds(){
 // Called when QTN dropdown changes in pipeline modal
 function onPmQtnChange(){
   const el=document.getElementById('pm-qtn');
+  if(!el) return;
   const val=el.value;
   const indicator=document.getElementById('pm-link-indicator');
 
@@ -3469,11 +3470,15 @@ function openPipelineTEModal(pipelineId){
 
   var rows=te.length?te.map(function(t,i){
     var achieve=(parseFloat(t.reqWeight)||0)*(parseFloat(t.ourAchieve)||0)/100;
-    return '<tr style="border-bottom:1px solid var(--border)'+(i%2?' background:var(--surface2)':'')+'">' +
-      '<td style="padding:7px 10px;font-size:12px">'+esc(t.desc||'—')+'</td>'+
+    return '<tr style="border-bottom:1px solid var(--border);'+(i%2?'background:var(--surface2)':'')+'">' +
+      '<td style="padding:7px 10px"><input type="text" value="'+esc(t.desc||'')+'" onchange="updatePipelineTEDesc('+r.id+','+i+',this.value)" style="width:100%;border:1px solid var(--border);border-radius:5px;padding:4px 7px;font-size:12px;background:var(--surface);color:var(--text)"/></td>'+
       '<td style="padding:7px 10px;text-align:center;font-size:12px">'+(t.reqWeight||0)+'%</td>'+
-      '<td style="padding:7px 10px;text-align:center;font-size:12px">'+(t.ourAchieve||0)+'%</td>'+
-      '<td style="padding:7px 10px;text-align:center;font-size:12px;font-weight:700;color:'+clr+'">'+achieve.toFixed(1)+'</td>'+
+      '<td style="padding:7px 10px;text-align:center">'+
+        '<input type="number" min="0" max="100" value="'+(t.ourAchieve||0)+'"'+
+        ' onchange="updatePipelineTE('+r.id+','+i+',+this.value)"'+
+        ' style="width:60px;text-align:center;padding:3px 6px;border:1px solid var(--border);border-radius:5px;font-size:12px;background:var(--surface)"/>%'+
+      '</td>'+
+      '<td style="padding:7px 10px;text-align:center;font-size:12px;font-weight:700;color:'+clr+'" id="te-score-'+i+'">'+achieve.toFixed(1)+'</td>'+
     '</tr>';
   }).join(''):'<tr><td colspan="4" style="padding:20px;text-align:center;color:var(--muted)">No TE data</td></tr>';
 
@@ -3481,7 +3486,7 @@ function openPipelineTEModal(pipelineId){
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">'+
       '<div><div style="font-size:14px;font-weight:700">'+esc(r.name||r.client||'—')+'</div>'+
       '<div style="font-size:11px;color:var(--muted)">'+esc(r.client||'—')+'</div></div>'+
-      '<div style="text-align:center;background:'+clr+'18;border:2px solid '+clr+';border-radius:10px;padding:8px 20px">'+
+      '<div id="te-badge" style="text-align:center;background:'+clr+'18;border:2px solid '+clr+';border-radius:10px;padding:8px 20px">'+
         '<div style="font-size:28px;font-weight:900;color:'+clr+'">'+pct+'%</div>'+
         '<div style="font-size:11px;color:'+clr+';font-weight:600">'+(pass?'✅ PASS':'❌ FAIL')+'</div>'+
       '</div>'+
@@ -3495,7 +3500,7 @@ function openPipelineTEModal(pipelineId){
       '</tr></thead><tbody>'+rows+'</tbody>'+
       '<tfoot><tr style="background:var(--surface2);font-weight:700">'+
         '<td colspan="3" style="padding:8px 10px;font-size:12px">Total Score</td>'+
-        '<td style="padding:8px 10px;text-align:center;font-size:14px;color:'+clr+'">'+pct+'%</td>'+
+        '<td style="padding:8px 10px;text-align:center;font-size:14px;color:'+clr+'" id="te-total-pct">'+pct+'%</td>'+
       '</tr></tfoot>'+
     '</table>'+
   '</div>';
@@ -3523,6 +3528,41 @@ function openPipelineTEModal(pipelineId){
   }
   document.getElementById('modal-pl-te-body').innerHTML=body;
   openModal('modal-pl-te');
+}
+
+function updatePipelineTEDesc(pipelineId, idx, val){
+  var r=(S.pipeline||[]).find(function(x){return x.id===pipelineId;});
+  if(!r||!r.techEval||!r.techEval[idx]) return;
+  r.techEval[idx].desc=val;
+  save();
+}
+
+function updatePipelineTE(pipelineId, idx, val){
+  var r=(S.pipeline||[]).find(function(x){return x.id===pipelineId;});
+  if(!r||!r.techEval||!r.techEval[idx]) return;
+  var t=r.techEval[idx];
+  t.ourAchieve=val;
+  // Recalc teResult
+  var totalReq=r.techEval.reduce(function(a,x){return a+(parseFloat(x.reqWeight)||0);},0);
+  var totalAchieve=r.techEval.reduce(function(a,x){return a+(parseFloat(x.reqWeight)||0)*(parseFloat(x.ourAchieve)||0)/100;},0);
+  var pct=totalReq>0?Math.round(totalAchieve/totalReq*100):0;
+  var pass=pct>=60;
+  r.teResult={score:pct,pct:pct,pass:pass};
+  // Update score cell
+  var scoreEl=document.getElementById('te-score-'+idx);
+  var achieve=(parseFloat(t.reqWeight)||0)*(parseFloat(t.ourAchieve)||0)/100;
+  if(scoreEl) scoreEl.textContent=achieve.toFixed(1);
+  // Update total
+  var totalEl=document.getElementById('te-total-pct');
+  if(totalEl){totalEl.textContent=pct+'%';totalEl.style.color=pass?'#10b981':'#ef4444';}
+  // Update badge
+  var badgeEl=document.getElementById('te-badge');
+  if(badgeEl){
+    badgeEl.style.background=pass?'#d1fae5':'#fee2e2';
+    badgeEl.style.color=pass?'#065f46':'#991b1b';
+    badgeEl.innerHTML='<div style="font-size:28px;font-weight:900">'+pct+'%</div><div style="font-size:11px;font-weight:600">'+(pass?'✅ PASS':'❌ FAIL')+'</div>';
+  }
+  save();
 }
 
 function openProjQtnsModal(pipelineId){
