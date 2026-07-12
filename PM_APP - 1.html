@@ -6262,7 +6262,7 @@ function rejectPOManual(id){
 }
 
 function markPOPaid(id){var po=DB.pos.find(function(p){return p.id===id;});po.paymentStatus='Paid';renderPOTable();refreshProjDetail();saveToGitHub();}
-function deletePO(id){if(!confirm('Delete this PO? This cannot be undone.'))return;DB.pos=DB.pos.filter(function(p){return p.id!==id;});renderPOTable();refreshDash();saveToCloud();}
+function deletePO(id){if(!confirm('Delete this PO? This cannot be undone.'))return;if(!DB||!DB.pos){showToast('⚠ Database not loaded');return;}DB.pos=DB.pos.filter(function(p){return p.id!==id;});renderPOTable();refreshDash();saveToCloud();showToast('PO deleted');}
 function openPOModalForProject(projRef){openPOModal();setTimeout(function(){var el=document.getElementById('po-proj-ref');if(el)el.value=projRef;},50);}
 function previewPO(){
   var lines=[].slice.call(document.querySelectorAll('#po-lines tr')).map(function(tr){return{partNum:tr.querySelector('.po-part')?tr.querySelector('.po-part').value:'',desc:tr.querySelector('.po-desc')?tr.querySelector('.po-desc').value:'',vendor:(tr.querySelector('.po-line-vendor')?tr.querySelector('.po-line-vendor').value:''),qty:parseFloat(tr.querySelector('.po-qty')?tr.querySelector('.po-qty').value:0)||0,unitPrice:parseFloat(tr.querySelector('.po-uprice')?tr.querySelector('.po-uprice').value:0)||0,extPrice:(parseFloat(tr.querySelector('.po-qty')?tr.querySelector('.po-qty').value:0)||0)*(parseFloat(tr.querySelector('.po-uprice')?tr.querySelector('.po-uprice').value:0)||0)};});
@@ -8655,6 +8655,11 @@ var DATA_KEY      = 'pm_app_main'; // key inside the table
 
 // ── Payload builders ─────────────────────────────────────────────
 function _buildPayload(){
+  // Safety: never save if critical arrays are missing/empty unexpectedly
+  if(!DB || !Array.isArray(DB.pos)){
+    console.error('[PM_APP] _buildPayload: DB not ready, aborting save');
+    return null;
+  }
   return {
     savedAt: new Date().toISOString(),
     settings: JSON.parse(JSON.stringify(S)),
@@ -10367,6 +10372,7 @@ function _sbSet(table,key,value,cb){
 // ── Save ─────────────────────────────────────────────────────────
 function saveToCloud(){
   var payload=_buildPayload();
+  if(!payload){showToast('⚠ Save aborted: data not ready');return;}
   // Always cache locally
   try{localStorage.setItem('amalogy_data',JSON.stringify({version:1,savedAt:payload.savedAt,settings:S,db:payload.db}));}catch(e){}
   // Smart auto-backup
