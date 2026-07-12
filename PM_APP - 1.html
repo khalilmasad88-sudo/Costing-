@@ -4023,17 +4023,38 @@ function restoreFromBackup(key){
   .then(function(rows){
     if(!rows||!rows.length){showToast('✕ Backup not found');return;}
     var data=rows[0].value;
-    // data may be string or object
-    if(typeof data==='string'){try{data=JSON.parse(data);}catch(e){}}
-    if(!data||!data.db){showToast('✕ Backup data invalid');console.error('Backup data:',data);return;}
-    console.log('[Restore] Found backup, projects:',data.db.projects&&data.db.projects.length,'pos:',data.db.pos&&data.db.pos.length);
-    var summary='Projects: '+(data.db.projects?data.db.projects.length:0)+', POs: '+(data.db.pos?data.db.pos.length:0)+', PC: '+(data.db.petty?data.db.petty.length:0);
+    if(typeof data==='string'){try{data=JSON.parse(data);}catch(e){showToast('✕ Parse error');return;}}
+    if(!data||!data.db){showToast('✕ Invalid backup data');console.error('data:',data);return;}
+    var summary='Projects: '+(data.db.projects?data.db.projects.length:0)+
+                ', POs: '+(data.db.pos?data.db.pos.length:0)+
+                ', PC: '+(data.db.petty?data.db.petty.length:0);
     if(!confirm('Restore? '+summary)) return;
-    _applyPayload(data);
-    // Save restored data as primary
-    saveToCloud();
-    showToast('✅ Restored successfully!');
-    setTimeout(function(){ location.reload(); }, 1500);
+    // Write restored data via PortalBridge (same path as normal save)
+    if(window.PortalBridge&&window.PortalBridge.hasDB){
+      showToast('⏳ Writing to PortalBridge...');
+      PortalBridge.db.set(DATA_KEY, data)
+        .then(function(){
+          showToast('✅ Restored! Reloading...');
+          setTimeout(function(){location.reload();},1200);
+        })
+        .catch(function(e){
+          showToast('✕ PortalBridge error: '+e.message);
+          console.error('[Restore]',e);
+        });
+    } else if(_sbReady()){
+      _sbSet(_sb_table, DATA_KEY, data, function(err){
+        if(err){showToast('✕ Save error: '+err.message);return;}
+        showToast('✅ Restored! Reloading...');
+        setTimeout(function(){location.reload();},1200);
+      });
+    } else {
+      // Fallback: localStorage
+      try{
+        localStorage.setItem('amalogy_data',JSON.stringify({version:1,savedAt:new Date().toISOString(),settings:data.settings||S,db:data.db}));
+        showToast('✅ Restored locally! Reloading...');
+        setTimeout(function(){location.reload();},1200);
+      }catch(e){showToast('✕ Error: '+e.message);}
+    }
   })
   .catch(function(e){
     showToast('✕ Restore error: '+e.message);
