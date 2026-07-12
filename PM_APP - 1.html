@@ -5578,8 +5578,7 @@ function renderPOTable(){
     if(po.approvalStatus==='Pending'){abtns='<button class="btn btn-primary btn-sm" onclick="approvePO('+po.id+')" style="margin-left:2px">Approve</button>';}
     // Payment acknowledged from Due Payments page only
         h+='<tr><td class="color-gold fw7">'+po.num+'</td><td style="font-size:12px">'+po.projRef+'</td><td>'+po.vendor+'</td><td style="color:var(--muted)">'+po.date+'</td><td class="color-green fw7">'+(po.supplierType==="International"&&po.currency&&po.currency!=="SAR"?po.currency+" "+po.amount.toLocaleString("en",{minimumFractionDigits:2})+" (≈ "+SAR(getPOAmountSAR(po))+")":SAR(po.amount))+'</td><td>'+approvalStatusBadge(po.approvalStatus)+'</td><td>'+(po.approvalStatus==='Approved'?poPaymentBadge(po.paymentStatus):'<span class="color-muted">—</span>')+'</td><td style="white-space:nowrap;display:flex;gap:4px"><button class="btn btn-secondary btn-sm" onclick="viewPO('+po.id+')">View</button><button class="btn btn-secondary btn-sm" onclick="editPO('+po.id+')">Edit</button><button class=\"btn btn-danger btn-sm\" style=\"margin-left:2px\" onclick=\"deletePO('+po.id+')\">&#128465;</button>'+(po.approvalStatus==='Approved'?"<button class='btn btn-secondary btn-sm' onclick='deliverPOToInventory('+po.id+')' style='margin-left:2px;font-size:10px' title='Deliver to Inventory'>"+(po.deliveredToInventory?'✅ Re-Deliver':'📦 Delivered')+"</button>":'')+
-      (po.approvalType==='Manual'&&po.approvalStatus==='Pending'?'<button class="btn btn-primary btn-sm" onclick="confirmManualApproval('+po.id+')" style="margin-left:2px;font-size:10px">✓ Confirm Manual</button>':'')+
-      abtns+pbtn+'</td></tr>';
+      (po.approvalType==='Manual'&&po.approvalStatus==='Pending'?'<button class="btn btn-primary btn-sm" onclick="confirmManualApproval('+po.id+')" style="margin-left:2px;font-size:10px">✓ Confirm Manual</button>':'')+      (po.approvalType==='Manual'&&po.approvalStatus==='Pending'?'<button class="btn btn-danger btn-sm" onclick="rejectPOManual('+po.id+')" style="margin-left:2px;font-size:10px">✗ Reject</button>':'')+      abtns+pbtn+'</td></tr>';
   });
   h+='</tbody><tfoot><tr><td colspan="4" class="fw7" style="padding:11px 15px">Total ('+(filteredPOs.length)+' of '+DB.pos.length+')</td><td class="color-green fw7">'+SAR(filteredPOs.reduce(function(a,p){return a+getPOAmountSAR(p);},0))+'</td><td colspan="3"></td></tr></tfoot>';
   document.getElementById('po-table').innerHTML=h;
@@ -5829,6 +5828,15 @@ function editPO(id){
   loadPaymentRows(po.paymentSchedule&&po.paymentSchedule.length?po.paymentSchedule:null);
   openModal('modal-po');
 }
+function resetApproval(record){
+  for(var si=1;si<=10;si++){delete record['step'+si+'ApprovedBy'];delete record['step'+si+'ApprovedAt'];}
+  record.approvalStatus='Pending';
+  record.approvedBy='';record.approvedAt='';
+  record.finalApprovedBy='';record.finalApprovedAt='';
+  record.rejectedBy='';record.rejectedAt='';
+  if(record.paymentStatus&&record.paymentStatus!=='Paid'&&record.paymentStatus!=='Collected')record.paymentStatus='Pending Payment';
+}
+
 function savePO(){
   // ── Mandatory field validation ──
   var vendor=(document.getElementById('po-vendor').value||'').trim();
@@ -5883,23 +5891,6 @@ function savePO(){
     approvalType:(document.querySelector('input[name=po-approval-type]:checked')?document.querySelector('input[name=po-approval-type]:checked').value:'Automatic'),
     signedDoc:window._signedPODocData||null
   };
-// ── RESET APPROVAL on edit ──
-// Clears all approval state so the record goes back through the full flow.
-function resetApproval(record){
-  // Clear all step approval stamps (up to 10 steps)
-  for(var si=1;si<=10;si++){
-    delete record['step'+si+'ApprovedBy'];
-    delete record['step'+si+'ApprovedAt'];
-  }
-  record.approvalStatus='Pending';
-  record.approvedBy=''; record.approvedAt='';
-  record.finalApprovedBy=''; record.finalApprovedAt='';
-  record.rejectedBy=''; record.rejectedAt='';
-  // Reset payment status if not already collected/paid
-  if(record.paymentStatus&&record.paymentStatus!=='Paid'&&record.paymentStatus!=='Collected'){
-    record.paymentStatus='Pending Payment';
-  }
-}
 
   if(editingPOId){
     var existing=DB.pos.find(function(p){return p.id===editingPOId;});
@@ -6256,6 +6247,20 @@ function rejectPO(id){
   notifyStatusChange('po', po.num, 'Rejected', currentUser?currentUser.name:'');
   renderPOTable(); refreshProjDetail(); saveToGitHub(); renderNotifBell();
 }
+function rejectPOManual(id){
+  var po=DB.pos.find(function(p){return p.id===id;});
+  if(!po) return;
+  var reason=prompt('Rejection reason (optional):','')||'';
+  if(!confirm('Reject PO '+po.num+'?')) return;
+  po.approvalStatus='Rejected';
+  po.rejectedBy=currentUser?currentUser.name:getSubmittedBy();
+  po.rejectedAt=today();
+  if(reason) po.rejectionReason=reason;
+  notifyStatusChange('po', po.num, 'Rejected', po.rejectedBy);
+  renderPOTable(); refreshProjDetail(); saveToCloud(); renderNotifBell();
+  showToast('🚫 PO '+po.num+' rejected');
+}
+
 function markPOPaid(id){var po=DB.pos.find(function(p){return p.id===id;});po.paymentStatus='Paid';renderPOTable();refreshProjDetail();saveToGitHub();}
 function deletePO(id){if(!confirm('Delete this PO? This cannot be undone.'))return;DB.pos=DB.pos.filter(function(p){return p.id!==id;});renderPOTable();refreshDash();saveToCloud();}
 function openPOModalForProject(projRef){openPOModal();setTimeout(function(){var el=document.getElementById('po-proj-ref');if(el)el.value=projRef;},50);}
@@ -10009,18 +10014,28 @@ function dpAcknowledgePayment(poId, schedIdx){
   var po=DB.pos.find(function(p){return p.id===poId;});
   if(!po||!po.paymentSchedule||!po.paymentSchedule[schedIdx]) return;
   var item=po.paymentSchedule[schedIdx];
-  if(item.paid){if(!confirm('Mark as Unpaid?'))return;item.paid=false;item.paidDate='';}
-  else{item.paid=true;item.paidDate=today();}
-  saveToCloud();renderDuePayments();
-  showToast(item.paid?'Payment marked as Paid':'Payment marked as Unpaid');
+  if(item.paid){
+    if(!confirm('Mark as Unpaid?'))return;
+    item.paid=false;item.paidDate='';item.status='Pending Payment';
+    po.paymentStatus='Pending Payment';
+  } else {
+    item.paid=true;item.paidDate=today();item.status='Paid';
+    // Check if ALL schedule items are now paid
+    var allPaid=po.paymentSchedule.every(function(s){return s.paid;});
+    po.paymentStatus=allPaid?'Paid':'Partial Payment';
+  }
+  saveToCloud();renderDuePayments();renderPOTable();
+  showToast(item.paid?'✅ Payment marked as Paid':'Payment marked as Unpaid');
 }
 
 function dpAcknowledgePOSimple(poId){
   var po=DB.pos.find(function(p){return p.id===poId;});
   if(!po) return;
-  po.paymentAck=!po.paymentAck;po.paidDate=po.paymentAck?today():'';
-  saveToCloud();renderDuePayments();
-  showToast(po.paymentAck?'PO marked as Paid':'Removed payment acknowledgement');
+  po.paymentAck=!po.paymentAck;
+  po.paidDate=po.paymentAck?today():'';
+  po.paymentStatus=po.paymentAck?'Paid':'Pending Payment';
+  saveToCloud();renderDuePayments();renderPOTable();
+  showToast(po.paymentAck?'✅ PO marked as Paid':'Payment acknowledgement removed');
 }
 
 function dpAcknowledgePetty(pcId){
