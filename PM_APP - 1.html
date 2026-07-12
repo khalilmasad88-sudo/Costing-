@@ -4006,7 +4006,7 @@ function loadBackupsList(){
 
 // ── Restore from a backup key ────────────────────────────────────
 function restoreFromBackup(key){
-  if(!confirm('Restore from backup: '+key+'?\nThis will overwrite all current data.')) return;
+  if(!confirm('Restore from backup?\nKey: '+key)) return;
   showToast('⏳ Loading backup...');
 
   fetch(SUPABASE_URL+'/rest/v1/'+_sb_bkp_table+'?key=eq.'+encodeURIComponent(key)+'&select=value&limit=1',{
@@ -4020,10 +4020,8 @@ function restoreFromBackup(key){
     if(typeof data==='string'){try{data=JSON.parse(data);}catch(e){}}
     if(!data||!data.db){showToast('✕ Backup data invalid');console.error('Backup data:',data);return;}
     console.log('[Restore] Found backup, projects:',data.db.projects&&data.db.projects.length,'pos:',data.db.pos&&data.db.pos.length);
-    if(!confirm('Found backup with '+
-      (data.db.projects?data.db.projects.length:0)+' projects, '+
-      (data.db.pos?data.db.pos.length:0)+' POs, '+
-      (data.db.petty?data.db.petty.length:0)+' PC requests.\nRestore now?')) return;
+    var summary='Projects: '+(data.db.projects?data.db.projects.length:0)+', POs: '+(data.db.pos?data.db.pos.length:0)+', PC: '+(data.db.petty?data.db.petty.length:0);
+    if(!confirm('Restore? '+summary)) return;
     _applyPayload(data);
     // Save restored data as primary
     saveToCloud();
