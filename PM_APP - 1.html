@@ -3977,6 +3977,7 @@ function loadBackupsList(){
       el.innerHTML='<div style="color:var(--muted);font-size:12px;padding:12px 0;text-align:center">لا توجد نسخ احتياطية بعد.<br><small>'+JSON.stringify(rows)+'</small></div>';
       return;
     }
+    window._bkKeys=rows.map(function(r){return r.key||'';});
     el.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:12px">'+
       '<thead><tr style="background:var(--surface2);color:var(--muted)">'+
         '<th style="padding:7px 10px;text-align:left">#</th>'+
@@ -3993,7 +3994,7 @@ function loadBackupsList(){
           '<td style="padding:7px 10px;font-size:11px;font-family:monospace">'+dt+'</td>'+
           '<td style="padding:7px 10px">'+type+'</td>'+
           '<td style="padding:7px 10px;text-align:right">'+
-            '<button onclick="restoreFromBackup('+JSON.stringify(k)+')" class="btn btn-primary btn-sm" style="font-size:11px">↩ Restore</button>'+
+            '<button onclick="restoreFromBackupIdx('+i+')" class="btn btn-primary btn-sm" style="font-size:11px">↩ Restore</button>'+
           '</td>'+
         '</tr>';
       }).join('')+
@@ -4005,6 +4006,12 @@ function loadBackupsList(){
 }
 
 // ── Restore from a backup key ────────────────────────────────────
+function restoreFromBackupIdx(i){
+  var k=window._bkKeys&&window._bkKeys[i];
+  if(!k){showToast('Key not found');return;}
+  restoreFromBackup(k);
+}
+
 function restoreFromBackup(key){
   if(!confirm('Restore from backup?\nKey: '+key)) return;
   showToast('⏳ Loading backup...');
