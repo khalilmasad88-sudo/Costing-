@@ -3965,65 +3965,74 @@ function loadBackupsList(){
     el.innerHTML='<div style="color:var(--muted);font-size:12px;padding:12px 0;text-align:center">⚠ Configure Supabase to view backups.</div>';
     return;
   }
-  el.innerHTML='<div style="color:var(--muted);font-size:12px;padding:12px 0;text-align:center">⏳ Loading...</div>';
+  el.innerHTML='<div style="color:var(--muted);font-size:12px;padding:12px 0;text-align:center">⏳ Loading backups...</div>';
 
-  fetch(SUPABASE_URL+'/rest/v1/'+_sb_bkp_table+'?key=like.pm_%26select=key,value->>savedAt&order=key.desc&limit=10',{
+  // Single correct fetch: get all backup keys ordered desc, limit 20
+  fetch(SUPABASE_URL+'/rest/v1/'+_sb_bkp_table+'?select=key&key=like.pm_*&order=key.desc&limit=20',{
     headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'}
   })
   .then(function(r){ return r.json(); })
   .then(function(rows){
-    if(!rows||!rows.length){
-      el.innerHTML='<div style="color:var(--muted);font-size:12px;padding:12px 0;text-align:center">لا توجد نسخ احتياطية بعد.</div>';
-      return;
-    }
-    // Fix: fetch properly
-    return fetch(SUPABASE_URL+'/rest/v1/'+_sb_bkp_table+'?key=like.pm_*&select=key&order=key.desc&limit=10',{
-      headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}
-    }).then(function(r2){return r2.json();});
-  })
-  .then(function(keys){
-    if(!keys||!keys.length){
-      el.innerHTML='<div style="color:var(--muted);font-size:12px;padding:12px 0;text-align:center">لا توجد نسخ احتياطية بعد.</div>';
+    if(!rows||!rows.length||rows.error){
+      el.innerHTML='<div style="color:var(--muted);font-size:12px;padding:12px 0;text-align:center">لا توجد نسخ احتياطية بعد.<br><small>'+JSON.stringify(rows)+'</small></div>';
       return;
     }
     el.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:12px">'+
-      '<thead><tr style="background:var(--surface2,#1f2535);color:var(--muted)">'+
-        '<th style="padding:7px 10px;text-align:left;font-weight:600">#</th>'+
-        '<th style="padding:7px 10px;text-align:left;font-weight:600">Backup Key</th>'+
-        '<th style="padding:7px 10px;text-align:left;font-weight:600">Type</th>'+
-        '<th style="padding:7px 10px;text-align:right;font-weight:600">Restore</th>'+
+      '<thead><tr style="background:var(--surface2);color:var(--muted)">'+
+        '<th style="padding:7px 10px;text-align:left">#</th>'+
+        '<th style="padding:7px 10px;text-align:left">Date</th>'+
+        '<th style="padding:7px 10px;text-align:left">Type</th>'+
+        '<th style="padding:7px 10px;text-align:right">Action</th>'+
       '</tr></thead><tbody>'+
-      keys.map(function(row,i){
+      rows.map(function(row,i){
         var k=row.key||'';
         var type=k.indexOf('pm_auto_')===0?'🤖 Auto':'📤 Manual';
-        // Extract date from key: pm_backup_2025-05-17T...
         var dt=k.replace('pm_backup_','').replace('pm_auto_','').replace(/T/,' ').substring(0,16).replace(/-/g,'/');
         return '<tr style="border-bottom:1px solid var(--border)">'+
           '<td style="padding:7px 10px;color:var(--muted)">'+(i+1)+'</td>'+
-          '<td style="padding:7px 10px;font-family:monospace;font-size:11px;color:var(--text2)">'+dt+'</td>'+
+          '<td style="padding:7px 10px;font-size:11px;font-family:monospace">'+dt+'</td>'+
           '<td style="padding:7px 10px">'+type+'</td>'+
           '<td style="padding:7px 10px;text-align:right">'+
-            '<button onclick="restoreFromBackup('+JSON.stringify(k)+')" class="btn btn-secondary btn-sm" style="font-size:11px">↩ Restore</button>'+
+            '<button onclick="restoreFromBackup('+JSON.stringify(k)+')" class="btn btn-primary btn-sm" style="font-size:11px">↩ Restore</button>'+
           '</td>'+
         '</tr>';
       }).join('')+
       '</tbody></table>';
   })
   .catch(function(e){
-    el.innerHTML='<div style="color:var(--accent3);font-size:12px;padding:12px 0;text-align:center">✕ Error loading backups: '+e.message+'</div>';
+    el.innerHTML='<div style="color:var(--accent3);font-size:12px;padding:12px 0">✕ Error: '+e.message+'</div>';
   });
 }
 
 // ── Restore from a backup key ────────────────────────────────────
 function restoreFromBackup(key){
-  if(!confirm('Restore from backup: '+key+'? This will overwrite all current data.')) return;
-  showToast('⏳ Restoring...',true);
-  _sbGet(_sb_bkp_table, key, function(err, data){
-    if(err||!data){showToast('✕ Restore failed: '+(err?err.message:'Not found'));return;}
+  if(!confirm('Restore from backup: '+key+'?\nThis will overwrite all current data.')) return;
+  showToast('⏳ Loading backup...');
+
+  fetch(SUPABASE_URL+'/rest/v1/'+_sb_bkp_table+'?key=eq.'+encodeURIComponent(key)+'&select=value&limit=1',{
+    headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'}
+  })
+  .then(function(r){return r.json();})
+  .then(function(rows){
+    if(!rows||!rows.length){showToast('✕ Backup not found');return;}
+    var data=rows[0].value;
+    // data may be string or object
+    if(typeof data==='string'){try{data=JSON.parse(data);}catch(e){}}
+    if(!data||!data.db){showToast('✕ Backup data invalid');console.error('Backup data:',data);return;}
+    console.log('[Restore] Found backup, projects:',data.db.projects&&data.db.projects.length,'pos:',data.db.pos&&data.db.pos.length);
+    if(!confirm('Found backup with '+
+      (data.db.projects?data.db.projects.length:0)+' projects, '+
+      (data.db.pos?data.db.pos.length:0)+' POs, '+
+      (data.db.petty?data.db.petty.length:0)+' PC requests.\nRestore now?')) return;
     _applyPayload(data);
+    // Save restored data as primary
     saveToCloud();
-    showToast('✓ Restored from backup!');
-    setTimeout(function(){ _initApp(); }, 500);
+    showToast('✅ Restored successfully!');
+    setTimeout(function(){ location.reload(); }, 1500);
+  })
+  .catch(function(e){
+    showToast('✕ Restore error: '+e.message);
+    console.error('[Restore]',e);
   });
 }
 
