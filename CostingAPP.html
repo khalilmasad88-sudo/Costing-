@@ -1137,9 +1137,11 @@ function handleLogin(e){
     renderBOQ();
     updateDashboard();
     
-    const id=S.activeQId||S.quotations[0]?.id;
-    const found=S.quotations.find(q=>q.id===id);
-    if(found)openQuotation(found.id);else if(S.quotations.length)openQuotation(S.quotations[0].id);
+    // Only auto-open if user had an active quotation (don't open first quotation automatically)
+    if(S.activeQId){
+      const found=S.quotations.find(q=>q.id===S.activeQId);
+      if(found) openQuotation(found.id);
+    }
   }else{
     console.log('Login failed - user not found or wrong password');
     errorDiv.textContent='⚠️ الاسم أو الرقم السري خاطئ';
@@ -3652,18 +3654,24 @@ function openLinkQtnModal(){
 }
 
 function confirmLinkQtn(){
-  var id=parseInt(document.getElementById('link-qtn-select').value)||0;
-  if(!id){showToast('Please select a quotation');return;}
-  var q=S.quotations.find(function(x){return x.id===id;});
-  if(!q) return;
+  var rawId=document.getElementById('link-qtn-select').value;
+  if(!rawId){showToast('Please select a quotation');return;}
+  // Find by loose comparison since ids can be floats
+  var q=S.quotations.find(function(x){return String(x.id)===String(rawId)||x.id==rawId;});
+  if(!q){showToast('Quotation not found');return;}
   var _plId=window._currentPipelineId;
+  // Set pipelineId as same type as pipeline ids
   q.pipelineId=_plId;
   // Also update pipeline item
   var r=(S.pipeline||[]).find(function(x){return x.id==_plId;});
-  if(r&&!r.quotationId) r.quotationId=q.id;
+  if(r){
+    if(!r.quotationId) r.quotationId=q.id;
+    if(!r.qtn) r.qtn=q.num||'';
+  }
   save();
   closeModal('modal-link-qtn');
-  openProjQtnsModal(_plId);
+  // Reopen with updated data
+  setTimeout(function(){openProjQtnsModal(_plId);},100);
   showToast('✅ Quotation linked: '+esc(q.num||''));
 }
 
@@ -3676,7 +3684,7 @@ function openProjQtnsModal(pipelineId){
   var qtns=S.quotations.filter(function(q){
     if(q.companyId&&q.companyId!==co.id) return false;
     var qBase=(q.num||'').replace(/ v\d+$/i,'').trim();
-    return q.pipelineId==r.id || q.pipelineId===r.id || qBase===baseQtn || q.num===r.qtn || q.quotationId==r.id;
+    return String(q.pipelineId)===String(r.id) || q.pipelineId==r.id || qBase===baseQtn || (baseQtn&&q.num===r.qtn) || q.quotationId==r.id;
   });
   // Sort newest first
   qtns=qtns.slice().sort(function(a,b){return b.id-a.id;});
