@@ -2517,6 +2517,9 @@ function renderPipeline(data){
   wrap.innerHTML=rows.map((r,i)=>{
     const amt=getPipelineAmount(r);
     const linkedQ=getLatestSubmittedQ(r);
+    // If linked via quotationId but qtn is empty, populate from linkedQ
+    if(linkedQ&&!r.qtn){r.qtn=linkedQ.num||'';}
+    if(linkedQ&&!r.printRef){r.printRef=linkedQ.num||'';}
     const linked=!!linkedQ;
     const date=getPipelineDate(r);
     const statusColors={
@@ -2531,7 +2534,7 @@ function renderPipeline(data){
       '<div style="background:'+sc.bg+';padding:10px 14px;display:flex;justify-content:space-between;align-items:center">'+
         '<div>'+
           '<div style="font-family:var(--mono);font-size:12px;font-weight:700;color:'+sc.c+'">'+esc((r.printRef||r.qtn||'—').replace(/ v\d+$/i,''))+'</div>'+
-          (linkedQ?'<div style="font-size:10px;color:'+sc.c+';opacity:.8">🔗 '+esc(linkedQ.version||'v1')+' · '+esc(linkedQ.status||'')+'</div>':'')+
+          (linkedQ?'<div style="font-size:10px;color:'+sc.c+';opacity:.8">🔗 '+esc(linkedQ.num||'')+(linkedQ.num?' · ':'')+esc(linkedQ.status||'')+'</div>':'')+
         '</div>'+
         '<span style="background:'+sc.c+'22;color:'+sc.c+';padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">'+(r.status||'—')+'</span>'+
       '</div>'+
@@ -2706,7 +2709,7 @@ function plDeleteTE(id){
 function savePipelineItem(){
   // If editing existing item
   if(window._plEditId){
-    var r=S.pipeline.find(function(p){return p.id===window._plEditId;});
+    var r=S.pipeline.find(function(p){return p.id==window._plEditId;});
     if(r){
       r.qtn=(document.getElementById('pm-qtn')||{}).value;
       r.printRef=((document.getElementById('pm-print-ref')||{}).value||'').trim()||r.qtn||'';
@@ -2719,10 +2722,24 @@ function savePipelineItem(){
       r.status=document.getElementById('pm-status').value;
       r.by=document.getElementById('pm-by').value;
       r.note=document.getElementById('pm-note').value;
-      var _co2=getCurrentCompany();
-      var qs=S.quotations.filter(function(q){return q.num===r.qtn&&(!q.companyId||q.companyId===_co2.id);});
-      if(qs.length){var pool=qs.filter(function(q){return q.status==='Draft'||q.status==='in pricing';});r.quotationId=(pool.length?pool:qs).reduce(function(a,b){return a.id>b.id?a:b;}).id;r.amount=Math.round(getPipelineAmount(r));}
-      else{r.amount=+(document.getElementById('pm-amount')||{}).value||0;}
+      // ── Link to Quotation (pm-qtn-link dropdown) ──
+      var _qLinkVal=parseInt((document.getElementById('pm-qtn-link')||{}).value)||0;
+      if(_qLinkVal){
+        r.quotationId=_qLinkVal;
+        var _linkedQ=S.quotations.find(function(q){return q.id===_qLinkVal;});
+        if(_linkedQ){
+          if(!r.name) r.name=_linkedQ.project||'';
+          if(!r.client) r.client=_linkedQ.client||'';
+          if(!r.by) r.by=_linkedQ.by||'';
+          if(!r.date) r.date=_linkedQ.date||'';
+          r.amount=Math.round(getPipelineAmount(r));
+        }
+      } else {
+        var _co2=getCurrentCompany();
+        var qs=S.quotations.filter(function(q){return q.num===r.qtn&&(!q.companyId||q.companyId===_co2.id);});
+        if(qs.length){var pool=qs.filter(function(q){return q.status==='Draft'||q.status==='in pricing';});r.quotationId=(pool.length?pool:qs).reduce(function(a,b){return a.id>b.id?a:b;}).id;r.amount=Math.round(getPipelineAmount(r));}
+        else{r.amount=+(document.getElementById('pm-amount')||{}).value||0;}
+      }
       if(r.status==='Approved') veOnApprove(r);
       if(window._teResult&&_plTechEval.length){r.techEval=_plTechEval.slice();r.teResult={score:window._teResult.score,pct:window._teResult.pct,pass:window._teResult.pass};}
       window._plEditId=null;
@@ -2962,7 +2979,7 @@ function openAddPipelineModal(){
 }
 
 function editPipelineItem(pId){
-  const r=S.pipeline.find(p=>p.id===pId); if(!r) return;
+  const r=S.pipeline.find(p=>p.id==pId); if(!r) return;
   // Pre-fill modal
   populateQNumDropdown(r.id);
   var _el=document.getElementById('pm-qtn');
@@ -2991,9 +3008,11 @@ function editPipelineItem(pId){
     _qLinkEdit.value=r.quotationId||'';
   }
   document.querySelector('#plModal .modal-title').textContent='Edit Pipeline Project';
+  window._plEditId=r.id;  // ← SET EDIT ID so savePipelineItem updates instead of creates
   _plWizStep=1;
   if(r.teScores){window._teScores=Object.assign({},r.teScores);}else{window._teScores={};}
   window._teResult=r.teResult||null;
+  _plTechEval=r.techEval?r.techEval.slice():[];
   plWizRender();
   openModal('plModal');
 }
@@ -3328,6 +3347,16 @@ function newQuotation(){
   var stEl=document.getElementById('wiz-status'); if(stEl) stEl.value='Draft';
   var vEl=document.getElementById('wiz-version'); if(vEl) vEl.value='v1';
   var dEl=document.getElementById('wiz-date'); if(dEl) dEl.value=new Date().toISOString().slice(0,10);
+  // Populate copy-from dropdown
+  var copyEl=document.getElementById('wiz-copy-from');
+  if(copyEl){
+    var _coCF=getCurrentCompany();
+    var allQtns=(S.quotations||[]).filter(function(q){return !q.companyId||q.companyId===_coCF.id;}).sort(function(a,b){return b.id-a.id;});
+    copyEl.innerHTML='<option value="">— Start fresh —</option>'+allQtns.map(function(q){
+      return '<option value="'+q.id+'">'+esc(q.num||'')+(q.project?' — '+esc(q.project):'')+(q.client?' ('+esc(q.client)+')':'')+'</option>';
+    }).join('');
+    copyEl.value='';
+  }
   // Populate pipeline dropdown
   var numEl=document.getElementById('wiz-num');
   if(numEl){
@@ -3343,6 +3372,34 @@ function newQuotation(){
 }
 
 var wizCurrentStep=1;
+
+function onWizCopyFrom(){
+  var id=parseInt(document.getElementById('wiz-copy-from').value)||0;
+  if(!id) return;
+  var q=S.quotations.find(function(x){return x.id===id;});
+  if(!q) return;
+  // Auto-fill all wizard fields from the selected quotation
+  var f=function(elId,val){var e=document.getElementById(elId);if(e&&val!=null)e.value=val;};
+  f('wiz-project',   q.project||'');
+  f('wiz-client',    q.client||'');
+  f('wiz-client-phone', q.clientPhone||'');
+  f('wiz-addr',      q.addr||'');
+  f('wiz-tenderref', q.tenderref||'');
+  f('wiz-system',    q.system||'');
+  f('wiz-scope',     q.scope||'');
+  f('wiz-delivery',  q.delivery||'');
+  f('wiz-warranty',  q.warranty||'');
+  f('wiz-validity',  q.validity||'');
+  f('wiz-payment',   q.payment||'');
+  f('wiz-notes',     q.notes||'');
+  f('wiz-by',        q.by||'');
+  // Increment version
+  var baseNum=(q.num||'').replace(/ v\d+$/i,'').trim();
+  var versions=(S.quotations||[]).filter(function(x){return (x.num||'').replace(/ v\d+$/i,'').trim()===baseNum;});
+  var nextVer='v'+(versions.length+1);
+  f('wiz-version', nextVer);
+  showToast('Fields copied from '+esc(q.num||'quotation'));
+}
 
 function wizRender(){
   var titles=['Quotation Info','Client & Project','Technical Details','Commercial Terms','Notes & Summary'];
@@ -5785,10 +5842,13 @@ function toggleTheme(){
 
 function applyTheme(){
   const savedTheme = _storage.getItem('ftag_theme');
-  const isLight = savedTheme === 'light';
+  // Default to light (Day) if no preference saved
+  const isLight = savedTheme === null ? true : savedTheme === 'light';
   
   if(isLight){
     document.documentElement.classList.add('light');
+  } else {
+    document.documentElement.classList.remove('light');
   }
   
   const label = isLight ? '☀️ Day' : '🌙 Night';
@@ -6258,6 +6318,12 @@ if (_portalBridgePending) {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
         <div class="field" style="margin:0"><label>Pipeline / QTN Ref</label><select id="wiz-num" style="font-size:13px"><option value="">— New (auto) —</option></select></div>
         <div class="field" style="margin:0"><label>Version</label><input id="wiz-version" placeholder="v1" style="font-size:13px" value="v1"></div>
+      </div>
+      <div class="field" style="margin:0 0 12px 0">
+        <label>Copy from Existing Quotation <span style="color:var(--muted);font-size:10px;font-weight:400">(optional — auto-fills fields)</span></label>
+        <select id="wiz-copy-from" style="font-size:13px;width:100%" onchange="onWizCopyFrom()">
+          <option value="">— Start fresh —</option>
+        </select>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
         <div class="field" style="margin:0"><label>Submission Date</label><input type="date" id="wiz-date" style="font-size:13px"></div>
