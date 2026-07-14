@@ -965,12 +965,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <div class="field"><label>Quoted By</label><select id="pm-by"></select></div>
 
         <div class="field"><label>Status</label><select id="pm-status"><option>Submitted</option><option>Approved</option><option>in pricing</option><option>out</option><option>Canceled</option></select></div>
-        <div class="field field-full"><label>Link to Quotation <span style="color:var(--muted);font-size:10px">ربط بعرض سعر</span></label>
-          <select id="pm-qtn-link" style="width:100%" onchange="onPmQtnLink()">
-            <option value="">— None —</option>
-          </select>
-          <div id="pm-qtn-link-info" style="margin-top:4px;font-size:11px;color:var(--accent);display:none"></div>
-        </div>
+
         <div class="field field-full"><label>Note</label><input id="pm-note" placeholder="Notes…"></div>
       </div>
     </div>
@@ -3382,17 +3377,24 @@ function onWizCopyFrom(){
   var f=function(elId,val){var e=document.getElementById(elId);if(e&&val!=null)e.value=val;};
   f('wiz-project',   q.project||'');
   f('wiz-client',    q.client||'');
-  f('wiz-client-phone', q.clientPhone||'');
-  f('wiz-addr',      q.addr||'');
-  f('wiz-tenderref', q.tenderref||'');
-  f('wiz-system',    q.system||'');
+  f('wiz-client-phone', q.clientPhone||q.clientphone||'');
+  f('wiz-addr',      q.addr||q.address||'');
+  f('wiz-tenderref', q.tenderref||q.tenderRef||'');
+  f('wiz-system',    q.system||'CCTV');
   f('wiz-scope',     q.scope||'');
   f('wiz-delivery',  q.delivery||'');
   f('wiz-warranty',  q.warranty||'');
-  f('wiz-validity',  q.validity||'');
-  f('wiz-payment',   q.payment||'');
+  f('wiz-validity',  q.validity||'90 days');
+  f('wiz-payment',   q.payment||q.paymentTerms||'');
   f('wiz-notes',     q.notes||'');
   f('wiz-by',        q.by||'');
+  // Also copy items if present
+  if(q.items&&q.items.length>0){
+    window._wizCopyItems=JSON.parse(JSON.stringify(q.items));
+    showToast('✅ '+q.items.length+' items will be copied');
+  } else {
+    window._wizCopyItems=null;
+  }
   // Increment version
   var baseNum=(q.num||'').replace(/ v\d+$/i,'').trim();
   var versions=(S.quotations||[]).filter(function(x){return (x.num||'').replace(/ v\d+$/i,'').trim()===baseNum;});
@@ -3467,6 +3469,16 @@ function wizCreateQuotation(){
     paymentTerms: g('wiz-payment'), warranty: g('wiz-warranty'),
     notes: g('wiz-notes')
   });
+  // Apply copied items if user selected "Copy from existing"
+  if(window._wizCopyItems&&window._wizCopyItems.length>0){
+    q.items=window._wizCopyItems.map(function(mi){
+      var copy=JSON.parse(JSON.stringify(mi));
+      copy.id=Date.now()+Math.random();
+      if(copy.subItems){copy.subItems=copy.subItems.map(function(si){var sc=JSON.parse(JSON.stringify(si));sc.id=Date.now()+Math.random();return sc;});}
+      return copy;
+    });
+    window._wizCopyItems=null;
+  }
   S.quotations.push(q);
   save(); renderQList();
   closeModal('modal-new-q-wizard');
@@ -5137,6 +5149,13 @@ function exportCostingPDF(){
 function exportPricingPDF(isArabic=false){
   const q=getQ();if(!q)return;
   const showP=confirm(isArabic?'تضمين الأسعار؟':'Include prices?');
+  const showSubItems=confirm(isArabic?'إظهار البنود الفرعية؟':'Include sub-items?');
+  // If showing sub-items and prices, ask which prices to show
+  let subItemPricing='main'; // 'main' = show main item prices, 'sub' = show sub-item prices
+  if(showSubItems&&showP){
+    const showSubPrices=confirm(isArabic?'إظهار أسعار البنود الفرعية؟ (لا = أسعار البنود الرئيسية)':'Show sub-item prices? (Cancel = show main item prices)');
+    subItemPricing=showSubPrices?'sub':'main';
+  }
   
   // Check if there are payment terms to display
   const hasPayments=q.payments&&q.payments.length>0&&q.payments.some(p=>p.desc||p.pct>0);
@@ -5172,15 +5191,39 @@ function exportPricingPDF(isArabic=false){
     // For optional items: show unit price normally, but total as "Optional"
     const sellUnit=showP?fmtN(su):'—';
     const sellTotal=mi.optional?optionalText:(showP?fmtN(st):'—');
-    return `<tr>
+    let subRows='';
+    if(showSubItems&&mi.subItems&&mi.subItems.length>0){
+      subRows=mi.subItems.map((si,si_i)=>{
+        const siCostUnit=si.unitPrice||si.unitprice||0;
+        const siQty=si.qty||1;
+        const _profit=1+(q.profitPct||25)/100;
+        const siSellUnit=Math.round((siCostUnit*_profit+Number.EPSILON)*100)/100;
+        const siSellTotal=siSellUnit*siQty;
+        const siUnit=showP&&subItemPricing==='sub'?fmtN(siSellUnit):'';
+        const siTot=showP&&subItemPricing==='sub'?fmtN(siSellTotal):'';
+        return `<tr style="background:#f8fafc;font-size:11px">
+          <td style="padding:4px 8px;color:#9ca3af">${i+1}.${si_i+1}</td>
+          <td style="padding:4px 8px;color:#6b7280">${esc(si.partno||'')}</td>
+          <td style="padding:4px 8px;color:#374151;padding-left:24px">↳ ${esc(si.desc||'')}</td>
+          <td style="padding:4px 8px;color:#6b7280">${esc(si.unit||'')}</td>
+          <td style="padding:4px 8px;color:#6b7280">${siQty}</td>
+          <td style="padding:4px 8px;font-family:monospace;color:#374151">${siUnit}</td>
+          <td style="padding:4px 8px;font-family:monospace;color:#374151">${siTot}</td>
+        </tr>`;
+      }).join('');
+    }
+    // If sub-item pricing: hide main item price columns
+    const mainSellUnit=subItemPricing==='sub'?'—':sellUnit;
+    const mainSellTotal=subItemPricing==='sub'?'—':sellTotal;
+    return `<tr style="font-weight:${showSubItems&&mi.subItems&&mi.subItems.length>0?'600':'400'}">
       <td>${i+1}</td>
       <td>${esc(pn)}</td>
       <td class="desc-col">${esc(mi.desc)}</td>
       <td>${esc(mi.unit)}</td>
       <td>${mi.qty}</td>
-      <td class="price-col">${sellUnit}</td>
-      <td class="total-col">${sellTotal}</td>
-    </tr>`;
+      <td class="price-col">${showSubItems?mainSellUnit:sellUnit}</td>
+      <td class="total-col">${showSubItems?mainSellTotal:sellTotal}</td>
+    </tr>${subRows}`;
   }).join('');
   
   // Calculate totals excluding optional items
