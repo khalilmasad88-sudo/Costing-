@@ -1216,8 +1216,8 @@ let backupTimeout;
 function sbUrl()  { return (S.settings.supabase.url  || '').replace(/\/$/, ''); }
 function sbKey()  { return S.settings.supabase.key   || ''; }
 function sbReady(){ return !!(sbUrl() && sbKey()); }
-function getTableShared(){ return S.settings.supabase.tableShared||'app_data'; }
-function getTableBackups(){ return S.settings.supabase.tableBackups||'app_backups'; }
+function getTableShared(){ return (S&&S.settings&&S.settings.supabase&&S.settings.supabase.tableShared)||'app_data'; }
+function getTableBackups(){ return (S&&S.settings&&S.settings.supabase&&S.settings.supabase.tableBackups)||'app_backups'; }
 
 function sbHeaders(extra) {
   return Object.assign({
