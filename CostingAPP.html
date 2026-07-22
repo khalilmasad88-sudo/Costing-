@@ -2686,7 +2686,7 @@ function onPmQtnLink(){
   var refEl=document.getElementById('pm-ref'); if(refEl) refEl.value=r&&r.ref||'';
   var nameEl=document.getElementById('pm-name'); if(nameEl&&!nameEl.value) nameEl.value=q.project||'';
   var clientEl=document.getElementById('pm-client'); if(clientEl&&!clientEl.value) clientEl.value=q.client||'';
-  var byEl=document.getElementById('pm-by'); if(byEl&&!byEl.value) byEl.value=q.by||'';
+  if(!document.getElementById('pm-by').value&&q.by) populatePmByDropdown(q.by); else populatePmByDropdown(document.getElementById('pm-by').value);
   var dateEl=document.getElementById('pm-date'); if(dateEl&&!dateEl.value) dateEl.value=q.date||'';
   if(infoEl){
     infoEl.textContent='🔗 '+esc(q.num||'')+(q.project?' — '+esc(q.project):'');
@@ -2990,6 +2990,16 @@ function onPmQtnChange(){
   if(by&&best.by) by.value=best.by;
 }
 
+function populatePmByDropdown(selectedVal){
+  var byEl=document.getElementById('pm-by');
+  if(!byEl) return;
+  var editors=(S.settings&&S.settings.quotationEditors||[]).filter(function(e){return e.name;});
+  byEl.innerHTML='<option value="">— Select —</option>'+editors.map(function(e){
+    return '<option value="'+esc(e.name)+'" '+(selectedVal===e.name?'selected':'')+'>'+esc(e.name)+'</option>';
+  }).join('');
+  if(selectedVal) byEl.value=selectedVal;
+}
+
 function openAddPipelineModal(){
   populateQNumDropdown();
   const t=document.querySelector('#plModal .modal-title');
@@ -3002,6 +3012,7 @@ function openAddPipelineModal(){
   var _liEl=document.getElementById('pm-link-indicator'); if(_liEl) _liEl.style.display='none';
   document.getElementById('pm-date').value=''; // will be filled from quotation
   _plWizStep=1;_plTechEval=[];window._teResult=null;window._plEditId=null;
+  populatePmByDropdown('');
   // Populate quotation link dropdown
   var qLinkEl=document.getElementById('pm-qtn-link');
   if(qLinkEl){
@@ -3033,7 +3044,7 @@ function editPipelineItem(pId){
   (document.getElementById('pm-amount')||{}).value=r.amount||0;
   document.getElementById('pm-status').value=r.status||'Submitted';
   document.getElementById('pm-note').value=r.note||'';
-  const byEl=document.getElementById('pm-by'); if(byEl) byEl.value=r.by||'';
+  populatePmByDropdown(r.by||'');
   // Show link indicator if linked
   const pmEl=document.getElementById('pm-qtn'); if(pmEl&&r.qtn){pmEl.value=r.qtn;} if(r.qtn) onPmQtnChange();
   // Change Save button to update existing row
