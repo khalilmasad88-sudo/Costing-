@@ -965,7 +965,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <div class="field"><label>Location</label><input id="pm-loc" placeholder="Location…"></div>
         <div class="field"><label>Quoted By</label><select id="pm-by"></select></div>
 
-        <div class="field"><label>Status</label><select id="pm-status"><option>Submitted</option><option>Approved</option><option>in pricing</option><option>out</option><option>Canceled</option></select></div>
+        <div class="field"><label>Status</label><select id="pm-status"><option>Submitted</option><option>Approved</option><option>in pricing</option><option>out</option><option>Canceled</option><option>Evaluation</option></select></div>
         <div class="field field-full"><label>Link to Quotation <span style="color:var(--muted);font-size:10px">ربط بعرض سعر</span></label>
           <select id="pm-qtn-link" style="width:100%" onchange="onPmQtnLink()">
             <option value="">— None —</option>
@@ -2580,6 +2580,7 @@ function renderPipeline(data){
       '<div style="padding:12px 14px">'+
         '<div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px;line-height:1.4">'+esc(r.name||'—')+'</div>'+
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;color:var(--muted);margin-bottom:10px">'+
+          (r.by?'<div style="color:var(--accent);font-weight:600">✍️ '+esc(r.by)+'</div>':'')+
           (r.client?'<div>👤 '+esc(r.client)+'</div>':'')+
           (r.loc?'<div>📍 '+esc(r.loc)+'</div>':'')+
           (r.type?'<div>🏷 '+esc(r.type)+'</div>':'')+
@@ -5424,8 +5425,8 @@ function exportPricingPDF(isArabic=false){
           <td style="padding:8px 7px;font-weight:700;text-align:right;font-family:monospace;border:1px solid ${colors.tableHeader}20;background:${colors.tableHeader}12">${showP?fmtN(vat):'—'}</td>
         </tr>
         <tr>
-          <td colspan="6" style="padding:9px 7px;font-weight:800;text-align:right;background:${colors.tableHeader};color:${colors.tableHeaderText};font-size:14px">${isArabic?'الإجمالي':'Total'}</td>
-          <td style="padding:9px 7px;font-weight:800;text-align:right;font-family:monospace;background:${colors.tableHeader};color:${colors.tableHeaderText};font-size:14px">${showP?fmtN(grand):'—'}</td>
+          <td colspan="6" style="padding:9px 7px;font-weight:800;text-align:right;background:${colors.totalRow||colors.tableHeader};color:${colors.totalRowText||colors.tableHeaderText};font-size:14px">${isArabic?'الإجمالي':'Total'}</td>
+          <td style="padding:9px 7px;font-weight:800;text-align:right;font-family:monospace;background:${colors.totalRow||colors.tableHeader};color:${colors.totalRowText||colors.tableHeaderText};font-size:14px">${showP?fmtN(grand):'—'}</td>
         </tr>
       </tbody>
     </table>
