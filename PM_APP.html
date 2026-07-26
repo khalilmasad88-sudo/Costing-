@@ -3939,7 +3939,7 @@ var _lastAutoBackup = 0;
 var _changesSinceBackup = 0;
 function triggerSmartBackup(){
   if(!_sbReady()) return;
-  // Skip if backup table same as main table or not properly configured
+  // Skip if backup table not configured or same as main table
   if(!_sb_bkp_table||_sb_bkp_table===_sb_table){return;}
   _changesSinceBackup++;
   var now=Date.now();
@@ -10416,18 +10416,28 @@ function _sbGet(table,key,cb){
   .catch(function(e){cb(e,null);});
 }
 function _sbSet(table,key,value,cb){
-  var hdrs={'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Prefer':'resolution=merge-duplicates,return=minimal'};
-  // Use PATCH to upsert: try PUT first (update), fallback to POST (insert)
-  fetch(SUPABASE_URL+'/rest/v1/'+table+'?key=eq.'+encodeURIComponent(key),{
-    method:'PATCH',headers:hdrs,body:JSON.stringify({value:value})
+  var hdrs={
+    'Content-Type':'application/json',
+    'apikey':SUPABASE_KEY,
+    'Authorization':'Bearer '+SUPABASE_KEY,
+    'Prefer':'return=minimal'
+  };
+  // First try INSERT, if conflict (23505) do UPDATE
+  fetch(SUPABASE_URL+'/rest/v1/'+table,{
+    method:'POST',
+    headers:Object.assign({},hdrs,{'Prefer':'resolution=merge-duplicates,return=minimal'}),
+    body:JSON.stringify({key:key,value:value})
   }).then(function(r){
-    if(r.ok||r.status===204){cb&&cb(null);return;}
-    // If not found (0 rows updated), do INSERT
-    return fetch(SUPABASE_URL+'/rest/v1/'+table,{
-      method:'POST',headers:hdrs,body:JSON.stringify({key:key,value:value})
+    if(r.ok||r.status===201||r.status===204){cb&&cb(null);return;}
+    // Fallback: UPDATE
+    fetch(SUPABASE_URL+'/rest/v1/'+table+'?key=eq.'+encodeURIComponent(key),{
+      method:'PATCH',headers:hdrs,body:JSON.stringify({key:key,value:value})
     }).then(function(r2){
-      if(r2.ok||r2.status===201){cb&&cb(null);}
-      else{r2.text().then(function(t){cb&&cb(new Error(r2.status+': '+t.slice(0,100)));});}
+      if(r2.ok||r2.status===204){cb&&cb(null);}
+      else{r2.text().then(function(t){
+        console.error('[_sbSet] '+table+' '+r2.status+':',t.slice(0,150));
+        cb&&cb(new Error(r2.status));
+      });}
     });
   }).catch(function(e){cb&&cb(e);});
 }
