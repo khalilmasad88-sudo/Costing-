@@ -1726,7 +1726,9 @@
               initializeSupabase();
               console.log('[Client Tracker] ✅ Supabase settings loaded from PortalBridge:', sb.url);
             } else {
-              console.log('[Client Tracker] PortalBridge found but no Supabase config');
+              // Log bridge structure to understand available properties
+              console.log('[Client Tracker] PortalBridge keys:', Object.keys(bridge));
+              console.log('[Client Tracker] PortalBridge:', JSON.stringify(bridge, function(k,v){return typeof v==='function'?'[fn]':v;}, 2).slice(0,500));
             }
           }catch(e){console.warn('[Client Tracker] PortalBridge error:',e.message);}
         }
@@ -2570,12 +2572,7 @@
             }
         });
 
-        // Close storage modal on outside click
-        document.getElementById('storageModal').addEventListener('click', (e) => {
-            if (e.target.id === 'storageModal') {
-                closeStorageModal();
-            }
-        });
+        // storageModal removed
 
         // Company Branding Functions
         function updateCompanyBranding() {
