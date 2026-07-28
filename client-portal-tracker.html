@@ -1311,10 +1311,8 @@
                     <div class="company-name" id="companyNameDisplay">Future Tag Security Solutions</div>
                 </div>
                 <div class="header-actions">
-                    <button class="theme-toggle icon-btn" onclick="toggleTheme()" title="Toggle Theme">
-                        <span id="themeIcon">🌙</span>
-                    </button>
-                    <button class="lang-toggle" onclick="toggleLanguage()" data-lang-en="عربي" data-lang-ar="English">عربي</button>
+                    
+                    
                     <button class="settings-btn icon-btn" onclick="openSettings()" title="Settings">⚙️</button>
                     <button class="btn btn-primary" onclick="openAddModal()" data-lang-en="+ Add Client" data-lang-ar="+ إضافة عميل">+ Add Client</button>
                 </div>
@@ -1755,6 +1753,236 @@
           }catch(err){}
         });
 
+        function openClientModal(id){
+          const c = clients.find(x => x.id === id);
+          if(!c) return;
+          document.getElementById('cdName').textContent = c.name || '';
+          document.getElementById('cdCategory').textContent = c.category || 'Uncategorized';
+          const st = document.getElementById('cdStatus');
+          st.textContent = getStatusLabel(c.status);
+          st.style.background = getStatusColor(c.status) + '22';
+          st.style.color = getStatusColor(c.status);
+          const urlEl = document.getElementById('cdUrl');
+          urlEl.textContent = c.portalUrl || '—';
+          urlEl.href = c.portalUrl || '#';
+          document.getElementById('cdContact').textContent = c.contactPerson || '—';
+          document.getElementById('cdEmail').textContent = c.contactEmail || '—';
+          document.getElementById('cdDate').textContent = c.createdAt ? formatDate(c.createdAt) : '—';
+          const notesEl = document.getElementById('cdNotes');
+          if(c.notes){ notesEl.innerHTML='<span style="color:var(--text-secondary)">📝 Notes: </span><span>'+c.notes+'</span>'; notesEl.style.display='block'; }
+          else { notesEl.style.display='none'; }
+          const _editBtn=document.getElementById('cdEditBtn'); if(_editBtn) _editBtn.onclick=function(){ closeClientModal(); editClient(id); };
+          const _filesBtn=document.getElementById('cdFilesBtn'); if(_filesBtn) _filesBtn.onclick=function(){ closeClientModal(); viewClientFiles(id); };
+          _currentClientId = id;
+          const ar=currentLang==='ar';
+          const ctTitle=document.getElementById('contactsSectionTitle');
+          if(ctTitle) ctTitle.textContent=ar?'📞 التواصل':'📞 Contacts';
+          const ctBtn=document.getElementById('addContactBtn');
+          if(ctBtn) ctBtn.textContent=ar?'+ إضافة شخص':'+ Add Contact';
+          renderContactsList(id);
+          renderTasksList(id);
+          const m = document.getElementById('clientDetailModal');
+          m.style.display = 'flex';
+        }
+
+        var _currentClientId = null;
+
+        function renderContactsList(clientId){
+          const c = clients.find(x => x.id === clientId);
+          if(!c) return;
+          c.contacts = c.contacts || [];
+          const wrap = document.getElementById('cdContactsList');
+          if(!c.contacts.length){
+            wrap.innerHTML = '<div style="color:var(--text-secondary);font-size:13px;padding:8px 0">'+('No contacts yet')+'</div>';
+            return;
+          }
+          wrap.innerHTML = c.contacts.map((p,i) => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-radius:8px;background:var(--bg-secondary);margin-bottom:8px">
+              <div>
+                <div style="font-weight:600;font-size:14px;color:var(--text-primary)">${p.name||'—'} <span style="font-size:11px;color:var(--text-secondary);font-weight:400">${p.title||''}</span></div>
+                <div style="font-size:12px;color:var(--text-secondary);margin-top:2px">
+                  ${p.phone?`📱 ${p.phone}`:''} ${p.email?`&nbsp;✉️ ${p.email}`:''}
+                </div>
+                ${p.notes?`<div style="font-size:11px;color:var(--text-tertiary);margin-top:2px">📝 ${p.notes}</div>`:''}
+              </div>
+              <div style="display:flex;gap:6px">
+                <button onclick="editContact(${i})" style="background:none;border:1px solid var(--border-default);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:var(--text-primary)">✏️</button>
+                <button onclick="deleteContact(${i})" style="background:none;border:1px solid #ef4444;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:#ef4444">✕</button>
+              </div>
+            </div>
+          `).join('');
+        }
+
+        function updateContactFormLang(){
+          const ar=currentLang==='ar';
+          [['cf-name','Name','الاسم'],['cf-title','Job Title','المسمى الوظيفي'],
+           ['cf-phone','Phone','رقم الهاتف'],['cf-email','Email','البريد الإلكتروني'],
+           ['cf-notes','Notes','ملاحظات']].forEach(function(f){
+            var el=document.getElementById(f[0]);if(el)el.placeholder=ar?f[2]:f[1];
+          });
+          var s=document.getElementById('cfSaveBtn');if(s)s.textContent=ar?'💾 حفظ':'💾 Save';
+          var c=document.getElementById('cfCancelBtn');if(c)c.textContent=ar?'إلغاء':'Cancel';
+        }
+
+        function openAddContactForm(){
+          const ar=currentLang==='ar';
+          ['cf-name','cf-title','cf-phone','cf-email','cf-notes'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+          document.getElementById('cf-idx').value='-1';
+          var t=document.getElementById('contactFormTitle');if(t)t.textContent=ar?'إضافة شخص':'Add Contact';
+          updateContactFormLang();
+          document.getElementById('contactForm').style.display='block';
+        }
+
+        function editContact(idx){
+          const c = clients.find(x => x.id === _currentClientId);
+          if(!c||!c.contacts[idx]) return;
+          const p = c.contacts[idx];
+          document.getElementById('cf-name').value  = p.name||'';
+          document.getElementById('cf-title').value = p.title||'';
+          document.getElementById('cf-phone').value = p.phone||'';
+          document.getElementById('cf-email').value = p.email||'';
+          document.getElementById('cf-notes').value = p.notes||'';
+          document.getElementById('cf-idx').value   = idx;
+          document.getElementById('contactFormTitle').textContent=currentLang==="ar"?'تعديل شخص':'Edit Contact';
+          document.getElementById('contactForm').style.display='block';
+        }
+
+        function deleteContact(idx){
+          if(!confirm(currentLang==="ar"?'حذف هذا الشخص؟':'Delete this contact?')) return;
+          const c = clients.find(x => x.id === _currentClientId);
+          if(!c) return;
+          c.contacts.splice(idx,1);
+          saveClients();
+          renderContactsList(_currentClientId);
+        }
+
+        function saveContact(){
+          const c = clients.find(x => x.id === _currentClientId);
+          if(!c) return;
+          c.contacts = c.contacts||[];
+          const name = document.getElementById('cf-name').value.trim();
+          if(!name){alert(currentLang==="ar"?'الاسم مطلوب':'Name is required');return;}
+          const person = {
+            name:  name,
+            title: document.getElementById('cf-title').value.trim(),
+            phone: document.getElementById('cf-phone').value.trim(),
+            email: document.getElementById('cf-email').value.trim(),
+            notes: document.getElementById('cf-notes').value.trim()
+          };
+          const idx = parseInt(document.getElementById('cf-idx').value);
+          if(idx>=0){ c.contacts[idx]=person; }
+          else { c.contacts.push(person); }
+          saveClients();
+          renderContactsList(_currentClientId);
+          closeContactForm();
+        }
+
+        function closeContactForm(){
+          document.getElementById('contactForm').style.display='none';
+        }
+
+        const taskStatusLabels = {
+          'pending': '⏳ Pending',
+          'in-progress': '🔄 In Progress',
+          'done': '✅ Done'
+        };
+
+        function renderTasksList(clientId){
+          const c = clients.find(x => x.id === clientId);
+          if(!c) return;
+          c.tasks = c.tasks || [];
+          const wrap = document.getElementById('cdTasksList');
+          if(!c.tasks.length){
+            wrap.innerHTML = '<div style="color:var(--text-secondary);font-size:13px;padding:8px 0">No tasks yet</div>';
+            return;
+          }
+          wrap.innerHTML = c.tasks.map((t,i) => {
+            const done = t.status === 'done';
+            return `<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 14px;border-radius:8px;background:${done?'#f0fdf4':'var(--bg-secondary)'};margin-bottom:8px;border:1px solid ${done?'#bbf7d0':'var(--border-default)'}">
+              <div style="flex:1">
+                <div style="font-weight:600;font-size:14px;color:var(--text-primary);text-decoration:${done?'line-through':'none'}">${t.title||'—'}</div>
+                <div style="font-size:12px;color:var(--text-secondary);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap">
+                  <span>${taskStatusLabels[t.status]||t.status}</span>
+                  ${t.due?`<span>📅 ${t.due}</span>`:''}
+                  ${t.notes?`<span>📝 ${t.notes}</span>`:''}
+                </div>
+              </div>
+              <div style="display:flex;gap:6px;margin-left:10px">
+                <button onclick="toggleTaskDone(${i})" style="background:none;border:1px solid var(--border-default);border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer">${done?'↩':'✓'}</button>
+                <button onclick="editTask(${i})" style="background:none;border:1px solid var(--border-default);border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;color:var(--text-primary)">✏️</button>
+                <button onclick="deleteTask(${i})" style="background:none;border:1px solid #ef4444;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;color:#ef4444">✕</button>
+              </div>
+            </div>`;
+          }).join('');
+        }
+
+        function openAddTaskForm(){
+          ['tf-title','tf-notes'].forEach(id=>{var e=document.getElementById(id);if(e)e.value='';});
+          document.getElementById('tf-due').value='';
+          document.getElementById('tf-status').value='pending';
+          document.getElementById('tf-idx').value='-1';
+          document.getElementById('taskFormTitle').textContent='Add Task';
+          document.getElementById('taskForm').style.display='block';
+        }
+
+        function editTask(idx){
+          const c = clients.find(x => x.id === _currentClientId);
+          if(!c||!c.tasks[idx]) return;
+          const t = c.tasks[idx];
+          document.getElementById('tf-title').value  = t.title||'';
+          document.getElementById('tf-due').value    = t.due||'';
+          document.getElementById('tf-status').value = t.status||'pending';
+          document.getElementById('tf-notes').value  = t.notes||'';
+          document.getElementById('tf-idx').value    = idx;
+          document.getElementById('taskFormTitle').textContent='Edit Task';
+          document.getElementById('taskForm').style.display='block';
+        }
+
+        function toggleTaskDone(idx){
+          const c = clients.find(x => x.id === _currentClientId);
+          if(!c||!c.tasks[idx]) return;
+          c.tasks[idx].status = c.tasks[idx].status==='done'?'pending':'done';
+          saveClients();
+          renderTasksList(_currentClientId);
+        }
+
+        function deleteTask(idx){
+          if(!confirm('Delete this task?')) return;
+          const c = clients.find(x => x.id === _currentClientId);
+          if(!c) return;
+          c.tasks.splice(idx,1);
+          saveClients();
+          renderTasksList(_currentClientId);
+        }
+
+        function saveTask(){
+          const c = clients.find(x => x.id === _currentClientId);
+          if(!c) return;
+          c.tasks = c.tasks||[];
+          const title = document.getElementById('tf-title').value.trim();
+          if(!title){alert('Task title is required');return;}
+          const task = {
+            title:  title,
+            due:    document.getElementById('tf-due').value,
+            status: document.getElementById('tf-status').value,
+            notes:  document.getElementById('tf-notes').value.trim()
+          };
+          const idx = parseInt(document.getElementById('tf-idx').value);
+          if(idx>=0){ c.tasks[idx]=task; }
+          else { c.tasks.push(task); }
+          saveClients();
+          renderTasksList(_currentClientId);
+          closeTaskForm();
+        }
+
+        function closeTaskForm(){
+          document.getElementById('taskForm').style.display='none';
+        }
+
+        function closeClientModal(){
+          document.getElementById('clientDetailModal').style.display = 'none';
+        }
+
         function loadClients() {
             try {
                 const stored = localStorage.getItem('futureTagClients');
@@ -1821,22 +2049,43 @@
         // Save clients to localStorage
         function saveClients() {
             try {
-                const dataSize = new Blob([JSON.stringify(clients)]).size;
-                const sizeMB = (dataSize / (1024 * 1024)).toFixed(2);
-                
-                // Check storage size before saving
-                if (dataSize > 4.5 * 1024 * 1024) { // 4.5MB warning
-                    console.warn(`Storage size: ${sizeMB}MB - approaching limit`);
-                }
-                
                 localStorage.setItem('futureTagClients', JSON.stringify(clients));
             } catch (e) {
                 if (e.name === 'QuotaExceededError') {
                     handleStorageQuotaExceeded();
                 } else {
                     console.error('Error saving data:', e);
-                    showNotification('error', 'Save Failed', 'Could not save data: ' + e.message);
                 }
+            }
+            // Auto-sync to Supabase if configured
+            if (appSettings.supabaseUrl && appSettings.supabaseKey && appSettings.supabaseTable) {
+                clearTimeout(window._saveClientsTimer);
+                window._saveClientsTimer = setTimeout(function(){
+                    syncClientsToSupabase();
+                }, 800);
+            }
+        }
+
+        async function syncClientsToSupabase() {
+            if (!appSettings.supabaseUrl || !appSettings.supabaseKey || !clients.length) return;
+            try {
+                const payload = clients.map(c => ({
+                    id: c.id,
+                    data: c,
+                    updated_at: new Date().toISOString()
+                }));
+                const res = await fetch(
+                    appSettings.supabaseUrl + '/rest/v1/' + appSettings.supabaseTable,
+                    {
+                        method: 'POST',
+                        headers: Object.assign({}, sbHeaders(), {'Prefer': 'resolution=merge-duplicates,return=minimal'}),
+                        body: JSON.stringify(payload)
+                    }
+                );
+                if (!res.ok) { const t=await res.text(); console.error('Supabase sync error:', t); return; }
+                console.log('[Client Tracker] ✅ Synced', clients.length, 'records to Supabase');
+            } catch(e) {
+                console.error('[Client Tracker] Sync failed:', e.message);
             }
         }
 
@@ -1894,7 +2143,7 @@
 
             emptyState.style.display = 'none';
             container.innerHTML = filtered.map((client, index) => `
-                <div class="client-card" style="--status-color: ${getStatusColor(client.status)}; animation-delay: ${index * 0.05}s">
+                <div class="client-card" style="--status-color: ${getStatusColor(client.status)}; animation-delay: ${index * 0.05}s; cursor:pointer" onclick="openClientModal(${client.id})">
                     <div class="card-header">
                         <div class="client-info">
                             <div class="client-name">${client.name}</div>
@@ -2137,27 +2386,9 @@
         }
 
         // Language toggle
-        function toggleLanguage() {
-            currentLang = currentLang === 'en' ? 'ar' : 'en';
-            document.documentElement.setAttribute('dir', currentLang === 'ar' ? 'rtl' : 'ltr');
-            applyLanguage();
-            renderClients();
-        }
+        function toggleLanguage() { /* Arabic removed */ }
 
-        function applyLanguage() {
-            document.querySelectorAll('[data-lang-en]').forEach(el => {
-                const text = el.getAttribute(`data-lang-${currentLang}`);
-                if (text) {
-                    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-                        el.placeholder = el.getAttribute(`data-lang-${currentLang}-placeholder`) || text;
-                    } else if (el.tagName === 'OPTION') {
-                        el.textContent = text;
-                    } else {
-                        el.textContent = text;
-                    }
-                }
-            });
-        }
+        function applyLanguage() { /* Arabic removed */ }
 
         // Notification system
         function showNotification(type, title, message) {
@@ -2198,24 +2429,11 @@
         });
 
         // Theme Management
-        function loadTheme() {
-            const savedTheme = localStorage.getItem('futureTagTheme') || 'dark';
-            currentTheme = savedTheme;
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            updateThemeIcon();
-        }
+        function loadTheme() { document.documentElement.setAttribute('data-theme','light'); }
 
-        function toggleTheme() {
-            currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', currentTheme);
-            localStorage.setItem('futureTagTheme', currentTheme);
-            updateThemeIcon();
-        }
+        function toggleTheme() { /* dark theme removed */ }
 
-        function updateThemeIcon() {
-            const icon = document.getElementById('themeIcon');
-            icon.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
-        }
+        function updateThemeIcon() {}
 
         // Settings Management
         function loadSettings() {
@@ -3029,5 +3247,85 @@
         `;
         document.head.appendChild(style);
     </script>
+
+<!-- Client Detail Modal -->
+<div class="modal" id="clientDetailModal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.6);align-items:center;justify-content:center">
+  <div style="background:var(--bg-card);border-radius:16px;max-width:700px;width:95%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-card)">
+    <div id="clientDetailHeader" style="padding:24px 24px 16px;border-bottom:1px solid var(--border-default)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div>
+          <div id="cdName" style="font-size:20px;font-weight:700;color:var(--text-primary)"></div>
+          <div id="cdCategory" style="font-size:13px;color:var(--text-secondary);margin-top:2px"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span id="cdStatus" style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600"></span>
+          <button onclick="closeClientModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-secondary)">✕</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px">
+        <div><span style="color:var(--text-secondary)">🔗 Portal: </span><a id="cdUrl" href="#" target="_blank" style="color:var(--accent-primary)"></a></div>
+        <div><span style="color:var(--text-secondary)">👤 Contact: </span><span id="cdContact" style="color:var(--text-primary)"></span></div>
+        <div><span style="color:var(--text-secondary)">📧 Email: </span><span id="cdEmail" style="color:var(--text-primary)"></span></div>
+        <div><span style="color:var(--text-secondary)">📅 Created: </span><span id="cdDate" style="color:var(--text-primary)"></span></div>
+        <div style="grid-column:1/-1" id="cdNotes" style="display:none"></div>
+      </div>
+    </div>
+    <div style="padding:16px 24px;display:flex;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--border-default)">
+    </div>
+    <!-- Contacts Section -->
+    <div style="padding:20px 24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="font-size:15px;font-weight:700;color:var(--text-primary)" id="contactsSectionTitle">📞 Contacts</div>
+        <button onclick="openAddContactForm()" style="background:var(--accent-primary);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;font-weight:600" id="addContactBtn">+ Add Contact</button>
+      </div>
+      <div id="cdContactsList"></div>
+      <!-- Add/Edit contact form -->
+      <div id="contactForm" style="display:none;margin-top:14px;background:var(--bg-secondary);border-radius:10px;padding:14px;border:1px solid var(--border-default)">
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px" id="contactFormTitle">${"Add Contact"}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+          <input id="cf-name"  placeholder="Name" data-ar="الاسم"        class="form-input" style="font-size:13px;padding:8px"/>
+          <input id="cf-title" placeholder="Job Title" data-ar="المسمى الوظيفي" class="form-input" style="font-size:13px;padding:8px"/>
+          <input id="cf-phone" placeholder="Phone" data-ar="رقم الهاتف"   class="form-input" style="font-size:13px;padding:8px"/>
+          <input id="cf-email" placeholder="Email" data-ar="البريد الإلكتروني" class="form-input" style="font-size:13px;padding:8px"/>
+          <input id="cf-notes" placeholder="Notes" data-ar="ملاحظات"      class="form-input" style="font-size:13px;padding:8px;grid-column:1/-1"/>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onclick="saveContact()" class="btn btn-primary" style="font-size:12px" id="cfSaveBtn">💾 Save</button>
+          <button onclick="closeContactForm()" class="btn btn-secondary" style="font-size:12px" id="cfCancelBtn">Cancel</button>
+        </div>
+        <input type="hidden" id="cf-idx" value="-1"/>
+      </div>
+    <!-- Tasks Section -->
+    <div style="padding:20px 24px">
+      <div style="border-top:1px solid var(--border-default);padding-top:0">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div style="font-size:15px;font-weight:700;color:var(--text-primary)" id="tasksSectionTitle">✅ Tasks</div>
+          <button id="addTaskBtn" onclick="openAddTaskForm()" style="background:var(--accent-primary);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;font-weight:600">+ Add Task</button>
+        </div>
+        <div id="cdTasksList"></div>
+        <!-- Add/Edit task form -->
+        <div id="taskForm" style="display:none;margin-top:14px;background:var(--bg-secondary);border-radius:10px;padding:14px;border:1px solid var(--border-default)">
+          <div style="font-size:13px;font-weight:600;margin-bottom:10px" id="taskFormTitle">Add Task</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+            <input id="tf-title"  placeholder="Task title" class="form-input" style="font-size:13px;padding:8px;grid-column:1/-1"/>
+            <input id="tf-due"    type="date" class="form-input" style="font-size:13px;padding:8px"/>
+            <select id="tf-status" class="form-input" style="font-size:13px;padding:8px">
+              <option value="pending">⏳ Pending</option>
+              <option value="in-progress">🔄 In Progress</option>
+              <option value="done">✅ Done</option>
+            </select>
+            <input id="tf-notes" placeholder="Notes" class="form-input" style="font-size:13px;padding:8px;grid-column:1/-1"/>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button onclick="saveTask()" class="btn btn-primary" style="font-size:12px">💾 Save</button>
+            <button onclick="closeTaskForm()" class="btn btn-secondary" style="font-size:12px">Cancel</button>
+          </div>
+          <input type="hidden" id="tf-idx" value="-1"/>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
