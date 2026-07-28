@@ -1686,21 +1686,49 @@
         // ── Apply Portal Bridge Supabase settings ──────────────────────
         function applyPortalBridgeSettings(){
           try{
-            var bridge=window.PortalBridge||window.parent&&window.parent.PortalBridge;
-            if(!bridge) return;
-            var sb=null;
-            // Try direct supabase config from bridge
-            if(bridge.supabase){sb=bridge.supabase;}
-            else if(bridge.config&&bridge.config.supabase){sb=bridge.config.supabase;}
-            else if(bridge.settings&&bridge.settings.supabase){sb=bridge.settings&&bridge.settings.supabase;}
-            if(sb){
-              if(sb.url)   {appSettings.supabaseUrl   = sb.url;   }
-              if(sb.key||sb.anonKey) {appSettings.supabaseKey  = sb.key||sb.anonKey; }
-              if(sb.table) {appSettings.supabaseTable = sb.table; }
-              if(sb.backupTable||sb.backup) {appSettings.supabaseBackupTable = sb.backupTable||sb.backup; }
-              console.log('[Client Tracker] Supabase settings loaded from PortalBridge');
+            // PortalBridge may not be ready yet — check multiple locations
+            var bridge = window.PortalBridge
+                      || (window.parent !== window && window.parent.PortalBridge)
+                      || null;
+
+            if(!bridge){
+              // Retry after short delay (PortalBridge injected after DOMContentLoaded)
+              setTimeout(applyPortalBridgeSettings, 800);
+              return;
             }
-          }catch(e){console.warn('[Client Tracker] PortalBridge read error:',e.message);}
+
+            var sb = bridge.supabase
+                  || (bridge.config && bridge.config.supabase)
+                  || (bridge.settings && bridge.settings.supabase)
+                  || null;
+
+            // Also try reading directly from bridge properties
+            if(!sb){
+              var url = bridge.supabaseUrl || bridge.SUPABASE_URL || '';
+              var key = bridge.supabaseKey || bridge.SUPABASE_KEY || bridge.anonKey || '';
+              if(url && key) sb = {url:url, key:key};
+            }
+
+            if(sb){
+              if(sb.url)                    appSettings.supabaseUrl          = sb.url;
+              if(sb.key||sb.anonKey)        appSettings.supabaseKey          = sb.key||sb.anonKey;
+              if(sb.table)                  appSettings.supabaseTable        = sb.table;
+              if(sb.backupTable||sb.backup) appSettings.supabaseBackupTable  = sb.backupTable||sb.backup;
+              // Apply to form fields if settings modal is open
+              var urlEl = document.getElementById('supabaseUrl');
+              var keyEl = document.getElementById('supabaseKey');
+              var tblEl = document.getElementById('supabaseTable');
+              var bkEl  = document.getElementById('supabaseBackupTable');
+              if(urlEl) urlEl.value = appSettings.supabaseUrl;
+              if(keyEl) keyEl.value = appSettings.supabaseKey;
+              if(tblEl) tblEl.value = appSettings.supabaseTable;
+              if(bkEl)  bkEl.value  = appSettings.supabaseBackupTable||'';
+              initializeSupabase();
+              console.log('[Client Tracker] ✅ Supabase settings loaded from PortalBridge:', sb.url);
+            } else {
+              console.log('[Client Tracker] PortalBridge found but no Supabase config');
+            }
+          }catch(e){console.warn('[Client Tracker] PortalBridge error:',e.message);}
         }
 
         document.addEventListener('DOMContentLoaded', () => {
