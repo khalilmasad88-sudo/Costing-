@@ -1697,17 +1697,15 @@
               return;
             }
 
-            var sb = bridge.supabase
-                  || (bridge.config && bridge.config.supabase)
-                  || (bridge.settings && bridge.settings.supabase)
-                  || null;
-
-            // Also try reading directly from bridge properties
-            if(!sb){
-              var url = bridge.supabaseUrl || bridge.SUPABASE_URL || '';
-              var key = bridge.supabaseKey || bridge.SUPABASE_KEY || bridge.anonKey || '';
-              if(url && key) sb = {url:url, key:key};
-            }
+            // PortalBridge stores Supabase config in companyStorage
+            var cs = bridge.companyStorage || {};
+            var sb = {
+              url: cs.url || bridge.supabaseUrl || '',
+              key: cs.key || cs.anonKey || bridge.supabaseKey || '',
+              table: cs.table || cs.dataTable || '',
+              backupTable: cs.backupTable || cs.backup || ''
+            };
+            if(!sb.url) sb = null;
 
             if(sb){
               if(sb.url)                    appSettings.supabaseUrl          = sb.url;
@@ -1726,9 +1724,7 @@
               initializeSupabase();
               console.log('[Client Tracker] ✅ Supabase settings loaded from PortalBridge:', sb.url);
             } else {
-              // Log bridge structure to understand available properties
-              console.log('[Client Tracker] PortalBridge keys:', Object.keys(bridge));
-              console.log('[Client Tracker] PortalBridge:', JSON.stringify(bridge, function(k,v){return typeof v==='function'?'[fn]':v;}, 2).slice(0,500));
+              console.log('[Client Tracker] PortalBridge found but companyStorage has no URL');
             }
           }catch(e){console.warn('[Client Tracker] PortalBridge error:',e.message);}
         }
