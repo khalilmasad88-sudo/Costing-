@@ -2292,6 +2292,15 @@
         }
 
         // Supabase Integration
+        function sbHeaders(){
+            return {
+                'Content-Type': 'application/json',
+                'apikey': appSettings.supabaseKey,
+                'Authorization': 'Bearer ' + appSettings.supabaseKey,
+                'Prefer': 'return=minimal'
+            };
+        }
+
         function initializeSupabase() {
             if (!window.supabase) {
                 // Running in offline mode - all features work with localStorage
@@ -2316,15 +2325,6 @@
             statusText.textContent = currentLang === 'en' ? 'Testing...' : 'جاري الاختبار...';
             statusDot.classList.remove('connected');
 
-            // Check if Supabase library is loaded
-            if (!window.supabase) {
-                statusText.textContent = currentLang === 'en' 
-                    ? 'Supabase not available. Please check your settings.' 
-                    : 'مكتبة Supabase غير محملة. يرجى فتح الملف عبر خادم HTTP';
-                showNotification('error', 'Library Not Loaded', 'Supabase requires HTTP server. Use Live Server or host the file online.');
-                return;
-            }
-
             if (!appSettings.supabaseUrl || !appSettings.supabaseKey) {
                 statusText.textContent = currentLang === 'en' ? 'Please fill in Supabase credentials' : 'يرجى ملء بيانات Supabase';
                 return;
@@ -2332,16 +2332,16 @@
 
             try {
                 initializeSupabase();
-                const { data, error } = await supabaseClient
-                    .from(appSettings.supabaseTable)
-                    .select('count')
-                    .limit(1);
-
-                if (error) throw error;
+                // Use fetch directly — works in any environment
+                const res = await fetch(
+                    appSettings.supabaseUrl + '/rest/v1/' + appSettings.supabaseTable + '?limit=1',
+                    {headers: sbHeaders()}
+                );
+                if(!res.ok){const t=await res.text();throw new Error(res.status+': '+t.slice(0,100));}
 
                 statusDot.classList.add('connected');
                 statusText.textContent = currentLang === 'en' ? 'Connected successfully!' : 'تم الاتصال بنجاح!';
-                document.getElementById('syncStatus').style.display = 'block';
+                const syncEl=document.getElementById('syncStatus');if(syncEl) syncEl.style.display='block';
                 showNotification('success', 'Connection Success', 'Successfully connected to Supabase');
             } catch (error) {
                 statusText.textContent = currentLang === 'en' ? `Error: ${error.message}` : `خطأ: ${error.message}`;
@@ -2350,33 +2350,29 @@
         }
 
         async function syncWithSupabase() {
-            if (!window.supabase) {
-                showNotification('error', 'Library Not Loaded', 'Supabase requires HTTP server. Please use Live Server or host online.');
+            if (!appSettings.supabaseUrl || !appSettings.supabaseKey) {
+                showNotification('error', 'Not Configured', 'Please configure Supabase settings first');
                 return;
             }
-
-            if (!supabaseClient) {
-                showNotification('error', 'Not Connected', 'Please configure and test Supabase connection first');
-                return;
-            }
-
             try {
-                // Upload local data to Supabase
-                const { data, error } = await supabaseClient
-                    .from(appSettings.supabaseTable)
-                    .upsert(clients.map(client => ({
-                        id: client.id,
-                        data: client,
-                        updated_at: new Date().toISOString()
-                    })));
-
-                if (error) throw error;
-
-                // Update sync status
+                initializeSupabase();
+                const payload = clients.map(client => ({
+                    id: client.id,
+                    data: client,
+                    updated_at: new Date().toISOString()
+                }));
+                const res = await fetch(
+                    appSettings.supabaseUrl + '/rest/v1/' + appSettings.supabaseTable,
+                    {
+                        method: 'POST',
+                        headers: Object.assign({}, sbHeaders(), {'Prefer': 'resolution=merge-duplicates,return=minimal'}),
+                        body: JSON.stringify(payload)
+                    }
+                );
+                if(!res.ok){const t=await res.text();throw new Error(res.status+': '+t.slice(0,100));}
                 const now = new Date();
-                document.getElementById('lastSyncTime').textContent = now.toLocaleString(currentLang === 'en' ? 'en-US' : 'ar-SA');
-                document.getElementById('syncRecords').textContent = clients.length;
-
+                const ltEl=document.getElementById('lastSyncTime');if(ltEl) ltEl.textContent=now.toLocaleString(currentLang==='en'?'en-US':'ar-SA');
+                const srEl=document.getElementById('syncRecords');if(srEl) srEl.textContent=clients.length;
                 showNotification('success', 'Sync Complete', `Successfully synced ${clients.length} records`);
             } catch (error) {
                 showNotification('error', 'Sync Failed', error.message);
