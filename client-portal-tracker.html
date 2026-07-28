@@ -1456,12 +1456,9 @@
                         data-lang-en="Company" data-lang-ar="الشركة">Company</button>
                 <button class="settings-tab" data-tab="supabase" onclick="switchSettingsTab('supabase')" 
                         data-lang-en="Supabase" data-lang-ar="Supabase">Supabase</button>
-                <button class="settings-tab" data-tab="backup" onclick="switchSettingsTab('backup')" 
-                        data-lang-en="Backup & Sync" data-lang-ar="النسخ والمزامنة">Backup & Sync</button>
                 <button class="settings-tab" data-tab="security" onclick="switchSettingsTab('security')" 
                         data-lang-en="Security" data-lang-ar="الأمان">Security</button>
-                <button class="settings-tab" data-tab="advanced" onclick="switchSettingsTab('advanced')" 
-                        data-lang-en="Advanced" data-lang-ar="متقدم">Advanced</button>
+
             </div>
 
             <div class="modal-body">
@@ -1535,6 +1532,14 @@
                     </div>
 
                     <div class="config-row">
+                        <div class="config-label" data-lang-en="Backup Table" data-lang-ar="جدول النسخ الاحتياطي">Backup Table</div>
+                        <div class="config-input-group">
+                            <input type="text" class="form-input" id="supabaseBackupTable" placeholder="client_portals_backup">
+                            <div class="config-hint" data-lang-en="Database table for storing backups" data-lang-ar="جدول قاعدة البيانات لتخزين النسخ الاحتياطية">Database table for storing backups</div>
+                        </div>
+                    </div>
+
+                    <div class="config-row">
                         <div class="config-label"></div>
                         <div class="config-input-group">
                             <button class="btn btn-primary" onclick="testSupabaseConnection()" 
@@ -1561,49 +1566,7 @@
                 </div>
 
                 <!-- Backup Tab -->
-                <div class="settings-content" id="backup-content">
-                    <div class="backup-section">
-                        <div class="backup-title" data-lang-en="Export Data" data-lang-ar="تصدير البيانات">Export Data</div>
-                        <div class="backup-buttons">
-                            <button class="backup-btn" onclick="exportToJSON()">
-                                <span>📥</span>
-                                <span data-lang-en="Export as JSON" data-lang-ar="تصدير JSON">Export as JSON</span>
-                            </button>
-                            <button class="backup-btn" onclick="exportToCSV()">
-                                <span>📊</span>
-                                <span data-lang-en="Export as CSV" data-lang-ar="تصدير CSV">Export as CSV</span>
-                            </button>
-                        </div>
-                        <div class="backup-info" data-lang-en="Download all client data for backup" data-lang-ar="تنزيل جميع بيانات العملاء للنسخ الاحتياطي">Download all client data for backup</div>
-                    </div>
-
-                    <div class="backup-section">
-                        <div class="backup-title" data-lang-en="Import Data" data-lang-ar="استيراد البيانات">Import Data</div>
-                        <div class="backup-buttons">
-                            <label class="backup-btn" style="cursor: pointer;">
-                                <span>📤</span>
-                                <span data-lang-en="Import from JSON" data-lang-ar="استيراد JSON">Import from JSON</span>
-                                <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importFromJSON(event)">
-                            </label>
-                            <button class="backup-btn" onclick="importFromBridge()">
-                                <span>🔗</span>
-                                <span data-lang-en="Import from Company Portal" data-lang-ar="استيراد من بوابة الشركة">Import from Company Portal</span>
-                            </button>
-                        </div>
-                        <div class="backup-info" data-lang-en="Restore data from backup or sync with Company Portal bridge" data-lang-ar="استعادة البيانات من النسخة الاحتياطية أو المزامنة مع جسر بوابة الشركة">Restore data from backup or sync with Company Portal bridge</div>
-                    </div>
-
-                    <div class="backup-section">
-                        <div class="backup-title" data-lang-en="Auto-Sync with Company Portal" data-lang-ar="المزامنة التلقائية مع بوابة الشركة">Auto-Sync with Company Portal</div>
-                        <div class="config-row" style="grid-template-columns: 1fr;">
-                            <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;">
-                                <input type="checkbox" id="autoSyncEnabled" onchange="toggleAutoSync()" style="width: 18px; height: 18px; cursor: pointer;">
-                                <span data-lang-en="Enable automatic sync with Zeina Portal bridge" data-lang-ar="تفعيل المزامنة التلقائية مع جسر Zeina Portal">Enable automatic sync with Zeina Portal bridge</span>
-                            </label>
-                        </div>
-                        <div class="backup-info" data-lang-en="When enabled, client data will be shared with Company Portal app through localStorage bridge" data-lang-ar="عند التفعيل، سيتم مشاركة بيانات العملاء مع تطبيق بوابة الشركة عبر جسر localStorage">When enabled, client data will be shared with Company Portal app through localStorage bridge</div>
-                    </div>
-                </div>
+                
 
                 <!-- Security Tab -->
                 <div class="settings-content" id="security-content">
@@ -1652,43 +1615,7 @@
                 </div>
 
                 <!-- Advanced Tab -->
-                <div class="settings-content" id="advanced-content">
-                    <div class="backup-section">
-                        <div class="backup-title" data-lang-en="Storage Management" data-lang-ar="إدارة التخزين">Storage Management</div>
-                        <div class="backup-info" style="margin-bottom: 1rem;" data-lang-en="Monitor and manage localStorage usage. Free up space by removing files." data-lang-ar="مراقبة وإدارة استخدام localStorage. توفير مساحة بحذف الملفات.">Monitor and manage localStorage usage. Free up space by removing files.</div>
-                        <button class="btn btn-primary" onclick="openStorageManagement()" data-lang-en="Open Storage Manager" data-lang-ar="فتح مدير التخزين">Open Storage Manager</button>
-                    </div>
-
-                    <div class="config-row">
-                        <div class="config-label" data-lang-en="Storage Type" data-lang-ar="نوع التخزين">Storage Type</div>
-                        <div class="config-input-group">
-                            <select class="form-select" id="storageType" onchange="changeStorageType()">
-                                <option value="localStorage">Local Storage</option>
-                                <option value="supabase">Supabase Cloud</option>
-                                <option value="both">Both (Sync)</option>
-                            </select>
-                            <div class="config-hint" data-lang-en="Choose where to store your data" data-lang-ar="اختر مكان تخزين بياناتك">Choose where to store your data</div>
-                        </div>
-                    </div>
-
-                    <div class="config-row">
-                        <div class="config-label" data-lang-en="Bridge Key" data-lang-ar="مفتاح الجسر">Bridge Key</div>
-                        <div class="config-input-group">
-                            <input type="text" class="form-input" id="bridgeKey" value="futureTag_companyPortal_bridge" readonly>
-                            <div class="config-hint" data-lang-en="localStorage key used for Company Portal integration" data-lang-ar="مفتاح localStorage المستخدم للتكامل مع بوابة الشركة">localStorage key used for Company Portal integration</div>
-                        </div>
-                    </div>
-
-                    <div class="danger-zone">
-                        <div class="danger-title">
-                            <span>⚠️</span>
-                            <span data-lang-en="Danger Zone" data-lang-ar="منطقة الخطر">Danger Zone</span>
-                        </div>
-                        <button class="btn btn-danger" onclick="clearAllData()" 
-                                data-lang-en="Clear All Data" data-lang-ar="مسح جميع البيانات">Clear All Data</button>
-                        <div class="backup-info" data-lang-en="This will permanently delete all client records from local storage" data-lang-ar="سيؤدي هذا إلى حذف جميع سجلات العملاء نهائياً من التخزين المحلي">This will permanently delete all client records from local storage</div>
-                    </div>
-                </div>
+                
             </div>
 
             <div class="modal-footer">
@@ -1714,73 +1641,7 @@
         </div>
     </div>
 
-    <!-- Storage Management Modal -->
-    <div class="modal" id="storageModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title" data-lang-en="Storage Management" data-lang-ar="إدارة التخزين">Storage Management</h2>
-                <button class="modal-close" onclick="closeStorageModal()">×</button>
-            </div>
-            <div class="modal-body">
-                <div class="backup-section">
-                    <div class="backup-title" data-lang-en="Storage Usage" data-lang-ar="استخدام التخزين">Storage Usage</div>
-                    <div class="sync-status" style="display: block;">
-                        <div class="sync-info">
-                            <span class="sync-label" data-lang-en="Total Storage:" data-lang-ar="إجمالي التخزين:">Total Storage:</span>
-                            <span class="sync-value" id="totalStorage">0 MB</span>
-                        </div>
-                        <div class="sync-info">
-                            <span class="sync-label" data-lang-en="Client Data:" data-lang-ar="بيانات العملاء:">Client Data:</span>
-                            <span class="sync-value" id="clientDataSize">0 MB</span>
-                        </div>
-                        <div class="sync-info">
-                            <span class="sync-label" data-lang-en="Total Files:" data-lang-ar="إجمالي الملفات:">Total Files:</span>
-                            <span class="sync-value" id="totalFiles">0</span>
-                        </div>
-                        <div class="sync-info">
-                            <span class="sync-label" data-lang-en="Clients:" data-lang-ar="العملاء:">Clients:</span>
-                            <span class="sync-value" id="totalClients">0</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="backup-section">
-                    <div class="backup-title" data-lang-en="Quick Actions" data-lang-ar="إجراءات سريعة">Quick Actions</div>
-                    <div class="backup-buttons">
-                        <button class="backup-btn" onclick="removeAllAttachments()">
-                            <span>🗑️</span>
-                            <span data-lang-en="Remove All Files" data-lang-ar="حذف جميع الملفات">Remove All Files</span>
-                        </button>
-                        <button class="backup-btn" onclick="exportToJSON()">
-                            <span>📥</span>
-                            <span data-lang-en="Export Backup" data-lang-ar="تصدير نسخة احتياطية">Export Backup</span>
-                        </button>
-                        <button class="backup-btn" onclick="compressOldFiles()">
-                            <span>🗜️</span>
-                            <span data-lang-en="Remove Old Files" data-lang-ar="حذف الملفات القديمة">Remove Old Files</span>
-                        </button>
-                    </div>
-                    <div class="backup-info" data-lang-en="Free up space by removing attachments. Client data will be preserved." data-lang-ar="توفير مساحة بحذف المرفقات. سيتم الحفاظ على بيانات العملاء.">Free up space by removing attachments. Client data will be preserved.</div>
-                </div>
-
-                <div class="backup-section">
-                    <div class="backup-title" data-lang-en="Clients with Files" data-lang-ar="العملاء ذوو الملفات">Clients with Files</div>
-                    <div id="clientsWithFiles" style="max-height: 300px; overflow-y: auto;"></div>
-                </div>
-
-                <div class="backup-section" style="background: rgba(9, 105, 218, 0.05); border-color: rgba(9, 105, 218, 0.2);">
-                    <div class="backup-title" style="color: var(--info-blue);">
-                        <span>💡</span>
-                        <span data-lang-en="Recommendation" data-lang-ar="توصية">Recommendation</span>
-                    </div>
-                    <div class="backup-info" data-lang-en="For storing many files, we recommend using Supabase cloud storage. localStorage is limited to ~5-10MB total." data-lang-ar="لتخزين العديد من الملفات، نوصي باستخدام التخزين السحابي Supabase. localStorage محدود بـ ~5-10 ميجابايت إجمالي.">For storing many files, we recommend using Supabase cloud storage. localStorage is limited to ~5-10MB total.</div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeStorageModal()" data-lang-en="Close" data-lang-ar="إغلاق">Close</button>
-            </div>
-        </div>
-    </div>
+    
 
     <!-- Password Authentication Overlay -->
     <div class="auth-overlay" id="authOverlay">
@@ -1813,6 +1674,7 @@
             supabaseUrl: '',
             supabaseKey: '',
             supabaseTable: 'client_portals',
+            supabaseBackupTable: 'client_portals_backup',
             storageType: 'localStorage',
             autoSync: false,
             bridgeKey: 'futureTag_companyPortal_bridge',
@@ -1821,8 +1683,29 @@
         };
 
         // Initialize
+        // ── Apply Portal Bridge Supabase settings ──────────────────────
+        function applyPortalBridgeSettings(){
+          try{
+            var bridge=window.PortalBridge||window.parent&&window.parent.PortalBridge;
+            if(!bridge) return;
+            var sb=null;
+            // Try direct supabase config from bridge
+            if(bridge.supabase){sb=bridge.supabase;}
+            else if(bridge.config&&bridge.config.supabase){sb=bridge.config.supabase;}
+            else if(bridge.settings&&bridge.settings.supabase){sb=bridge.settings&&bridge.settings.supabase;}
+            if(sb){
+              if(sb.url)   {appSettings.supabaseUrl   = sb.url;   }
+              if(sb.key||sb.anonKey) {appSettings.supabaseKey  = sb.key||sb.anonKey; }
+              if(sb.table) {appSettings.supabaseTable = sb.table; }
+              if(sb.backupTable||sb.backup) {appSettings.supabaseBackupTable = sb.backupTable||sb.backup; }
+              console.log('[Client Tracker] Supabase settings loaded from PortalBridge');
+            }
+          }catch(e){console.warn('[Client Tracker] PortalBridge read error:',e.message);}
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             loadSettings();
+            applyPortalBridgeSettings(); // override with bridge settings if available
             loadTheme();
             loadClients();
             renderClients();
@@ -1832,6 +1715,20 @@
         });
 
         // Load clients from localStorage
+        // Listen for PortalBridge message
+        window.addEventListener('message', function(e){
+          try{
+            if(e.data&&e.data.type==='portalBridge'&&e.data.supabase){
+              var sb=e.data.supabase;
+              if(sb.url)   appSettings.supabaseUrl   = sb.url;
+              if(sb.key||sb.anonKey) appSettings.supabaseKey  = sb.key||sb.anonKey;
+              if(sb.table) appSettings.supabaseTable = sb.table;
+              if(sb.backupTable) appSettings.supabaseBackupTable = sb.backupTable;
+              initializeSupabase();
+            }
+          }catch(err){}
+        });
+
         function loadClients() {
             try {
                 const stored = localStorage.getItem('futureTagClients');
@@ -1920,13 +1817,10 @@
         // Handle storage quota exceeded
         function handleStorageQuotaExceeded() {
             const totalSize = calculateStorageSize();
-            const message = currentLang === 'en' 
-                ? `Storage full (${totalSize}MB)! Too many files. Please:\n\n1. Remove old files from clients\n2. Export data as backup\n3. Delete some clients\n4. Use Supabase for cloud storage`
-                : `التخزين ممتلئ (${totalSize} ميجابايت)! ملفات كثيرة جداً. يرجى:\n\n1. حذف الملفات القديمة من العملاء\n2. تصدير البيانات كنسخة احتياطية\n3. حذف بعض العملاء\n4. استخدام Supabase للتخزين السحابي`;
-            
-            if (confirm(message + '\n\n' + (currentLang === 'en' ? 'Open storage management?' : 'فتح إدارة التخزين؟'))) {
-                openStorageManagement();
-            }
+            const message = currentLang === 'en'
+                ? `Storage full (${totalSize}MB)! Please remove old files from clients or switch to Supabase cloud storage in Settings.`
+                : `التخزين ممتلئ (${totalSize} ميجابايت)! يرجى حذف الملفات القديمة أو التبديل إلى Supabase في الإعدادات.`;
+            showNotification('error', currentLang === 'en' ? 'Storage Full' : 'التخزين ممتلئ', message);
         }
 
         // Calculate total storage size
@@ -2312,6 +2206,7 @@
             appSettings.supabaseUrl = document.getElementById('supabaseUrl').value;
             appSettings.supabaseKey = document.getElementById('supabaseKey').value;
             appSettings.supabaseTable = document.getElementById('supabaseTable').value;
+            const bkEl=document.getElementById('supabaseBackupTable'); if(bkEl) appSettings.supabaseBackupTable=bkEl.value;
             appSettings.storageType = document.getElementById('storageType').value;
             appSettings.autoSync = document.getElementById('autoSyncEnabled').checked;
             appSettings.requirePasswordForEdit = document.getElementById('requirePasswordForEdit').checked;
@@ -2327,10 +2222,11 @@
             document.getElementById('supabaseUrl').value = appSettings.supabaseUrl || '';
             document.getElementById('supabaseKey').value = appSettings.supabaseKey || '';
             document.getElementById('supabaseTable').value = appSettings.supabaseTable || 'client_portals';
-            document.getElementById('storageType').value = appSettings.storageType || 'localStorage';
-            document.getElementById('autoSyncEnabled').checked = appSettings.autoSync || false;
-            document.getElementById('bridgeKey').value = appSettings.bridgeKey;
-            document.getElementById('requirePasswordForEdit').checked = appSettings.requirePasswordForEdit !== false;
+            const _bkEl=document.getElementById('supabaseBackupTable'); if(_bkEl) _bkEl.value=appSettings.supabaseBackupTable||'client_portals_backup';
+            const _stEl=document.getElementById('storageType'); if(_stEl) _stEl.value=appSettings.storageType||'localStorage';
+            const _asEl=document.getElementById('autoSyncEnabled'); if(_asEl) _asEl.checked=appSettings.autoSync||false;
+            const _bkEl2=document.getElementById('bridgeKey'); if(_bkEl2) _bkEl2.value=appSettings.bridgeKey||'';
+            const _pwEl=document.getElementById('requirePasswordForEdit'); if(_pwEl) _pwEl.checked=appSettings.requirePasswordForEdit!==false;
             
             const logoPreview = document.getElementById('logoPreview');
             const removeLogo = document.getElementById('removeLogo');
@@ -2345,13 +2241,9 @@
         }
 
         function openSettings() {
-            authenticateUser((authenticated) => {
-                if (authenticated) {
-                    applySettings();
-                    document.getElementById('settingsModal').classList.add('active');
-                    applyLanguage();
-                }
-            });
+            applySettings();
+            document.getElementById('settingsModal').classList.add('active');
+            applyLanguage();
         }
 
         function closeSettings() {
@@ -2401,7 +2293,7 @@
             // Check if Supabase library is loaded
             if (!window.supabase) {
                 statusText.textContent = currentLang === 'en' 
-                    ? 'Supabase library not loaded. Please open this file via HTTP server (e.g., Live Server)' 
+                    ? 'Supabase not available. Please check your settings.' 
                     : 'مكتبة Supabase غير محملة. يرجى فتح الملف عبر خادم HTTP';
                 showNotification('error', 'Library Not Loaded', 'Supabase requires HTTP server. Use Live Server or host the file online.');
                 return;
@@ -2866,7 +2758,7 @@
         }
 
         // Storage Management Functions
-        function openStorageManagement() {
+        function openStorageManagement() { return; // modal removed
             updateStorageStats();
             renderClientsWithFiles();
             document.getElementById('storageModal').classList.add('active');
@@ -2877,7 +2769,7 @@
             document.getElementById('storageModal').classList.remove('active');
         }
 
-        function updateStorageStats() {
+        function updateStorageStats() { return; // modal removed
             const totalStorage = calculateStorageSize();
             const clientData = getClientDataSize();
             
@@ -3060,7 +2952,7 @@
         }
 
         // Enter key for auth
-        document.getElementById('authInput').addEventListener('keypress', (e) => {
+        var _authEl=document.getElementById('authInput'); if(_authEl) _authEl.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 submitAuth();
             }
