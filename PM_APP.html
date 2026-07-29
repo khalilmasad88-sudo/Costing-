@@ -6763,6 +6763,7 @@ function cancelInvoice(id){
   var inv=DB.invoices.find(function(i){return i.id===id;});
   if(!inv) return;
   inv.approvalStatus='Cancelled';
+  inv.paymentStatus='Cancelled';
   inv.cancelledBy=currentUser?currentUser.name:''; inv.cancelledAt=today();
   renderInvoiceTable(); saveToGitHub();
 }
@@ -6788,8 +6789,9 @@ function renderInvoiceTable(){
   }
   var fIP=ipf?ipf.value:'';
   var fIS=document.getElementById('inv-filter-payment')?document.getElementById('inv-filter-payment').value:'';
-  var filteredInv=DB.invoices.filter(function(inv){return (!fIP||inv.proj===fIP)&&(!fIS||inv.paymentStatus===fIS)&&inv.approvalStatus!=='Cancelled';});
-  var cancelledInv=DB.invoices.filter(function(inv){return inv.approvalStatus==='Cancelled'&&(!fIP||inv.proj===fIP);});
+  var _isCancelled=function(inv){return inv.approvalStatus==='Cancelled'||inv.approvalStatus==='Canceled';};
+  var filteredInv=DB.invoices.filter(function(inv){return (!fIP||inv.proj===fIP)&&(!fIS||inv.paymentStatus===fIS)&&!_isCancelled(inv);});
+  var cancelledInv=DB.invoices.filter(function(inv){return _isCancelled(inv)&&(!fIP||inv.proj===fIP);});
   if(!filteredInv.length&&!cancelledInv.length){document.getElementById('invoice-table').innerHTML='<tbody><tr><td colspan="10"><div class="no-data">No invoice requests match the filter.</div></td></tr></tbody>';return;}
   var h='<thead><tr><th>Invoice No.</th><th>Date</th><th>Due Date</th><th>Project</th><th>Client</th><th>Total</th><th>Approval</th><th>Collection</th><th>Collected Date</th><th></th></tr></thead><tbody>';
   filteredInv.forEach(function(inv){
@@ -6799,9 +6801,21 @@ function renderInvoiceTable(){
     var dueDateCell='<input type="date" value="'+(inv.dueDate||'')+'" onchange="updateInvDueDate('+inv.id+',this.value)" title="Click to change due date" style="border:none;background:transparent;font-size:12px;color:var(--muted);cursor:pointer;font-family:var(--font);width:110px"/>';
     h+='<tr><td class="color-gold fw7">'+inv.num+'</td><td style="color:var(--muted)">'+inv.date+'</td><td>'+dueDateCell+'</td><td style="font-size:12px">'+(inv.proj||'—')+'</td><td>'+inv.client+'</td><td class="color-green fw7">'+SAR(inv.total||0)+'</td><td>'+approvalStatusBadge(inv.approvalStatus||'Pending')+'</td><td>'+(inv.approvalStatus==='Approved'?invPaymentBadge(inv.paymentStatus):'<span class="color-muted">—</span>')+'</td><td style="color:var(--muted);font-size:12px">'+(inv.collectedDate||'—')+'</td><td style="white-space:nowrap;display:flex;gap:4px"><button class="btn btn-secondary btn-sm" onclick="viewInvoice('+inv.id+')">View</button><button class="btn btn-secondary btn-sm" onclick="editInvoice('+inv.id+')">Edit</button><button class="btn btn-warning btn-sm" onclick="cancelInvoice('+inv.id+')" style="background:#fff8e1;color:#e67e22;border-color:#e67e22">✕ Cancel</button>'+abtns+pbtn+'</td></tr>';
   });
-  // Show cancelled rows collapsed at bottom
+  // Show cancelled rows at bottom with grey style
   if(cancelledInv.length){
-    h+='<tr><td colspan="10" style="padding:6px 12px;background:var(--panel);color:var(--muted);font-size:11px;font-weight:600">'+cancelledInv.length+' cancelled request(s) hidden</td></tr>';
+    cancelledInv.forEach(function(inv){
+      h+='<tr style="opacity:.55;background:#f9fafb;border-bottom:1px solid var(--border)">'+
+        '<td class="fw7" style="color:#9ca3af;text-decoration:line-through">'+inv.num+'</td>'+
+        '<td style="color:var(--muted)">'+inv.date+'</td>'+
+        '<td style="color:var(--muted)">'+(inv.dueDate||'—')+'</td>'+
+        '<td style="font-size:12px;color:var(--muted)">'+(inv.proj||'—')+'</td>'+
+        '<td style="color:var(--muted)">'+inv.client+'</td>'+
+        '<td style="color:#9ca3af;text-decoration:line-through">'+SAR(inv.total||0)+'</td>'+
+        '<td><span class="badge" style="background:#fee2e2;color:#991b1b">Cancelled</span></td>'+
+        '<td>—</td><td>—</td>'+
+        '<td><button class="btn btn-secondary btn-sm" onclick="viewInvoice('+inv.id+')">View</button></td>'+
+      '</tr>';
+    });
   }
   h+='</tbody><tfoot><tr><td colspan="5" class="fw7" style="padding:11px 15px">Total ('+(filteredInv.length)+' active)</td><td class="color-green fw7">'+SAR(filteredInv.reduce(function(a,i){return a+i.total;},0))+'</td><td colspan="4"></td></tr></tfoot>';
   document.getElementById('invoice-table').innerHTML=h;
@@ -9281,7 +9295,9 @@ function exportProjPOExcel(){
 }
 
 function renderProjInvModal(){
-  var allInvs=window.__currentProjInvs||[];
+  var _allInvs=window.__currentProjInvs||[];
+  var _isCancelledInv=function(i){return i.approvalStatus==='Cancelled'||i.approvalStatus==='Canceled'||i.paymentStatus==='Cancelled'||i.paymentStatus==='Canceled';};
+  var allInvs=_allInvs.filter(function(i){return !_isCancelledInv(i);});
   var statusFilter=(document.getElementById('proj-inv-filter-status')||{}).value||'';
   var invs=statusFilter?allInvs.filter(function(i){return (i.paymentStatus||i.approvalStatus||'Pending')===statusFilter;}):allInvs;
   var total=invs.reduce(function(a,i){return a+(parseFloat(i.total)||0);},0);
