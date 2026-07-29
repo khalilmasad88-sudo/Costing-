@@ -2266,85 +2266,8 @@
             }
         `;
         document.head.appendChild(style);
-    </script>
 
-<!-- Client Detail Modal -->
-<div id="clientDetailModal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.6);align-items:center;justify-content:center">
-  <div style="background:var(--bg-card);border-radius:16px;max-width:700px;width:95%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-card)">
-    <div style="padding:24px 24px 16px;border-bottom:1px solid var(--border-default)">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
-        <div>
-          <div id="cdName" style="font-size:20px;font-weight:700;color:var(--text-primary)"></div>
-          <div id="cdCategory" style="font-size:13px;color:var(--text-secondary);margin-top:2px"></div>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <span id="cdStatus" style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600"></span>
-          <button onclick="closeClientModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-secondary)">✕</button>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px">
-        <div><span style="color:var(--text-secondary)">🔗 Portal: </span><a id="cdUrl" href="#" target="_blank" style="color:var(--accent-primary)"></a></div>
-        <div><span style="color:var(--text-secondary)">👤 Contact: </span><span id="cdContact"></span></div>
-        <div><span style="color:var(--text-secondary)">📧 Email: </span><span id="cdEmail"></span></div>
-        <div><span style="color:var(--text-secondary)">📅 Created: </span><span id="cdDate"></span></div>
-        <div style="grid-column:1/-1" id="cdNotes"></div>
-      </div>
-    </div>
-    <!-- Contacts Section -->
-    <div style="padding:20px 24px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-        <div style="font-size:15px;font-weight:700;color:var(--text-primary)" id="contactsSectionTitle">📞 Contacts</div>
-        <button id="addContactBtn" onclick="openAddContactForm()" style="background:var(--accent-primary);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;font-weight:600">+ Add Contact</button>
-      </div>
-      <div id="cdContactsList"></div>
-      <div id="contactForm" style="display:none;margin-top:14px;background:var(--bg-secondary);border-radius:10px;padding:14px;border:1px solid var(--border-default)">
-        <div style="font-size:13px;font-weight:600;margin-bottom:10px" id="contactFormTitle">Add Contact</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-          <input id="cf-name"  placeholder="Name"       class="form-input" style="font-size:13px;padding:8px"/>
-          <input id="cf-title" placeholder="Job Title"  class="form-input" style="font-size:13px;padding:8px"/>
-          <input id="cf-phone" placeholder="Phone"      class="form-input" style="font-size:13px;padding:8px"/>
-          <input id="cf-email" placeholder="Email"      class="form-input" style="font-size:13px;padding:8px"/>
-          <input id="cf-notes" placeholder="Notes"      class="form-input" style="font-size:13px;padding:8px;grid-column:1/-1"/>
-        </div>
-        <div style="display:flex;gap:8px">
-          <button id="cfSaveBtn" onclick="saveContact()" class="btn btn-primary" style="font-size:12px">💾 Save</button>
-          <button id="cfCancelBtn" onclick="closeContactForm()" class="btn btn-secondary" style="font-size:12px">Cancel</button>
-        </div>
-        <input type="hidden" id="cf-idx" value="-1"/>
-      </div>
-    </div>
-    <!-- Tasks Section -->
-    <div style="padding:20px 24px">
-      <div style="border-top:1px solid var(--border-default);padding-top:20px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-          <div style="font-size:15px;font-weight:700;color:var(--text-primary)" id="tasksSectionTitle">✅ Tasks</div>
-          <button id="addTaskBtn" onclick="openAddTaskForm()" style="background:var(--accent-primary);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;font-weight:600">+ Add Task</button>
-        </div>
-        <div id="cdTasksList"></div>
-        <div id="taskForm" style="display:none;margin-top:14px;background:var(--bg-secondary);border-radius:10px;padding:14px;border:1px solid var(--border-default)">
-          <div style="font-size:13px;font-weight:600;margin-bottom:10px" id="taskFormTitle">Add Task</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-            <input id="tf-title" placeholder="Task title" class="form-input" style="font-size:13px;padding:8px;grid-column:1/-1"/>
-            <input id="tf-due" type="date" class="form-input" style="font-size:13px;padding:8px"/>
-            <select id="tf-status" class="form-input" style="font-size:13px;padding:8px">
-              <option value="pending">⏳ Pending</option>
-              <option value="in-progress">🔄 In Progress</option>
-              <option value="done">✅ Done</option>
-            </select>
-            <input id="tf-notes" placeholder="Notes" class="form-input" style="font-size:13px;padding:8px;grid-column:1/-1"/>
-          </div>
-          <div style="display:flex;gap:8px">
-            <button onclick="saveTask()" class="btn btn-primary" style="font-size:12px">💾 Save</button>
-            <button onclick="closeTaskForm()" class="btn btn-secondary" style="font-size:12px">Cancel</button>
-          </div>
-          <input type="hidden" id="tf-idx" value="-1"/>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
 
-<script>
 var _currentClientId=null;
 const taskStatusLabels={'pending':'⏳ Pending','in-progress':'🔄 In Progress','done':'✅ Done'};
 
@@ -2485,7 +2408,84 @@ function saveTask(){
   saveClients();renderTasksList(_currentClientId);closeTaskForm();
 }
 function closeTaskForm(){document.getElementById('taskForm').style.display='none';}
-</script>
+    </script>
+
+<!-- Client Detail Modal -->
+<div id="clientDetailModal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.6);align-items:center;justify-content:center">
+  <div style="background:var(--bg-card);border-radius:16px;max-width:700px;width:95%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-card)">
+    <div style="padding:24px 24px 16px;border-bottom:1px solid var(--border-default)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div>
+          <div id="cdName" style="font-size:20px;font-weight:700;color:var(--text-primary)"></div>
+          <div id="cdCategory" style="font-size:13px;color:var(--text-secondary);margin-top:2px"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span id="cdStatus" style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600"></span>
+          <button onclick="closeClientModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-secondary)">✕</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px">
+        <div><span style="color:var(--text-secondary)">🔗 Portal: </span><a id="cdUrl" href="#" target="_blank" style="color:var(--accent-primary)"></a></div>
+        <div><span style="color:var(--text-secondary)">👤 Contact: </span><span id="cdContact"></span></div>
+        <div><span style="color:var(--text-secondary)">📧 Email: </span><span id="cdEmail"></span></div>
+        <div><span style="color:var(--text-secondary)">📅 Created: </span><span id="cdDate"></span></div>
+        <div style="grid-column:1/-1" id="cdNotes"></div>
+      </div>
+    </div>
+    <!-- Contacts Section -->
+    <div style="padding:20px 24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="font-size:15px;font-weight:700;color:var(--text-primary)" id="contactsSectionTitle">📞 Contacts</div>
+        <button id="addContactBtn" onclick="openAddContactForm()" style="background:var(--accent-primary);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;font-weight:600">+ Add Contact</button>
+      </div>
+      <div id="cdContactsList"></div>
+      <div id="contactForm" style="display:none;margin-top:14px;background:var(--bg-secondary);border-radius:10px;padding:14px;border:1px solid var(--border-default)">
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px" id="contactFormTitle">Add Contact</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+          <input id="cf-name"  placeholder="Name"       class="form-input" style="font-size:13px;padding:8px"/>
+          <input id="cf-title" placeholder="Job Title"  class="form-input" style="font-size:13px;padding:8px"/>
+          <input id="cf-phone" placeholder="Phone"      class="form-input" style="font-size:13px;padding:8px"/>
+          <input id="cf-email" placeholder="Email"      class="form-input" style="font-size:13px;padding:8px"/>
+          <input id="cf-notes" placeholder="Notes"      class="form-input" style="font-size:13px;padding:8px;grid-column:1/-1"/>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button id="cfSaveBtn" onclick="saveContact()" class="btn btn-primary" style="font-size:12px">💾 Save</button>
+          <button id="cfCancelBtn" onclick="closeContactForm()" class="btn btn-secondary" style="font-size:12px">Cancel</button>
+        </div>
+        <input type="hidden" id="cf-idx" value="-1"/>
+      </div>
+    </div>
+    <!-- Tasks Section -->
+    <div style="padding:20px 24px">
+      <div style="border-top:1px solid var(--border-default);padding-top:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div style="font-size:15px;font-weight:700;color:var(--text-primary)" id="tasksSectionTitle">✅ Tasks</div>
+          <button id="addTaskBtn" onclick="openAddTaskForm()" style="background:var(--accent-primary);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;font-weight:600">+ Add Task</button>
+        </div>
+        <div id="cdTasksList"></div>
+        <div id="taskForm" style="display:none;margin-top:14px;background:var(--bg-secondary);border-radius:10px;padding:14px;border:1px solid var(--border-default)">
+          <div style="font-size:13px;font-weight:600;margin-bottom:10px" id="taskFormTitle">Add Task</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+            <input id="tf-title" placeholder="Task title" class="form-input" style="font-size:13px;padding:8px;grid-column:1/-1"/>
+            <input id="tf-due" type="date" class="form-input" style="font-size:13px;padding:8px"/>
+            <select id="tf-status" class="form-input" style="font-size:13px;padding:8px">
+              <option value="pending">⏳ Pending</option>
+              <option value="in-progress">🔄 In Progress</option>
+              <option value="done">✅ Done</option>
+            </select>
+            <input id="tf-notes" placeholder="Notes" class="form-input" style="font-size:13px;padding:8px;grid-column:1/-1"/>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button onclick="saveTask()" class="btn btn-primary" style="font-size:12px">💾 Save</button>
+            <button onclick="closeTaskForm()" class="btn btn-secondary" style="font-size:12px">Cancel</button>
+          </div>
+          <input type="hidden" id="tf-idx" value="-1"/>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+>
 
 </body>
 </html>
