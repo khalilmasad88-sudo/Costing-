@@ -1454,8 +1454,7 @@
                         data-lang-en="Company" data-lang-ar="الشركة">Company</button>
                 <button class="settings-tab" data-tab="supabase" onclick="switchSettingsTab('supabase')" 
                         data-lang-en="Supabase" data-lang-ar="Supabase">Supabase</button>
-                <button class="settings-tab" data-tab="security" onclick="switchSettingsTab('security')" 
-                        data-lang-en="Security" data-lang-ar="الأمان">Security</button>
+                
 
             </div>
 
@@ -1533,10 +1532,9 @@
                         <div class="config-label" data-lang-en="Backup Table" data-lang-ar="جدول النسخ الاحتياطي">Backup Table</div>
                         <div class="config-input-group">
                             <input type="text" class="form-input" id="supabaseBackupTable" placeholder="client_portals_backup">
-                            <div class="config-hint" data-lang-en="Database table for storing backups" data-lang-ar="جدول قاعدة البيانات لتخزين النسخ الاحتياطية">Database table for storing backups</div>
+                            <div class="config-hint">Database table for storing backups</div>
                         </div>
                     </div>
-
                     <div class="config-row">
                         <div class="config-label"></div>
                         <div class="config-input-group">
@@ -1681,50 +1679,23 @@
         };
 
         // Initialize
-        // ── Apply Portal Bridge Supabase settings ──────────────────────
         function applyPortalBridgeSettings(){
           try{
-            // PortalBridge may not be ready yet — check multiple locations
-            var bridge = window.PortalBridge
-                      || (window.parent !== window && window.parent.PortalBridge)
-                      || null;
-
-            if(!bridge){
-              // Retry after short delay (PortalBridge injected after DOMContentLoaded)
-              setTimeout(applyPortalBridgeSettings, 800);
-              return;
-            }
-
-            // PortalBridge stores Supabase config in companyStorage
-            var cs = bridge.companyStorage || {};
-            var sb = {
-              url: cs.url || bridge.supabaseUrl || '',
-              key: cs.key || cs.anonKey || bridge.supabaseKey || '',
-              table: cs.table || cs.dataTable || '',
-              backupTable: cs.backupTable || cs.backup || ''
-            };
-            if(!sb.url) sb = null;
-
-            if(sb){
-              if(sb.url)                    appSettings.supabaseUrl          = sb.url;
-              if(sb.key||sb.anonKey)        appSettings.supabaseKey          = sb.key||sb.anonKey;
-              if(sb.table)                  appSettings.supabaseTable        = sb.table;
-              if(sb.backupTable||sb.backup) appSettings.supabaseBackupTable  = sb.backupTable||sb.backup;
-              // Apply to form fields if settings modal is open
-              var urlEl = document.getElementById('supabaseUrl');
-              var keyEl = document.getElementById('supabaseKey');
-              var tblEl = document.getElementById('supabaseTable');
-              var bkEl  = document.getElementById('supabaseBackupTable');
-              if(urlEl) urlEl.value = appSettings.supabaseUrl;
-              if(keyEl) keyEl.value = appSettings.supabaseKey;
-              if(tblEl) tblEl.value = appSettings.supabaseTable;
-              if(bkEl)  bkEl.value  = appSettings.supabaseBackupTable||'';
-              initializeSupabase();
-              console.log('[Client Tracker] ✅ Supabase settings loaded from PortalBridge:', sb.url);
-            } else {
-              console.log('[Client Tracker] PortalBridge found but companyStorage has no URL');
-            }
-          }catch(e){console.warn('[Client Tracker] PortalBridge error:',e.message);}
+            var bridge=window.PortalBridge||(window.parent!==window&&window.parent.PortalBridge)||null;
+            if(!bridge){setTimeout(applyPortalBridgeSettings,800);return;}
+            var cs=bridge.companyStorage||{};
+            var sb={url:cs.url||'',key:cs.key||cs.anonKey||'',table:cs.table||cs.dataTable||'',backupTable:cs.backupTable||cs.backup||''};
+            if(!sb.url){console.log('[Client Tracker] PortalBridge: no Supabase URL');return;}
+            if(sb.url) appSettings.supabaseUrl=sb.url;
+            if(sb.key) appSettings.supabaseKey=sb.key;
+            if(sb.table) appSettings.supabaseTable=sb.table;
+            if(sb.backupTable) appSettings.supabaseBackupTable=sb.backupTable;
+            var urlEl=document.getElementById('supabaseUrl');if(urlEl)urlEl.value=sb.url;
+            var keyEl=document.getElementById('supabaseKey');if(keyEl)keyEl.value=sb.key;
+            var tblEl=document.getElementById('supabaseTable');if(tblEl)tblEl.value=sb.table;
+            initializeSupabase();
+            console.log('[Client Tracker] ✅ Supabase from PortalBridge');
+          }catch(e){console.warn('[Client Tracker] Bridge error:',e.message);}
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -1736,1000 +1707,17 @@
             updateStats();
             initializeSupabase();
             updateCompanyBranding();
-            // Restore from Supabase on startup (after bridge settings applied)
-            setTimeout(function(){ restoreFromSupabase(); }, 1500);
+            setTimeout(restoreFromSupabase, 1500);
         });
-
-        async function restoreFromSupabase(){
-          if(!appSettings.supabaseUrl||!appSettings.supabaseKey||!appSettings.supabaseTable) return;
-          try{
-            const res=await fetch(
-              appSettings.supabaseUrl+'/rest/v1/'+appSettings.supabaseTable+'?select=id,data',
-              {headers:{'apikey':appSettings.supabaseKey,'Authorization':'Bearer '+appSettings.supabaseKey,'Content-Type':'application/json'}}
-            );
-            if(!res.ok) return;
-            const rows=await res.json();
-            if(!rows||!rows.length) return;
-            // Merge: Supabase wins for existing ids, keep local-only
-            const sbMap={};
-            rows.forEach(function(r){if(r.data) sbMap[r.id]=r.data;});
-            const localIds=new Set(clients.map(function(c){return c.id;}));
-            const sbIds=new Set(Object.keys(sbMap).map(Number));
-            // Replace local with Supabase version
-            clients=clients.map(function(c){ return sbMap[c.id]||c; });
-            // Add Supabase-only records
-            sbIds.forEach(function(id){
-              if(!localIds.has(id)&&sbMap[id]) clients.push(sbMap[id]);
-            });
-            localStorage.setItem('futureTagClients',JSON.stringify(clients));
-            renderClients();
-            updateStats();
-            console.log('[Client Tracker] ✅ Restored',rows.length,'records from Supabase');
-          }catch(e){
-            console.warn('[Client Tracker] Restore failed:',e.message);
-          }
-        }
 
         // Load clients from localStorage
-        // Listen for PortalBridge message
-        window.addEventListener('message', function(e){
-          try{
-            if(e.data&&e.data.type==='portalBridge'&&e.data.supabase){
-              var sb=e.data.supabase;
-              if(sb.url)   appSettings.supabaseUrl   = sb.url;
-              if(sb.key||sb.anonKey) appSettings.supabaseKey  = sb.key||sb.anonKey;
-              if(sb.table) appSettings.supabaseTable = sb.table;
-              if(sb.backupTable) appSettings.supabaseBackupTable = sb.backupTable;
-              initializeSupabase();
-            }
-          }catch(err){}
-        });
-
-        function openClientModal(id){
-          const c = clients.find(x => x.id === id);
-          if(!c) return;
-          document.getElementById('cdName').textContent = c.name || '';
-          document.getElementById('cdCategory').textContent = c.category || 'Uncategorized';
-          const st = document.getElementById('cdStatus');
-          st.textContent = getStatusLabel(c.status);
-          st.style.background = getStatusColor(c.status) + '22';
-          st.style.color = getStatusColor(c.status);
-          const urlEl = document.getElementById('cdUrl');
-          urlEl.textContent = c.portalUrl || '—';
-          urlEl.href = c.portalUrl || '#';
-          document.getElementById('cdContact').textContent = c.contactPerson || '—';
-          document.getElementById('cdEmail').textContent = c.contactEmail || '—';
-          document.getElementById('cdDate').textContent = c.createdAt ? formatDate(c.createdAt) : '—';
-          const notesEl = document.getElementById('cdNotes');
-          if(c.notes){ notesEl.innerHTML='<span style="color:var(--text-secondary)">📝 Notes: </span><span>'+c.notes+'</span>'; notesEl.style.display='block'; }
-          else { notesEl.style.display='none'; }
-          const _editBtn=document.getElementById('cdEditBtn'); if(_editBtn) _editBtn.onclick=function(){ closeClientModal(); editClient(id); };
-          const _filesBtn=document.getElementById('cdFilesBtn'); if(_filesBtn) _filesBtn.onclick=function(){ closeClientModal(); viewClientFiles(id); };
-          _currentClientId = id;
-          const ar=currentLang==='ar';
-          const ctTitle=document.getElementById('contactsSectionTitle');
-          if(ctTitle) ctTitle.textContent=ar?'📞 التواصل':'📞 Contacts';
-          const ctBtn=document.getElementById('addContactBtn');
-          if(ctBtn) ctBtn.textContent=ar?'+ إضافة شخص':'+ Add Contact';
-          renderContactsList(id);
-          renderTasksList(id);
-          const m = document.getElementById('clientDetailModal');
-          m.style.display = 'flex';
-        }
-
-        var _currentClientId = null;
-
-        function renderContactsList(clientId){
-          const c = clients.find(x => x.id === clientId);
-          if(!c) return;
-          c.contacts = c.contacts || [];
-          const wrap = document.getElementById('cdContactsList');
-          if(!c.contacts.length){
-            wrap.innerHTML = '<div style="color:var(--text-secondary);font-size:13px;padding:8px 0">'+('No contacts yet')+'</div>';
-            return;
-          }
-          wrap.innerHTML = c.contacts.map((p,i) => `
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-radius:8px;background:var(--bg-secondary);margin-bottom:8px">
-              <div>
-                <div style="font-weight:600;font-size:14px;color:var(--text-primary)">${p.name||'—'} <span style="font-size:11px;color:var(--text-secondary);font-weight:400">${p.title||''}</span></div>
-                <div style="font-size:12px;color:var(--text-secondary);margin-top:2px">
-                  ${p.phone?`📱 ${p.phone}`:''} ${p.email?`&nbsp;✉️ ${p.email}`:''}
-                </div>
-                ${p.notes?`<div style="font-size:11px;color:var(--text-tertiary);margin-top:2px">📝 ${p.notes}</div>`:''}
-              </div>
-              <div style="display:flex;gap:6px">
-                <button onclick="editContact(${i})" style="background:none;border:1px solid var(--border-default);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:var(--text-primary)">✏️</button>
-                <button onclick="deleteContact(${i})" style="background:none;border:1px solid #ef4444;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:#ef4444">✕</button>
-              </div>
-            </div>
-          `).join('');
-        }
-
-        function updateContactFormLang(){
-          const ar=currentLang==='ar';
-          [['cf-name','Name','الاسم'],['cf-title','Job Title','المسمى الوظيفي'],
-           ['cf-phone','Phone','رقم الهاتف'],['cf-email','Email','البريد الإلكتروني'],
-           ['cf-notes','Notes','ملاحظات']].forEach(function(f){
-            var el=document.getElementById(f[0]);if(el)el.placeholder=ar?f[2]:f[1];
-          });
-          var s=document.getElementById('cfSaveBtn');if(s)s.textContent=ar?'💾 حفظ':'💾 Save';
-          var c=document.getElementById('cfCancelBtn');if(c)c.textContent=ar?'إلغاء':'Cancel';
-        }
-
-        function openAddContactForm(){
-          const ar=currentLang==='ar';
-          ['cf-name','cf-title','cf-phone','cf-email','cf-notes'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
-          document.getElementById('cf-idx').value='-1';
-          var t=document.getElementById('contactFormTitle');if(t)t.textContent=ar?'إضافة شخص':'Add Contact';
-          updateContactFormLang();
-          document.getElementById('contactForm').style.display='block';
-        }
-
-        function editContact(idx){
-          const c = clients.find(x => x.id === _currentClientId);
-          if(!c||!c.contacts[idx]) return;
-          const p = c.contacts[idx];
-          document.getElementById('cf-name').value  = p.name||'';
-          document.getElementById('cf-title').value = p.title||'';
-          document.getElementById('cf-phone').value = p.phone||'';
-          document.getElementById('cf-email').value = p.email||'';
-          document.getElementById('cf-notes').value = p.notes||'';
-          document.getElementById('cf-idx').value   = idx;
-          document.getElementById('contactFormTitle').textContent=currentLang==="ar"?'تعديل شخص':'Edit Contact';
-          document.getElementById('contactForm').style.display='block';
-        }
-
-        function deleteContact(idx){
-          if(!confirm(currentLang==="ar"?'حذف هذا الشخص؟':'Delete this contact?')) return;
-          const c = clients.find(x => x.id === _currentClientId);
-          if(!c) return;
-          c.contacts.splice(idx,1);
-          saveClients();
-          renderContactsList(_currentClientId);
-        }
-
-        function saveContact(){
-          const c = clients.find(x => x.id === _currentClientId);
-          if(!c) return;
-          c.contacts = c.contacts||[];
-          const name = document.getElementById('cf-name').value.trim();
-          if(!name){alert(currentLang==="ar"?'الاسم مطلوب':'Name is required');return;}
-          const person = {
-            name:  name,
-            title: document.getElementById('cf-title').value.trim(),
-            phone: document.getElementById('cf-phone').value.trim(),
-            email: document.getElementById('cf-email').value.trim(),
-            notes: document.getElementById('cf-notes').value.trim()
-          };
-          const idx = parseInt(document.getElementById('cf-idx').value);
-          if(idx>=0){ c.contacts[idx]=person; }
-          else { c.contacts.push(person); }
-          saveClients();
-          renderContactsList(_currentClientId);
-          closeContactForm();
-        }
-
-        function closeContactForm(){
-          document.getElementById('contactForm').style.display='none';
-        }
-
-        const taskStatusLabels = {
-          'pending': '⏳ Pending',
-          'in-progress': '🔄 In Progress',
-          'done': '✅ Done'
-        };
-
-        function renderTasksList(clientId){
-          const c = clients.find(x => x.id === clientId);
-          if(!c) return;
-          c.tasks = c.tasks || [];
-          const wrap = document.getElementById('cdTasksList');
-          if(!c.tasks.length){
-            wrap.innerHTML = '<div style="color:var(--text-secondary);font-size:13px;padding:8px 0">No tasks yet</div>';
-            return;
-          }
-          wrap.innerHTML = c.tasks.map((t,i) => {
-            const done = t.status === 'done';
-            return `<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 14px;border-radius:8px;background:${done?'#f0fdf4':'var(--bg-secondary)'};margin-bottom:8px;border:1px solid ${done?'#bbf7d0':'var(--border-default)'}">
-              <div style="flex:1">
-                <div style="font-weight:600;font-size:14px;color:var(--text-primary);text-decoration:${done?'line-through':'none'}">${t.title||'—'}</div>
-                <div style="font-size:12px;color:var(--text-secondary);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap">
-                  <span>${taskStatusLabels[t.status]||t.status}</span>
-                  ${t.due?`<span>📅 ${t.due}</span>`:''}
-                  ${t.notes?`<span>📝 ${t.notes}</span>`:''}
-                </div>
-              </div>
-              <div style="display:flex;gap:6px;margin-left:10px">
-                <button onclick="toggleTaskDone(${i})" style="background:none;border:1px solid var(--border-default);border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer">${done?'↩':'✓'}</button>
-                <button onclick="editTask(${i})" style="background:none;border:1px solid var(--border-default);border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;color:var(--text-primary)">✏️</button>
-                <button onclick="deleteTask(${i})" style="background:none;border:1px solid #ef4444;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;color:#ef4444">✕</button>
-              </div>
-            </div>`;
-          }).join('');
-        }
-
-        function openAddTaskForm(){
-          ['tf-title','tf-notes'].forEach(id=>{var e=document.getElementById(id);if(e)e.value='';});
-          document.getElementById('tf-due').value='';
-          document.getElementById('tf-status').value='pending';
-          document.getElementById('tf-idx').value='-1';
-          document.getElementById('taskFormTitle').textContent='Add Task';
-          document.getElementById('taskForm').style.display='block';
-        }
-
-        function editTask(idx){
-          const c = clients.find(x => x.id === _currentClientId);
-          if(!c||!c.tasks[idx]) return;
-          const t = c.tasks[idx];
-          document.getElementById('tf-title').value  = t.title||'';
-          document.getElementById('tf-due').value    = t.due||'';
-          document.getElementById('tf-status').value = t.status||'pending';
-          document.getElementById('tf-notes').value  = t.notes||'';
-          document.getElementById('tf-idx').value    = idx;
-          document.getElementById('taskFormTitle').textContent='Edit Task';
-          document.getElementById('taskForm').style.display='block';
-        }
-
-        function toggleTaskDone(idx){
-          const c = clients.find(x => x.id === _currentClientId);
-          if(!c||!c.tasks[idx]) return;
-          c.tasks[idx].status = c.tasks[idx].status==='done'?'pending':'done';
-          saveClients();
-          renderTasksList(_currentClientId);
-        }
-
-        function deleteTask(idx){
-          if(!confirm('Delete this task?')) return;
-          const c = clients.find(x => x.id === _currentClientId);
-          if(!c) return;
-          c.tasks.splice(idx,1);
-          saveClients();
-          renderTasksList(_currentClientId);
-        }
-
-        function saveTask(){
-          const c = clients.find(x => x.id === _currentClientId);
-          if(!c) return;
-          c.tasks = c.tasks||[];
-          const title = document.getElementById('tf-title').value.trim();
-          if(!title){alert('Task title is required');return;}
-          const task = {
-            title:  title,
-            due:    document.getElementById('tf-due').value,
-            status: document.getElementById('tf-status').value,
-            notes:  document.getElementById('tf-notes').value.trim()
-          };
-          const idx = parseInt(document.getElementById('tf-idx').value);
-          if(idx>=0){ c.tasks[idx]=task; }
-          else { c.tasks.push(task); }
-          saveClients();
-          renderTasksList(_currentClientId);
-          closeTaskForm();
-        }
-
-        function closeTaskForm(){
-          document.getElementById('taskForm').style.display='none';
-        }
-
-        function closeClientModal(){
-          document.getElementById('clientDetailModal').style.display = 'none';
-        }
-
         function loadClients() {
             try {
                 const stored = localStorage.getItem('futureTagClients');
                 if (stored) {
                     clients = JSON.parse(stored);
                 } else {
-                    // Sample data
-                    clients = [
-                    {
-                        id: Date.now() + 1,
-                        name: 'Saudi Aramco',
-                        category: 'Government',
-                        portalUrl: 'https://supplier.aramco.com',
-                        status: 'registered',
-                        username: 'futuretag_sa',
-                        password: '••••••••',
-                        contactPerson: 'Ahmed Al-Rashid',
-                        contactEmail: 'ahmed.rashid@aramco.com',
-                        notes: 'Main procurement portal for Aramco projects',
-                        lastAccess: '2026-05-15',
-                        createdAt: new Date().toISOString(),
-                        attachments: []
-                    },
-                    {
-                        id: Date.now() + 2,
-                        name: 'NEOM',
-                        category: 'Government',
-                        portalUrl: 'https://vendors.neom.com',
-                        status: 'pending',
-                        username: 'future_tag_security',
-                        password: '',
-                        contactPerson: 'Sarah Johnson',
-                        contactEmail: 'vendors@neom.com',
-                        notes: 'Application submitted on May 10, awaiting approval',
-                        lastAccess: '2026-05-10',
-                        createdAt: new Date().toISOString(),
-                        attachments: []
-                    },
-                    {
-                        id: Date.now() + 3,
-                        name: 'King Abdullah Financial District',
-                        category: 'Private Sector',
-                        portalUrl: 'https://kafd-portal.sa',
-                        status: 'not-registered',
-                        username: '',
-                        password: '',
-                        contactPerson: 'Mohammed Al-Otaibi',
-                        contactEmail: 'procurement@kafd.sa',
-                        notes: 'Need to complete registration before Q3',
-                        lastAccess: '',
-                        createdAt: new Date().toISOString(),
-                        attachments: []
-                    }
-                ];
-                saveClients();
-            }
-            } catch (error) {
-                console.error('Error loading clients:', error);
-                showNotification('error', 'Load Error', 'Could not load client data. Starting fresh.');
-                clients = [];
-            }
-        }
-
-        // Save clients to localStorage
-        function saveClients() {
-            try {
-                localStorage.setItem('futureTagClients', JSON.stringify(clients));
-            } catch (e) {
-                if (e.name === 'QuotaExceededError') {
-                    handleStorageQuotaExceeded();
-                } else {
-                    console.error('Error saving data:', e);
-                }
-            }
-            // Auto-sync to Supabase if configured
-            if (appSettings.supabaseUrl && appSettings.supabaseKey && appSettings.supabaseTable) {
-                clearTimeout(window._saveClientsTimer);
-                window._saveClientsTimer = setTimeout(function(){
-                    syncClientsToSupabase();
-                }, 800);
-            }
-        }
-
-        async function syncClientsToSupabase() {
-            if (!appSettings.supabaseUrl || !appSettings.supabaseKey || !clients.length) return;
-            try {
-                const payload = clients.map(c => ({
-                    id: c.id,
-                    data: c,
-                    updated_at: new Date().toISOString()
-                }));
-                const res = await fetch(
-                    appSettings.supabaseUrl + '/rest/v1/' + appSettings.supabaseTable,
-                    {
-                        method: 'POST',
-                        headers: Object.assign({}, sbHeaders(), {'Prefer': 'resolution=merge-duplicates,return=minimal'}),
-                        body: JSON.stringify(payload)
-                    }
-                );
-                if (!res.ok) { const t=await res.text(); console.error('Supabase sync error:', t); return; }
-                console.log('[Client Tracker] ✅ Synced', clients.length, 'records to Supabase');
-            } catch(e) {
-                console.error('[Client Tracker] Sync failed:', e.message);
-            }
-        }
-
-        // Handle storage quota exceeded
-        function handleStorageQuotaExceeded() {
-            const totalSize = calculateStorageSize();
-            const message = currentLang === 'en'
-                ? `Storage full (${totalSize}MB)! Please remove old files from clients or switch to Supabase cloud storage in Settings.`
-                : `التخزين ممتلئ (${totalSize} ميجابايت)! يرجى حذف الملفات القديمة أو التبديل إلى Supabase في الإعدادات.`;
-            showNotification('error', currentLang === 'en' ? 'Storage Full' : 'التخزين ممتلئ', message);
-        }
-
-        // Calculate total storage size
-        function calculateStorageSize() {
-            let total = 0;
-            for (let key in localStorage) {
-                if (localStorage.hasOwnProperty(key)) {
-                    total += localStorage[key].length + key.length;
-                }
-            }
-            return (total / (1024 * 1024)).toFixed(2);
-        }
-
-        // Calculate client data size
-        function getClientDataSize() {
-            const dataStr = JSON.stringify(clients);
-            return {
-                bytes: new Blob([dataStr]).size,
-                mb: (new Blob([dataStr]).size / (1024 * 1024)).toFixed(2),
-                clientsCount: clients.length,
-                filesCount: clients.reduce((sum, c) => sum + (c.attachments?.length || 0), 0)
-            };
-        }
-
-        // Render client cards
-        function renderClients() {
-            const container = document.getElementById('cardsContainer');
-            const emptyState = document.getElementById('emptyState');
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-
-            let filtered = clients.filter(client => {
-                const matchesFilter = currentFilter === 'all' || client.status === currentFilter;
-                const matchesSearch = !searchTerm || 
-                    client.name.toLowerCase().includes(searchTerm) ||
-                    client.category.toLowerCase().includes(searchTerm) ||
-                    client.portalUrl.toLowerCase().includes(searchTerm);
-                return matchesFilter && matchesSearch;
-            });
-
-            if (filtered.length === 0) {
-                container.innerHTML = '';
-                emptyState.style.display = 'block';
-                return;
-            }
-
-            emptyState.style.display = 'none';
-            container.innerHTML = filtered.map((client, index) => `
-                <div class="client-card" style="--status-color: ${getStatusColor(client.status)}; animation-delay: ${index * 0.05}s; cursor:pointer" onclick="openClientModal(${client.id})">
-                    <div class="card-header">
-                        <div class="client-info">
-                            <div class="client-name">${client.name}</div>
-                            <div class="client-category">${client.category || 'Uncategorized'}</div>
-                        </div>
-                        <span class="status-badge status-${client.status}">
-                            ${getStatusLabel(client.status)}
-                        </span>
-                    </div>
-                    <div class="card-details">
-                        <div class="detail-row">
-                            <span class="detail-icon">🌐</span>
-                            <a href="${client.portalUrl}" target="_blank" class="portal-url" onclick="event.stopPropagation()">${client.portalUrl}</a>
-                        </div>
-                        ${(client.username || client.password) ? `
-                        <div class="credential-box">
-                            ${client.username ? `
-                            <div class="credential-row">
-                                <span class="credential-label" data-lang-en="Username:" data-lang-ar="المستخدم:">Username:</span>
-                                <span class="credential-value">${client.username}</span>
-                            </div>
-                            ` : ''}
-                            ${client.password ? `
-                            <div class="credential-row">
-                                <span class="credential-label" data-lang-en="Password:" data-lang-ar="كلمة المرور:">Password:</span>
-                                <span class="credential-value password-hidden" id="pwd-${client.id}" data-password="${client.password.replace(/"/g, '&quot;')}">••••••••</span>
-                                <button class="file-action-btn" onclick="togglePasswordDisplay(${client.id}); event.stopPropagation();" title="Show/Hide">👁️</button>
-                            </div>
-                            ` : ''}
-                        </div>
-                        ` : ''}
-                        ${client.contactPerson ? `
-                        <div class="detail-row">
-                            <span class="detail-icon">📧</span>
-                            <span class="detail-label" data-lang-en="Contact:" data-lang-ar="جهة الاتصال:">Contact:</span>
-                            <span class="detail-value">${client.contactPerson}</span>
-                        </div>
-                        ` : ''}
-                        ${client.lastAccess ? `
-                        <div class="detail-row">
-                            <span class="detail-icon">🕐</span>
-                            <span class="detail-label" data-lang-en="Last Access:" data-lang-ar="آخر دخول:">Last Access:</span>
-                            <span class="detail-value">${formatDate(client.lastAccess)}</span>
-                        </div>
-                        ` : ''}
-                        ${client.notes ? `
-                        <div class="detail-row">
-                            <span class="detail-icon">📝</span>
-                            <span class="detail-value" style="font-size: 0.85rem; color: var(--text-secondary);">${client.notes}</span>
-                        </div>
-                        ` : ''}
-                        ${client.attachments && client.attachments.length > 0 ? `
-                        <div class="detail-row">
-                            <span class="detail-icon">📎</span>
-                            <span class="files-badge">
-                                <span>${client.attachments.length}</span>
-                                <span data-lang-en="file(s)" data-lang-ar="ملف">file(s)</span>
-                            </span>
-                        </div>
-                        ` : ''}
-                    </div>
-                    <div class="card-actions">
-                        <button class="action-btn primary" onclick="openPortal('${client.portalUrl}')" 
-                                data-lang-en="Open Portal" data-lang-ar="فتح البوابة">Open Portal</button>
-                        ${client.attachments && client.attachments.length > 0 ? `
-                        <button class="action-btn" onclick="viewClientFiles(${client.id}); event.stopPropagation();" 
-                                data-lang-en="Files" data-lang-ar="الملفات">Files (${client.attachments.length})</button>
-                        ` : ''}
-                        <button class="action-btn" onclick="editClient(${client.id}); event.stopPropagation();" 
-                                data-lang-en="Edit" data-lang-ar="تعديل">Edit</button>
-                        <button class="action-btn" onclick="deleteClient(${client.id}); event.stopPropagation();" 
-                                data-lang-en="Delete" data-lang-ar="حذف">Delete</button>
-                    </div>
-                </div>
-            `).join('');
-
-            applyLanguage();
-        }
-
-        // Update statistics
-        function updateStats() {
-            const total = clients.length;
-            const registered = clients.filter(c => c.status === 'registered').length;
-            const pending = clients.filter(c => c.status === 'pending').length;
-            const notRegistered = clients.filter(c => c.status === 'not-registered').length;
-
-            document.getElementById('statTotal').textContent = total;
-            document.getElementById('statRegistered').textContent = registered;
-            document.getElementById('statPending').textContent = pending;
-            document.getElementById('statNotRegistered').textContent = notRegistered;
-        }
-
-        // Filter clients
-        function setFilter(filter) {
-            currentFilter = filter;
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.filter === filter);
-            });
-            renderClients();
-        }
-
-        function filterClients() {
-            renderClients();
-        }
-
-        // Modal functions
-        function openAddModal() {
-            editingClientId = null;
-            currentAttachments = [];
-            document.getElementById('clientForm').reset();
-            document.getElementById('modalTitle').textContent = currentLang === 'en' ? 'Add Client' : 'إضافة عميل';
-            document.getElementById('clientModal').classList.add('active');
-            renderAttachedFiles();
-            applyLanguage();
-        }
-
-        function editClient(id) {
-            const client = clients.find(c => c.id === id);
-            if (!client) return;
-
-            // Check if password is required for editing credentials
-            if (appSettings.requirePasswordForEdit && (client.username || client.password)) {
-                authenticateUser((authenticated) => {
-                    if (authenticated) {
-                        openEditClientForm(id, client);
-                    }
-                });
-            } else {
-                openEditClientForm(id, client);
-            }
-        }
-
-        function openEditClientForm(id, client) {
-            editingClientId = id;
-            currentAttachments = client.attachments ? [...client.attachments] : [];
-            document.getElementById('clientName').value = client.name;
-            document.getElementById('clientCategory').value = client.category || '';
-            document.getElementById('portalUrl').value = client.portalUrl;
-            document.getElementById('registrationStatus').value = client.status;
-            document.getElementById('username').value = client.username || '';
-            document.getElementById('password').value = client.password || '';
-            document.getElementById('contactPerson').value = client.contactPerson || '';
-            document.getElementById('contactEmail').value = client.contactEmail || '';
-            document.getElementById('notes').value = client.notes || '';
-
-            document.getElementById('modalTitle').textContent = currentLang === 'en' ? 'Edit Client' : 'تعديل العميل';
-            document.getElementById('clientModal').classList.add('active');
-            renderAttachedFiles();
-            applyLanguage();
-        }
-
-        function closeModal() {
-            document.getElementById('clientModal').classList.remove('active');
-            editingClientId = null;
-        }
-
-        // Save client
-        function saveClient(event) {
-            event.preventDefault();
-
-            const clientData = {
-                name: document.getElementById('clientName').value,
-                category: document.getElementById('clientCategory').value,
-                portalUrl: document.getElementById('portalUrl').value,
-                status: document.getElementById('registrationStatus').value,
-                username: document.getElementById('username').value,
-                password: document.getElementById('password').value,
-                contactPerson: document.getElementById('contactPerson').value,
-                contactEmail: document.getElementById('contactEmail').value,
-                notes: document.getElementById('notes').value,
-                lastAccess: document.getElementById('registrationStatus').value === 'registered' ? new Date().toISOString().split('T')[0] : '',
-                attachments: currentAttachments
-            };
-
-            if (editingClientId) {
-                // Update existing client
-                const index = clients.findIndex(c => c.id === editingClientId);
-                clients[index] = { ...clients[index], ...clientData };
-                showNotification('success', 'Client Updated', 'Client information has been updated successfully');
-            } else {
-                // Add new client
-                const newClient = {
-                    id: Date.now(),
-                    ...clientData,
-                    createdAt: new Date().toISOString()
-                };
-                clients.push(newClient);
-                showNotification('success', 'Client Added', 'New client has been added successfully');
-            }
-
-            saveClients();
-            renderClients();
-            updateStats();
-            closeModal();
-        }
-
-        // Delete client
-        function deleteClient(id) {
-            if (confirm(currentLang === 'en' ? 'Are you sure you want to delete this client?' : 'هل أنت متأكد من حذف هذا العميل؟')) {
-                clients = clients.filter(c => c.id !== id);
-                saveClients();
-                renderClients();
-                updateStats();
-                showNotification('success', 'Client Deleted', 'Client has been removed from the system');
-            }
-        }
-
-        // Open portal
-        function openPortal(url) {
-            window.open(url, '_blank');
-        }
-
-        // Utility functions
-        function getStatusColor(status) {
-            const colors = {
-                'registered': 'var(--success-green)',
-                'pending': 'var(--warning-yellow)',
-                'not-registered': 'var(--danger-red)'
-            };
-            return colors[status] || 'var(--text-secondary)';
-        }
-
-        function getStatusLabel(status) {
-            const labels = {
-                'registered': currentLang === 'en' ? 'Registered' : 'مسجل',
-                'pending': currentLang === 'en' ? 'Pending' : 'قيد الانتظار',
-                'not-registered': currentLang === 'en' ? 'Not Registered' : 'غير مسجل'
-            };
-            return labels[status] || status;
-        }
-
-        function formatDate(dateString) {
-            if (!dateString) return '';
-            const date = new Date(dateString);
-            return date.toLocaleDateString(currentLang === 'en' ? 'en-US' : 'ar-SA', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
-        }
-
-        // Language toggle
-        function toggleLanguage() { /* Arabic removed */ }
-
-        function applyLanguage() { /* Arabic removed */ }
-
-        // Notification system
-        function showNotification(type, title, message) {
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            notification.innerHTML = `
-                <div class="notification-icon">${type === 'success' ? '✓' : '✕'}</div>
-                <div class="notification-content">
-                    <div class="notification-title">${title}</div>
-                    <div class="notification-message">${message}</div>
-                </div>
-            `;
-            document.body.appendChild(notification);
-
-            setTimeout(() => {
-                notification.style.animation = 'slideInRight 0.3s ease reverse';
-                setTimeout(() => notification.remove(), 300);
-            }, 3000);
-        }
-
-        // Close modal on outside click
-        document.getElementById('clientModal').addEventListener('click', (e) => {
-            if (e.target.id === 'clientModal') {
-                closeModal();
-            }
-        });
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                closeModal();
-                closeSettings();
-            }
-            if (e.ctrlKey && e.key === 'k') {
-                e.preventDefault();
-                document.getElementById('searchInput').focus();
-            }
-        });
-
-        // Theme Management
-        function loadTheme() { document.documentElement.setAttribute('data-theme','light'); }
-
-        function toggleTheme() { /* dark theme removed */ }
-
-        function updateThemeIcon() {}
-
-        // Settings Management
-        function loadSettings() {
-            const saved = localStorage.getItem('futureTagSettings');
-            if (saved) {
-                appSettings = { ...appSettings, ...JSON.parse(saved) };
-                applySettings();
-            }
-        }
-
-        function saveSettings() {
-            appSettings.companyName = document.getElementById('companyName').value;
-            // Logo is saved separately via handleLogoUpload
-            appSettings.supabaseUrl = document.getElementById('supabaseUrl').value;
-            appSettings.supabaseKey = document.getElementById('supabaseKey').value;
-            appSettings.supabaseTable = document.getElementById('supabaseTable').value;
-            const bkEl=document.getElementById('supabaseBackupTable'); if(bkEl) appSettings.supabaseBackupTable=bkEl.value;
-            appSettings.storageType = document.getElementById('storageType').value;
-            appSettings.autoSync = document.getElementById('autoSyncEnabled').checked;
-            appSettings.requirePasswordForEdit = document.getElementById('requirePasswordForEdit').checked;
-
-            localStorage.setItem('futureTagSettings', JSON.stringify(appSettings));
-            initializeSupabase();
-            updateCompanyBranding();
-            showNotification('success', 'Settings Saved', 'Your settings have been saved successfully');
-        }
-
-        function applySettings() {
-            document.getElementById('companyName').value = appSettings.companyName || 'Future Tag Security Solutions';
-            document.getElementById('supabaseUrl').value = appSettings.supabaseUrl || '';
-            document.getElementById('supabaseKey').value = appSettings.supabaseKey || '';
-            document.getElementById('supabaseTable').value = appSettings.supabaseTable || 'client_portals';
-            const _bkEl=document.getElementById('supabaseBackupTable'); if(_bkEl) _bkEl.value=appSettings.supabaseBackupTable||'client_portals_backup';
-            const _stEl=document.getElementById('storageType'); if(_stEl) _stEl.value=appSettings.storageType||'localStorage';
-            const _asEl=document.getElementById('autoSyncEnabled'); if(_asEl) _asEl.checked=appSettings.autoSync||false;
-            const _bkEl2=document.getElementById('bridgeKey'); if(_bkEl2) _bkEl2.value=appSettings.bridgeKey||'';
-            const _pwEl=document.getElementById('requirePasswordForEdit'); if(_pwEl) _pwEl.checked=appSettings.requirePasswordForEdit!==false;
-            
-            const logoPreview = document.getElementById('logoPreview');
-            const removeLogo = document.getElementById('removeLogo');
-            if (appSettings.companyLogo) {
-                logoPreview.src = appSettings.companyLogo;
-                logoPreview.style.display = 'block';
-                removeLogo.style.display = 'inline-block';
-            } else {
-                logoPreview.style.display = 'none';
-                removeLogo.style.display = 'none';
-            }
-        }
-
-        function openSettings() {
-            applySettings();
-            document.getElementById('settingsModal').classList.add('active');
-            applyLanguage();
-        }
-
-        function closeSettings() {
-            document.getElementById('settingsModal').classList.remove('active');
-        }
-
-        function switchSettingsTab(tab) {
-            currentSettingsTab = tab;
-            
-            // Update tabs
-            document.querySelectorAll('.settings-tab').forEach(t => {
-                t.classList.toggle('active', t.dataset.tab === tab);
-            });
-
-            // Update content
-            document.querySelectorAll('.settings-content').forEach(c => {
-                c.classList.remove('active');
-            });
-            document.getElementById(`${tab}-content`).classList.add('active');
-        }
-
-        // Supabase Integration
-        function sbHeaders(){
-            return {
-                'Content-Type': 'application/json',
-                'apikey': appSettings.supabaseKey,
-                'Authorization': 'Bearer ' + appSettings.supabaseKey,
-                'Prefer': 'return=minimal'
-            };
-        }
-
-        function initializeSupabase() {
-            if (!window.supabase) {
-                // Running in offline mode - all features work with localStorage
-                return;
-            }
-            
-            if (appSettings.supabaseUrl && appSettings.supabaseKey) {
-                try {
-                    supabaseClient = supabase.createClient(appSettings.supabaseUrl, appSettings.supabaseKey);
-                } catch (error) {
-                    console.error('Supabase initialization error:', error);
-                }
-            }
-        }
-
-        async function testSupabaseConnection() {
-            const statusEl = document.getElementById('supabaseStatus');
-            const statusDot = statusEl.querySelector('.status-dot');
-            const statusText = statusEl.querySelector('.status-text');
-            
-            statusEl.style.display = 'flex';
-            statusText.textContent = currentLang === 'en' ? 'Testing...' : 'جاري الاختبار...';
-            statusDot.classList.remove('connected');
-
-            if (!appSettings.supabaseUrl || !appSettings.supabaseKey) {
-                statusText.textContent = currentLang === 'en' ? 'Please fill in Supabase credentials' : 'يرجى ملء بيانات Supabase';
-                return;
-            }
-
-            try {
-                initializeSupabase();
-                // Use fetch directly — works in any environment
-                const res = await fetch(
-                    appSettings.supabaseUrl + '/rest/v1/' + appSettings.supabaseTable + '?limit=1',
-                    {headers: sbHeaders()}
-                );
-                if(!res.ok){const t=await res.text();throw new Error(res.status+': '+t.slice(0,100));}
-
-                statusDot.classList.add('connected');
-                statusText.textContent = currentLang === 'en' ? 'Connected successfully!' : 'تم الاتصال بنجاح!';
-                const syncEl=document.getElementById('syncStatus');if(syncEl) syncEl.style.display='block';
-                showNotification('success', 'Connection Success', 'Successfully connected to Supabase');
-            } catch (error) {
-                statusText.textContent = currentLang === 'en' ? `Error: ${error.message}` : `خطأ: ${error.message}`;
-                showNotification('error', 'Connection Failed', error.message);
-            }
-        }
-
-        async function syncWithSupabase() {
-            if (!appSettings.supabaseUrl || !appSettings.supabaseKey) {
-                showNotification('error', 'Not Configured', 'Please configure Supabase settings first');
-                return;
-            }
-            try {
-                initializeSupabase();
-                const payload = clients.map(client => ({
-                    id: client.id,
-                    data: client,
-                    updated_at: new Date().toISOString()
-                }));
-                const res = await fetch(
-                    appSettings.supabaseUrl + '/rest/v1/' + appSettings.supabaseTable,
-                    {
-                        method: 'POST',
-                        headers: Object.assign({}, sbHeaders(), {'Prefer': 'resolution=merge-duplicates,return=minimal'}),
-                        body: JSON.stringify(payload)
-                    }
-                );
-                if(!res.ok){const t=await res.text();throw new Error(res.status+': '+t.slice(0,100));}
-                const now = new Date();
-                const ltEl=document.getElementById('lastSyncTime');if(ltEl) ltEl.textContent=now.toLocaleString(currentLang==='en'?'en-US':'ar-SA');
-                const srEl=document.getElementById('syncRecords');if(srEl) srEl.textContent=clients.length;
-                showNotification('success', 'Sync Complete', `Successfully synced ${clients.length} records`);
-            } catch (error) {
-                showNotification('error', 'Sync Failed', error.message);
-            }
-        }
-
-        // Backup & Export Functions
-        function exportToJSON() {
-            const dataStr = JSON.stringify(clients, null, 2);
-            const blob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `client-portals-backup-${new Date().toISOString().split('T')[0]}.json`;
-            link.click();
-            URL.revokeObjectURL(url);
-            showNotification('success', 'Export Complete', 'Data exported successfully');
-        }
-
-        function exportToCSV() {
-            const headers = ['Name', 'Category', 'Portal URL', 'Status', 'Username', 'Contact Person', 'Contact Email', 'Notes'];
-            const rows = clients.map(c => [
-                c.name,
-                c.category || '',
-                c.portalUrl,
-                c.status,
-                c.username || '',
-                c.contactPerson || '',
-                c.contactEmail || '',
-                c.notes || ''
-            ]);
-
-            const csv = [headers, ...rows]
-                .map(row => row.map(cell => `"${cell}"`).join(','))
-                .join('\n');
-
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `client-portals-${new Date().toISOString().split('T')[0]}.csv`;
-            link.click();
-            URL.revokeObjectURL(url);
-            showNotification('success', 'Export Complete', 'CSV exported successfully');
-        }
-
-        function importFromJSON(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const imported = JSON.parse(e.target.result);
-                    if (confirm(currentLang === 'en' 
-                        ? `Import ${imported.length} records? This will replace existing data.` 
-                        : `استيراد ${imported.length} سجل؟ سيؤدي هذا إلى استبدال البيانات الموجودة.`)) {
-                        clients = imported;
-                        saveClients();
-                        renderClients();
-                        updateStats();
-                        showNotification('success', 'Import Complete', `Imported ${imported.length} records`);
-                    }
-                } catch (error) {
-                    showNotification('error', 'Import Failed', 'Invalid JSON file');
-                }
-            };
-            reader.readAsText(file);
-        }
-
-        function importFromBridge() {
-            try {
-                const bridgeData = localStorage.getItem(appSettings.bridgeKey);
-                if (!bridgeData) {
-                    showNotification('error', 'No Bridge Data', 'No data found in Company Portal bridge. Please ensure the Company Portal app is configured.');
-                    return;
-                }
-
-                const bridgeObj = JSON.parse(bridgeData);
-                if (bridgeObj.clients && Array.isArray(bridgeObj.clients)) {
-                    if (confirm(currentLang === 'en' 
-                        ? `Import ${bridgeObj.clients.length} clients from Company Portal?` 
-                        : `استيراد ${bridgeObj.clients.length} عميل من بوابة الشركة؟`)) {
-                        
-                        // Merge or replace based on user preference
-                        clients = bridgeObj.clients.map(c => ({
-                            id: c.id || Date.now() + Math.random(),
-                            name: c.name || c.clientName,
-                            category: c.category || '',
-                            portalUrl: c.portalUrl || c.url,
-                            status: c.status || 'not-registered',
-                            username: c.username || '',
-                            password: c.password || '',
-                            contactPerson: c.contactPerson || '',
-                            contactEmail: c.contactEmail || c.email || '',
-                            notes: c.notes || '',
-                            lastAccess: c.lastAccess || '',
-                            createdAt: c.createdAt || new Date().toISOString()
-                        }));
-
-                        saveClients();
-                        renderClients();
-                        updateStats();
-                        showNotification('success', 'Import Complete', `Imported ${clients.length} clients from Company Portal`);
-                    }
-                } else {
-                    showNotification('error', 'Invalid Bridge Data', 'Bridge data format is incorrect');
+                    clients = [];
                 }
             } catch (error) {
                 showNotification('error', 'Import Failed', error.message);
@@ -3281,9 +2269,9 @@
     </script>
 
 <!-- Client Detail Modal -->
-<div class="modal" id="clientDetailModal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.6);align-items:center;justify-content:center">
+<div id="clientDetailModal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.6);align-items:center;justify-content:center">
   <div style="background:var(--bg-card);border-radius:16px;max-width:700px;width:95%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-card)">
-    <div id="clientDetailHeader" style="padding:24px 24px 16px;border-bottom:1px solid var(--border-default)">
+    <div style="padding:24px 24px 16px;border-bottom:1px solid var(--border-default)">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
         <div>
           <div id="cdName" style="font-size:20px;font-weight:700;color:var(--text-primary)"></div>
@@ -3296,51 +2284,48 @@
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px">
         <div><span style="color:var(--text-secondary)">🔗 Portal: </span><a id="cdUrl" href="#" target="_blank" style="color:var(--accent-primary)"></a></div>
-        <div><span style="color:var(--text-secondary)">👤 Contact: </span><span id="cdContact" style="color:var(--text-primary)"></span></div>
-        <div><span style="color:var(--text-secondary)">📧 Email: </span><span id="cdEmail" style="color:var(--text-primary)"></span></div>
-        <div><span style="color:var(--text-secondary)">📅 Created: </span><span id="cdDate" style="color:var(--text-primary)"></span></div>
-        <div style="grid-column:1/-1" id="cdNotes" style="display:none"></div>
+        <div><span style="color:var(--text-secondary)">👤 Contact: </span><span id="cdContact"></span></div>
+        <div><span style="color:var(--text-secondary)">📧 Email: </span><span id="cdEmail"></span></div>
+        <div><span style="color:var(--text-secondary)">📅 Created: </span><span id="cdDate"></span></div>
+        <div style="grid-column:1/-1" id="cdNotes"></div>
       </div>
-    </div>
-    <div style="padding:16px 24px;display:flex;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--border-default)">
     </div>
     <!-- Contacts Section -->
     <div style="padding:20px 24px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
         <div style="font-size:15px;font-weight:700;color:var(--text-primary)" id="contactsSectionTitle">📞 Contacts</div>
-        <button onclick="openAddContactForm()" style="background:var(--accent-primary);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;font-weight:600" id="addContactBtn">+ Add Contact</button>
+        <button id="addContactBtn" onclick="openAddContactForm()" style="background:var(--accent-primary);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;font-weight:600">+ Add Contact</button>
       </div>
       <div id="cdContactsList"></div>
-      <!-- Add/Edit contact form -->
       <div id="contactForm" style="display:none;margin-top:14px;background:var(--bg-secondary);border-radius:10px;padding:14px;border:1px solid var(--border-default)">
-        <div style="font-size:13px;font-weight:600;margin-bottom:10px" id="contactFormTitle">${"Add Contact"}</div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px" id="contactFormTitle">Add Contact</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-          <input id="cf-name"  placeholder="Name" data-ar="الاسم"        class="form-input" style="font-size:13px;padding:8px"/>
-          <input id="cf-title" placeholder="Job Title" data-ar="المسمى الوظيفي" class="form-input" style="font-size:13px;padding:8px"/>
-          <input id="cf-phone" placeholder="Phone" data-ar="رقم الهاتف"   class="form-input" style="font-size:13px;padding:8px"/>
-          <input id="cf-email" placeholder="Email" data-ar="البريد الإلكتروني" class="form-input" style="font-size:13px;padding:8px"/>
-          <input id="cf-notes" placeholder="Notes" data-ar="ملاحظات"      class="form-input" style="font-size:13px;padding:8px;grid-column:1/-1"/>
+          <input id="cf-name"  placeholder="Name"       class="form-input" style="font-size:13px;padding:8px"/>
+          <input id="cf-title" placeholder="Job Title"  class="form-input" style="font-size:13px;padding:8px"/>
+          <input id="cf-phone" placeholder="Phone"      class="form-input" style="font-size:13px;padding:8px"/>
+          <input id="cf-email" placeholder="Email"      class="form-input" style="font-size:13px;padding:8px"/>
+          <input id="cf-notes" placeholder="Notes"      class="form-input" style="font-size:13px;padding:8px;grid-column:1/-1"/>
         </div>
         <div style="display:flex;gap:8px">
-          <button onclick="saveContact()" class="btn btn-primary" style="font-size:12px" id="cfSaveBtn">💾 Save</button>
-          <button onclick="closeContactForm()" class="btn btn-secondary" style="font-size:12px" id="cfCancelBtn">Cancel</button>
+          <button id="cfSaveBtn" onclick="saveContact()" class="btn btn-primary" style="font-size:12px">💾 Save</button>
+          <button id="cfCancelBtn" onclick="closeContactForm()" class="btn btn-secondary" style="font-size:12px">Cancel</button>
         </div>
         <input type="hidden" id="cf-idx" value="-1"/>
       </div>
+    </div>
     <!-- Tasks Section -->
     <div style="padding:20px 24px">
-      <div style="border-top:1px solid var(--border-default);padding-top:0">
+      <div style="border-top:1px solid var(--border-default);padding-top:20px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
           <div style="font-size:15px;font-weight:700;color:var(--text-primary)" id="tasksSectionTitle">✅ Tasks</div>
           <button id="addTaskBtn" onclick="openAddTaskForm()" style="background:var(--accent-primary);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;font-weight:600">+ Add Task</button>
         </div>
         <div id="cdTasksList"></div>
-        <!-- Add/Edit task form -->
         <div id="taskForm" style="display:none;margin-top:14px;background:var(--bg-secondary);border-radius:10px;padding:14px;border:1px solid var(--border-default)">
           <div style="font-size:13px;font-weight:600;margin-bottom:10px" id="taskFormTitle">Add Task</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-            <input id="tf-title"  placeholder="Task title" class="form-input" style="font-size:13px;padding:8px;grid-column:1/-1"/>
-            <input id="tf-due"    type="date" class="form-input" style="font-size:13px;padding:8px"/>
+            <input id="tf-title" placeholder="Task title" class="form-input" style="font-size:13px;padding:8px;grid-column:1/-1"/>
+            <input id="tf-due" type="date" class="form-input" style="font-size:13px;padding:8px"/>
             <select id="tf-status" class="form-input" style="font-size:13px;padding:8px">
               <option value="pending">⏳ Pending</option>
               <option value="in-progress">🔄 In Progress</option>
@@ -3358,6 +2343,149 @@
     </div>
   </div>
 </div>
+
+<script>
+var _currentClientId=null;
+const taskStatusLabels={'pending':'⏳ Pending','in-progress':'🔄 In Progress','done':'✅ Done'};
+
+function openClientModal(id){
+  const c=clients.find(x=>x.id===id);if(!c)return;
+  document.getElementById('cdName').textContent=c.name||'';
+  document.getElementById('cdCategory').textContent=c.category||'Uncategorized';
+  const st=document.getElementById('cdStatus');
+  st.textContent=getStatusLabel(c.status);
+  st.style.background=getStatusColor(c.status)+'22';st.style.color=getStatusColor(c.status);
+  const urlEl=document.getElementById('cdUrl');urlEl.textContent=c.portalUrl||'—';urlEl.href=c.portalUrl||'#';
+  document.getElementById('cdContact').textContent=c.contactPerson||'—';
+  document.getElementById('cdEmail').textContent=c.contactEmail||'—';
+  document.getElementById('cdDate').textContent=c.createdAt?formatDate(c.createdAt):'—';
+  const notesEl=document.getElementById('cdNotes');
+  if(c.notes){notesEl.innerHTML='<span style="color:var(--text-secondary)">📝 Notes: </span><span>'+c.notes+'</span>';notesEl.style.display='block';}
+  else{notesEl.style.display='none';}
+  _currentClientId=id;
+  renderContactsList(id);renderTasksList(id);
+  document.getElementById('clientDetailModal').style.display='flex';
+}
+function closeClientModal(){document.getElementById('clientDetailModal').style.display='none';}
+
+function renderContactsList(clientId){
+  const c=clients.find(x=>x.id===clientId);if(!c)return;
+  c.contacts=c.contacts||[];
+  const wrap=document.getElementById('cdContactsList');
+  if(!c.contacts.length){wrap.innerHTML='<div style="color:var(--text-secondary);font-size:13px;padding:8px 0">No contacts yet</div>';return;}
+  wrap.innerHTML=c.contacts.map((p,i)=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-radius:8px;background:var(--bg-secondary);margin-bottom:8px">
+      <div>
+        <div style="font-weight:600;font-size:14px;color:var(--text-primary)">${p.name||'—'} <span style="font-size:11px;color:var(--text-secondary);font-weight:400">${p.title||''}</span></div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:2px">${p.phone?'📱 '+p.phone:''} ${p.email?'✉️ '+p.email:''}</div>
+        ${p.notes?`<div style="font-size:11px;color:var(--text-tertiary);margin-top:2px">📝 ${p.notes}</div>`:''}
+      </div>
+      <div style="display:flex;gap:6px">
+        <button onclick="editContact(${i})" style="background:none;border:1px solid var(--border-default);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer">✏️</button>
+        <button onclick="deleteContact(${i})" style="background:none;border:1px solid #ef4444;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:#ef4444">✕</button>
+      </div>
+    </div>`).join('');
+}
+function openAddContactForm(){
+  ['cf-name','cf-title','cf-phone','cf-email','cf-notes'].forEach(id=>{var e=document.getElementById(id);if(e)e.value='';});
+  document.getElementById('cf-idx').value='-1';
+  document.getElementById('contactFormTitle').textContent='Add Contact';
+  document.getElementById('contactForm').style.display='block';
+}
+function editContact(idx){
+  const c=clients.find(x=>x.id===_currentClientId);if(!c||!c.contacts[idx])return;
+  const p=c.contacts[idx];
+  document.getElementById('cf-name').value=p.name||'';
+  document.getElementById('cf-title').value=p.title||'';
+  document.getElementById('cf-phone').value=p.phone||'';
+  document.getElementById('cf-email').value=p.email||'';
+  document.getElementById('cf-notes').value=p.notes||'';
+  document.getElementById('cf-idx').value=idx;
+  document.getElementById('contactFormTitle').textContent='Edit Contact';
+  document.getElementById('contactForm').style.display='block';
+}
+function deleteContact(idx){
+  if(!confirm('Delete this contact?'))return;
+  const c=clients.find(x=>x.id===_currentClientId);if(!c)return;
+  c.contacts.splice(idx,1);saveClients();renderContactsList(_currentClientId);
+}
+function saveContact(){
+  const c=clients.find(x=>x.id===_currentClientId);if(!c)return;
+  c.contacts=c.contacts||[];
+  const name=document.getElementById('cf-name').value.trim();
+  if(!name){alert('Name is required');return;}
+  const person={name,title:document.getElementById('cf-title').value.trim(),phone:document.getElementById('cf-phone').value.trim(),email:document.getElementById('cf-email').value.trim(),notes:document.getElementById('cf-notes').value.trim()};
+  const idx=parseInt(document.getElementById('cf-idx').value);
+  if(idx>=0){c.contacts[idx]=person;}else{c.contacts.push(person);}
+  saveClients();renderContactsList(_currentClientId);closeContactForm();
+}
+function closeContactForm(){document.getElementById('contactForm').style.display='none';}
+
+function renderTasksList(clientId){
+  const c=clients.find(x=>x.id===clientId);if(!c)return;
+  c.tasks=c.tasks||[];
+  const wrap=document.getElementById('cdTasksList');
+  if(!c.tasks.length){wrap.innerHTML='<div style="color:var(--text-secondary);font-size:13px;padding:8px 0">No tasks yet</div>';return;}
+  wrap.innerHTML=c.tasks.map((t,i)=>{
+    const done=t.status==='done';
+    return `<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 14px;border-radius:8px;background:${done?'#f0fdf4':'var(--bg-secondary)'};margin-bottom:8px;border:1px solid ${done?'#bbf7d0':'var(--border-default)'}">
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:14px;color:var(--text-primary);text-decoration:${done?'line-through':'none'}">${t.title||'—'}</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap">
+          <span>${taskStatusLabels[t.status]||t.status}</span>
+          ${t.due?`<span>📅 ${t.due}</span>`:''}
+          ${t.notes?`<span>📝 ${t.notes}</span>`:''}
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-left:10px">
+        <button onclick="toggleTaskDone(${i})" style="background:none;border:1px solid var(--border-default);border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer">${done?'↩':'✓'}</button>
+        <button onclick="editTask(${i})" style="background:none;border:1px solid var(--border-default);border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer">✏️</button>
+        <button onclick="deleteTask(${i})" style="background:none;border:1px solid #ef4444;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;color:#ef4444">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function openAddTaskForm(){
+  ['tf-title','tf-notes'].forEach(id=>{var e=document.getElementById(id);if(e)e.value='';});
+  document.getElementById('tf-due').value='';
+  document.getElementById('tf-status').value='pending';
+  document.getElementById('tf-idx').value='-1';
+  document.getElementById('taskFormTitle').textContent='Add Task';
+  document.getElementById('taskForm').style.display='block';
+}
+function editTask(idx){
+  const c=clients.find(x=>x.id===_currentClientId);if(!c||!c.tasks[idx])return;
+  const t=c.tasks[idx];
+  document.getElementById('tf-title').value=t.title||'';
+  document.getElementById('tf-due').value=t.due||'';
+  document.getElementById('tf-status').value=t.status||'pending';
+  document.getElementById('tf-notes').value=t.notes||'';
+  document.getElementById('tf-idx').value=idx;
+  document.getElementById('taskFormTitle').textContent='Edit Task';
+  document.getElementById('taskForm').style.display='block';
+}
+function toggleTaskDone(idx){
+  const c=clients.find(x=>x.id===_currentClientId);if(!c||!c.tasks[idx])return;
+  c.tasks[idx].status=c.tasks[idx].status==='done'?'pending':'done';
+  saveClients();renderTasksList(_currentClientId);
+}
+function deleteTask(idx){
+  if(!confirm('Delete this task?'))return;
+  const c=clients.find(x=>x.id===_currentClientId);if(!c)return;
+  c.tasks.splice(idx,1);saveClients();renderTasksList(_currentClientId);
+}
+function saveTask(){
+  const c=clients.find(x=>x.id===_currentClientId);if(!c)return;
+  c.tasks=c.tasks||[];
+  const title=document.getElementById('tf-title').value.trim();
+  if(!title){alert('Task title is required');return;}
+  const task={title,due:document.getElementById('tf-due').value,status:document.getElementById('tf-status').value,notes:document.getElementById('tf-notes').value.trim()};
+  const idx=parseInt(document.getElementById('tf-idx').value);
+  if(idx>=0){c.tasks[idx]=task;}else{c.tasks.push(task);}
+  saveClients();renderTasksList(_currentClientId);closeTaskForm();
+}
+function closeTaskForm(){document.getElementById('taskForm').style.display='none';}
+</script>
 
 </body>
 </html>
