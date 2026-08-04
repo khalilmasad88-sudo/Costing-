@@ -133,7 +133,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
 .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
 .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:10px 10px 0 0}
-.stat-card.blue::before{background:var(--accent)}.stat-card.green::before{background:var(--green)}.stat-card.amber::before{background:var(--amber)}.stat-card.red::before{background:var(--red)}
+.stat-card.blue::before{background:var(--accent)}.stat-card.green::before{background:var(--green)}.stat-card.amber::before{background:var(--amber)}.stat-card.red::before{background:var(--red)}.stat-card.purple::before{background:#a855f7}
 .stat-label{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.5px;text-transform:uppercase}
 .stat-value{font-size:20px;font-weight:700;margin-top:5px;font-family:var(--mono)}
 .stat-sub{font-size:11px;color:var(--muted);margin-top:3px}
@@ -355,11 +355,16 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
   <div class="page active" id="page-dashboard">
 
     <!-- Row 1: KPI Cards -->
-    <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px">
+    <div class="stats-grid" style="grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:16px">
       <div class="stat-card blue" style="cursor:pointer" onclick="openPipelineFiltered('')">
         <div class="stat-label">💼 Total Pipeline</div>
         <div class="stat-value" id="dash-total">SAR 0</div>
         <div class="stat-sub" id="dash-count">0 projects</div>
+      </div>
+      <div class="stat-card purple" style="cursor:pointer" onclick="openPipelineFiltered('Lead')">
+        <div class="stat-label">🎯 Leads</div>
+        <div class="stat-value" id="dash-lead-val">SAR 0</div>
+        <div class="stat-sub" id="dash-lead-count">0 leads</div>
       </div>
       <div class="stat-card green" style="cursor:pointer" onclick="openPipelineFiltered('Approved')">
         <div class="stat-label">✅ Approved</div>
@@ -379,7 +384,12 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
     </div>
 
     <!-- Row 2: Secondary KPIs -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:16px">
+      <div class="stat-card" style="cursor:pointer;background:var(--surface2);border:1px solid var(--border)" onclick="openPipelineFiltered('')">
+        <div class="stat-label" style="color:var(--muted)">🔄 Active Pipeline</div>
+        <div class="stat-value" id="dash-active-val" style="font-size:28px;color:var(--accent)">0</div>
+        <div class="stat-sub" id="dash-active-count">0 projects</div>
+      </div>
       <div class="stat-card" style="background:var(--surface2);border:1px solid var(--border)">
         <div class="stat-label" style="color:var(--muted)">🎯 Win Rate</div>
         <div class="stat-value" id="dash-winrate" style="font-size:28px;color:var(--green)">0%</div>
@@ -454,17 +464,24 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
       <input type="text" id="pl-search" placeholder="🔍 Search..." style="flex:2;min-width:160px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px" oninput="filterPipeline()">
       <select id="pl-status" style="flex:1;min-width:120px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px" onchange="filterPipeline()">
         <option value="">All Status</option>
-        <option value="Approved">Approved</option>
-        <option value="Submitted">Submitted</option>
+        <option value="Draft">Draft</option>
+        <option value="Lead">Lead</option>
         <option value="in pricing">in pricing</option>
+        <option value="Submitted">Submitted</option>
+        <option value="Evaluation">Evaluation</option>
+        <option value="Approved">Approved</option>
         <option value="out">out</option>
         <option value="Canceled">Canceled</option>
+        <option value="Value Engineering">Value Engineering</option>
       </select>
       <select id="pl-client-filter" style="flex:1;min-width:120px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px" onchange="filterPipeline()">
         <option value="">All Clients</option>
       </select>
       <select id="pl-by-filter" style="flex:1;min-width:120px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px" onchange="filterPipeline()">
         <option value="">All Quoted By</option>
+      </select>
+      <select id="pl-year-filter" style="flex:1;min-width:100px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px" onchange="filterPipeline()">
+        <option value="">All Years</option>
       </select>
     </div>
     <div id="pipeline-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;align-items:stretch"></div>
@@ -488,7 +505,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
                 </select>
                 <select id="ql-status-filter" style="flex:1;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;color:var(--text)" onchange="renderQList()">
                   <option value="">All Status</option>
-                  <option>Draft</option><option>in pricing</option><option>Submitted</option><option>Approved</option><option>out</option><option>Canceled</option><option>Value Engineering</option>
+                  <option>Draft</option><option>Lead</option><option>in pricing</option><option>Submitted</option><option>Approved</option><option>out</option><option>Canceled</option><option>Value Engineering</option>
                 </select>
                 <select id="ql-by-filter" style="flex:1;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;color:var(--text)" onchange="renderQList()">
                   <option value="">All Quoted By</option>
@@ -965,7 +982,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <div class="field"><label>Location</label><input id="pm-loc" placeholder="Location…"></div>
         <div class="field"><label>Quoted By</label><select id="pm-by"></select></div>
 
-        <div class="field"><label>Status</label><select id="pm-status"><option>Submitted</option><option>Approved</option><option>in pricing</option><option>out</option><option>Canceled</option><option>Evaluation</option></select></div>
+        <div class="field"><label>Status</label><select id="pm-status"><option>Lead</option><option>Submitted</option><option>Approved</option><option>in pricing</option><option>out</option><option>Canceled</option><option>Evaluation</option></select></div>
         <div class="field field-full"><label>Link to Quotation <span style="color:var(--muted);font-size:10px">ربط بعرض سعر</span></label>
           <select id="pm-qtn-link" style="width:100%" onchange="onPmQtnLink()">
             <option value="">— None —</option>
@@ -1143,9 +1160,8 @@ function handleLogin(e){
     renderBOQ();
     updateDashboard();
     
-    const id=S.activeQId||S.quotations[0]?.id;
-    const found=S.quotations.find(q=>q.id===id);
-    if(found)openQuotation(found.id);else if(S.quotations.length)openQuotation(S.quotations[0].id);
+    // Don't auto-open quotation on login — user chooses from list
+    S.activeQId=null;
   }else{
     console.log('Login failed - user not found or wrong password');
     errorDiv.textContent='⚠️ الاسم أو الرقم السري خاطئ';
@@ -1277,9 +1293,11 @@ async function autoBackupToSupabase() {
       const user = getCurrentUser();
       const now = new Date().toISOString();
       S.lastModified = Date.now();
+      // Strip activeQId before saving to cloud — it's per-user, not shared
+      const _dataToSave = Object.assign({}, S, {activeQId: null});
       await sbUpsert(getTableShared(), {
         company_id: S.currentCompanyId,
-        data: S,
+        data: _dataToSave,
         updated_by: user?.email || 'system',
         updated_at: now
       });
@@ -1326,6 +1344,7 @@ async function restoreLatestFromSupabase(){
       // Only restore if remote is strictly newer — local edits win on tie
       if(remoteTime>localTime+500){ // 500ms grace period to avoid race conditions
         Object.assign(S,sharedData.data);
+        S.activeQId=null; // never restore another user's active quotation
         S.lastModified=remoteTime;
         _storage.setItem('ftag_v5_state',JSON.stringify(S));
         console.log('✓ Restored from shared database (remote newer)');
@@ -2371,6 +2390,12 @@ function updateDashboard(){
   document.getElementById('dash-inpricing').textContent = inPrice.length;
   document.getElementById('dash-inpricing-val').textContent = fmt(inPrAmt);
 
+  // Active Pipeline = Total - Leads - out - Canceled
+  const activePl = pl.filter(r=>r.status!=='Lead'&&r.status!=='out'&&r.status!=='Canceled');
+  const activeAmt = activePl.reduce((s,r)=>s+getPipelineAmount(r),0);
+  const activeEl1 = document.getElementById('dash-active-val');   if(activeEl1) activeEl1.textContent=fmt(activeAmt);
+  const activeEl2 = document.getElementById('dash-active-count'); if(activeEl2) activeEl2.textContent=activePl.length+' projects';
+
   // Win Rate = Approved / (Approved + Submitted + out)
   const resolved = appr.length + out.length;
   const winRate  = resolved > 0 ? Math.round(appr.length/resolved*100) : 0;
@@ -2388,6 +2413,12 @@ function updateDashboard(){
 
   const qSellTotalVal = latestQ.reduce((s,q)=>s+(typeof qSellWithVAT==='function'?qSellWithVAT(q):0),0);
   const qCostTotalV = latestQ.reduce((s,q)=>s+(typeof qCostTotal==='function'?qCostTotal(q):0),0);
+
+  // Lead KPI
+  const leadItems=filtered.filter(r=>r.status==='Lead');
+  const leadAmt=leadItems.reduce((s,r)=>s+(r.amount||0),0);
+  document.getElementById('dash-lead-val').textContent='SAR '+fmt(leadAmt);
+  document.getElementById('dash-lead-count').textContent=leadItems.length+' leads';
 
   // Canceled quotations KPI
   const canceledQ=(S.quotations||[]).filter(q=>q.companyId===S.currentCompanyId&&q.status==='Canceled');
@@ -2410,7 +2441,7 @@ function updateDashboard(){
   // ── Pipeline by Status list ───────────────────────────────────
   const byStatus={};
   pl.forEach(r=>{byStatus[r.status]=(byStatus[r.status]||0)+getPipelineAmount(r);});
-  const statusColors={Approved:'var(--green)',Submitted:'var(--accent)','in pricing':'var(--amber)',out:'var(--muted)',Canceled:'var(--red)'};
+  const statusColors={Approved:'var(--green)',Submitted:'var(--accent)','in pricing':'var(--amber)',out:'var(--muted)',Canceled:'var(--red)',Lead:'#a855f7',Draft:'var(--text2)',Evaluation:'#f97316','Value Engineering':'#06b6d4'};
   document.getElementById('dash-by-status').innerHTML=Object.entries(byStatus)
     .sort((a,b)=>b[1]-a[1])
     .map(([st,v])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
@@ -2425,7 +2456,7 @@ function updateDashboard(){
     if(_dashStatusChart){_dashStatusChart.destroy();}
     const labels=Object.keys(byStatus);
     const vals=labels.map(k=>byStatus[k]);
-    const bgColors=labels.map(k=>({Approved:'#22c55e',Submitted:'#3b82f6','in pricing':'#f59e0b',out:'#64748b',Canceled:'#ef4444'}[k]||'#6366f1'));
+    const bgColors=labels.map(k=>({Approved:'#22c55e',Submitted:'#3b82f6','in pricing':'#f59e0b',out:'#64748b',Canceled:'#ef4444',Lead:'#a855f7',Draft:'#94a3b8',Evaluation:'#f97316','Value Engineering':'#06b6d4'}[k]||'#6366f1'));
     _dashStatusChart=new Chart(chartEl,{
       type:'bar',
       data:{labels,datasets:[{data:vals,backgroundColor:bgColors,borderRadius:6,borderSkipped:false}]},
@@ -2499,7 +2530,7 @@ function updateDashboard(){
         <div style="font-size:12px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px">${esc(r.name||r.qtn||'—')}</div>
         <div style="font-size:10px;color:var(--muted)">${esc(r.qtn||'')} · ${r.status}</div>
       </div>
-      <span style="font-size:11px;font-weight:700;color:${color};white-space:nowrap;margin-left:8px">${label}</span>
+      <span style="font-size:15px;font-weight:800;color:${color};white-space:nowrap;margin-left:8px">${label}</span>
     </div>`;
   }).join('')
   :'<div style="color:var(--muted);font-size:13px;padding:20px 0;text-align:center">No upcoming deadlines</div>';
@@ -2563,6 +2594,7 @@ function renderPipeline(data){
     const date=getPipelineDate(r);
     const statusColors={
       'Approved':   {bg:'#d1fae5',c:'#065f46',border:'#10b981'},
+      'Lead':       {bg:'#f3e8ff',c:'#7e22ce',border:'#a855f7'},
       'Submitted':  {bg:'#dbeafe',c:'#1d4ed8',border:'#3b82f6'},
       'in pricing': {bg:'#fef3c7',c:'#92400e',border:'#f59e0b'},
       'out':        {bg:'#fee2e2',c:'#991b1b',border:'#ef4444'},
@@ -2585,7 +2617,13 @@ function renderPipeline(data){
           (r.loc?'<div>📍 '+esc(r.loc)+'</div>':'')+
           (r.type?'<div>🏷 '+esc(r.type)+'</div>':'')+
           (r.sys?'<div>⚙️ '+esc(r.sys)+'</div>':'')+
-          (date?(date?'<div>📅 <span style="font-size:10px;color:var(--muted)">Submission:</span> '+getDeliveryAlert(date)+' '+esc(date)+'</div>':''):'')+
+          (date?(function(){
+            var _d=new Date(date);_d.setHours(0,0,0,0);
+            var _t=new Date();_t.setHours(0,0,0,0);
+            var _dy=Math.ceil((_d-_t)/(864e5));
+            var _lbl=_dy<0?'':_dy===0?'<b style="color:#ef4444;font-size:14px">🔴 Today</b>':_dy<=2?'<b style="color:#ef4444;font-size:14px">🔴 '+_dy+'d left</b>':_dy<=7?'<b style="color:#f59e0b;font-size:14px">🟡 '+_dy+'d left</b>':'<b style="color:var(--green);font-size:14px">'+_dy+'d left</b>';
+            return '<div style="grid-column:1/-1">📅 '+esc(date)+' — '+_lbl+'</div>';
+          })():'')+
         '</div>'+
         '<div style="display:flex;justify-content:space-between;align-items:center">'+
           '<div>'+
@@ -2647,11 +2685,13 @@ function filterPipeline(){
   const s=(document.getElementById('pl-status')||{}).value||'';
   const cl=(document.getElementById('pl-client-filter')||{}).value||'';
   const by=(document.getElementById('pl-by-filter')||{}).value||'';
+  const yr=(document.getElementById('pl-year-filter')||{}).value||'';
   renderPipeline(S.pipeline.filter(p=>p.companyId===S.currentCompanyId).filter(r=>{
     if(q&&!(r.name+r.qtn+r.client+r.loc+r.by).toLowerCase().includes(q)) return false;
     if(s&&r.status!==s) return false;
     if(cl&&r.client!==cl) return false;
     if(by&&r.by!==by) return false;
+    if(yr&&(r.date||r.qtn||'').slice(0,4)!==yr) return false;
     return true;
   }));
 }
@@ -2669,6 +2709,17 @@ function populatePipelineFilters(){
   if(byEl){
     var curBy=byEl.value;
     byEl.innerHTML='<option value="">All Quoted By</option>'+bys.map(function(b){return '<option value="'+esc(b)+'"'+(b===curBy?' selected':'')+'>'+esc(b)+'</option>';}).join('');
+  }
+  // Populate year filter
+  var yearEl=document.getElementById('pl-year-filter');
+  if(yearEl){
+    var curYr=yearEl.value;
+    var years=[...new Set((S.pipeline||[]).map(function(r){
+      var d=r.date||r.qtn||''; return d.slice(0,4);
+    }).filter(function(y){return y.length===4&&!isNaN(y);}))].sort().reverse();
+    yearEl.innerHTML='<option value="">All Years</option>'+years.map(function(y){
+      return '<option value="'+y+'"'+(curYr===y?' selected':'')+'>'+y+'</option>';
+    }).join('');
   }
 }
 
@@ -6268,7 +6319,7 @@ if (_portalBridgePending) {
                     <div class="field">
                       <label>Status</label>
                       <select id="q-status" onchange="saveQ()">
-                        <option>Draft</option><option>Submitted</option><option>Approved</option><option>in pricing</option><option>out</option><option>Canceled</option>
+                        <option>Draft</option><option>Lead</option><option>Submitted</option><option>Approved</option><option>in pricing</option><option>out</option><option>Canceled</option>
                       </select>
                     </div>
                     <div class="field"><label>Quoted By</label><select id="q-by" onchange="saveQ()"></select></div>
@@ -6497,7 +6548,7 @@ if (_portalBridgePending) {
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
         <div class="field" style="margin:0"><label>Submission Date</label><input type="date" id="wiz-date" style="font-size:13px"></div>
-        <div class="field" style="margin:0"><label>Status</label><select id="wiz-status" style="font-size:13px"><option>Draft</option><option>in pricing</option><option>Submitted</option><option>Approved</option><option>out</option><option>Canceled</option></select></div>
+        <div class="field" style="margin:0"><label>Status</label><select id="wiz-status" style="font-size:13px"><option>Draft</option><option>Lead</option><option>in pricing</option><option>Submitted</option><option>Approved</option><option>out</option><option>Canceled</option></select></div>
       </div>
       <div class="field" style="margin:0"><label>Quoted By</label><select id="wiz-by" style="font-size:13px"><option value="">— Select —</option></select></div>
     </div>
