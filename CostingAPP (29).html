@@ -1448,7 +1448,16 @@ async function createAutomaticBackup(type='daily'){
     const description=type==='daily'
       ?`نسخة يومية تلقائية - ${new Date().toLocaleDateString('ar-SA')}`
       :`نسخة ذكية - قبل تغييرات كبيرة`;
-    const _bkData=Object.assign({},S,{activeQId:null});
+    // Strip large/non-essential data to avoid timeout
+    const _bkData={
+      currentCompanyId:S.currentCompanyId,
+      companies:S.companies,
+      pipeline:S.pipeline,
+      quotations:(S.quotations||[]).map(q=>Object.assign({},q,{items:undefined,payments:undefined})),
+      settings:S.settings,
+      users:S.users,
+      lastModified:S.lastModified
+    };
     await sbInsert(bkTable,{
       company_id:S.currentCompanyId,
       data:_bkData,
@@ -1457,7 +1466,7 @@ async function createAutomaticBackup(type='daily'){
       backup_date:new Date().toISOString().split('T')[0],
       backup_type:type
     });
-    console.log(`✓ ${type} backup created automatically`);
+    console.log(`✓ ${type} backup created`);
     showBackupNotification(type);
     cleanupOldBackups();
   }catch(err){console.error('Auto backup error:',err);}
@@ -2457,7 +2466,7 @@ function updateDashboard(){
   const qCostTotalV = latestQ.reduce((s,q)=>s+(typeof qCostTotal==='function'?qCostTotal(q):0),0);
 
   // Lead KPI
-  const leadItems=filtered.filter(r=>r.status==='Lead');
+  const leadItems=pl.filter(r=>r.status==='Lead');
   const leadAmt=leadItems.reduce((s,r)=>s+(r.amount||0),0);
   document.getElementById('dash-lead-val').textContent='SAR '+fmt(leadAmt);
   document.getElementById('dash-lead-count').textContent=leadItems.length+' leads';
