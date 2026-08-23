@@ -384,10 +384,10 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
     </div>
 
     <!-- Row 2: Secondary KPIs -->
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:16px">
-      <div class="stat-card" style="cursor:pointer;background:var(--surface2);border:1px solid var(--border)" onclick="openPipelineFiltered('')">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px">
+      <div class="stat-card" style="cursor:pointer;background:var(--surface2);border:1px solid var(--border)" onclick="openPipelineFiltered('__active')">
         <div class="stat-label" style="color:var(--muted)">🔄 Active Pipeline</div>
-        <div class="stat-value" id="dash-active-val" style="font-size:28px;color:var(--accent)">0</div>
+        <div class="stat-value" id="dash-active-val" style="font-size:28px;color:var(--accent)">SAR 0</div>
         <div class="stat-sub" id="dash-active-count">0 projects</div>
       </div>
       <div class="stat-card" style="background:var(--surface2);border:1px solid var(--border)">
@@ -401,14 +401,12 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <div class="stat-sub" id="dash-margin-sub">across quotations</div>
       </div>
       <div class="stat-card" style="background:var(--surface2);border:1px solid var(--border)">
-        <div class="stat-label" style="color:var(--muted)">⏳ In Pricing</div>
+        <div class="stat-label" style="color:var(--muted)">📋 In Pricing</div>
         <div class="stat-value" id="dash-inpricing" style="font-size:28px;color:var(--amber)">0</div>
         <div class="stat-sub" id="dash-inpricing-val">SAR 0</div>
       </div>
-
     </div>
 
-    <!-- Row 3: Chart + Status + Recent -->
     <div style="display:grid;grid-template-columns:1fr 200px 1fr;gap:14px">
 
       <!-- Pipeline Status Chart -->
@@ -464,6 +462,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
       <input type="text" id="pl-search" placeholder="🔍 Search..." style="flex:2;min-width:160px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px" oninput="filterPipeline()">
       <select id="pl-status" style="flex:1;min-width:120px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px" onchange="filterPipeline()">
         <option value="">All Status</option>
+        <option value="__active">🔄 Active</option>
         <option value="Draft">Draft</option>
         <option value="Lead">Lead</option>
         <option value="in pricing">in pricing</option>
@@ -1285,16 +1284,6 @@ async function sbDelete(table, filters) {
 let realtimeChannel = null;  // kept for compat — realtime disabled in sandboxed iframe
 
 // Auto-save to shared table (UPSERT)
-function _mergeArrayById(local, remote) {
-  // Merge two arrays: local additions win, remote additions are included
-  // Items that exist in both: local version wins (user is editing)
-  if (!remote || !remote.length) return local;
-  if (!local || !local.length) return remote;
-  const localIds = new Set(local.map(x => x.id));
-  const remoteOnly = remote.filter(x => !localIds.has(x.id));
-  return [...local, ...remoteOnly];
-}
-
 async function autoBackupToSupabase() {
   clearTimeout(backupTimeout);
   backupTimeout = setTimeout(async () => {
@@ -1302,46 +1291,17 @@ async function autoBackupToSupabase() {
     try {
       const user = getCurrentUser();
       const now = new Date().toISOString();
-
-      // ── Fetch latest remote data and merge before writing ──
-      let _dataToSave = Object.assign({}, S, {activeQId: null});
-      try {
-        const remoteRows = await sbSelect(getTableShared(), {company_id: S.currentCompanyId});
-        if (remoteRows && remoteRows.length) {
-          const remoteData = remoteRows[0].data || {};
-          const remoteTime = new Date(remoteRows[0].updated_at || 0).getTime();
-          const localTime  = S.lastModified || 0;
-          // Only merge if remote was updated more recently than our last known sync
-          // (means another user made changes while we were working)
-          if (remoteTime > (window._lastSyncTime || 0) + 500) {
-            // Merge arrays: keep all ids from both sides
-            _dataToSave.quotations = _mergeArrayById(S.quotations, remoteData.quotations);
-            _dataToSave.pipeline   = _mergeArrayById(S.pipeline,   remoteData.pipeline);
-            _dataToSave.pos        = _mergeArrayById(S.pos,        remoteData.pos);
-            _dataToSave.clients    = _mergeArrayById(S.clients,    remoteData.clients);
-            _dataToSave.suppliers  = _mergeArrayById(S.suppliers,  remoteData.suppliers);
-            _dataToSave.invoices   = _mergeArrayById(S.invoices,   remoteData.invoices);
-            _dataToSave.boqs       = _mergeArrayById(S.boqs,       remoteData.boqs);
-            console.log('[Sync] Merged remote additions before write');
-          }
-        }
-      } catch(mergeErr) {
-        console.warn('[Sync] Merge fetch failed, writing local only:', mergeErr.message);
-      }
-
       S.lastModified = Date.now();
-      _dataToSave.lastModified = S.lastModified;
-      _dataToSave.activeQId = null;
-
+      // Strip activeQId before saving to cloud — it's per-user, not shared
+      const _dataToSave = Object.assign({}, S, {activeQId: null});
       await sbUpsert(getTableShared(), {
         company_id: S.currentCompanyId,
         data: _dataToSave,
         updated_by: user?.email || 'system',
         updated_at: now
       });
-      window._lastSyncTime = S.lastModified;
       updateSupabaseStatus(true);
-      console.log('✓ Synced to shared database (with merge)');
+      console.log('✓ Synced to shared database');
     } catch(err) {
       console.error('Sync error:', err);
       updateSupabaseStatus(false);
@@ -1442,21 +1402,24 @@ function scheduleDailyBackup(){
 async function createAutomaticBackup(type='daily'){
   if(!sbReady())return;
   const bkTable=getTableBackups();
-  if(!bkTable){console.log('Backup table not configured — skipping');return;}
+  if(!bkTable){console.log('[Backup] No backup table configured');return;}
   const user=getCurrentUser();
   try{
     const description=type==='daily'
       ?`نسخة يومية تلقائية - ${new Date().toLocaleDateString('ar-SA')}`
       :`نسخة ذكية - قبل تغييرات كبيرة`;
-    // Strip large/non-essential data to avoid timeout
+    // Reduce payload: strip item details to avoid timeout
     const _bkData={
       currentCompanyId:S.currentCompanyId,
       companies:S.companies,
       pipeline:S.pipeline,
-      quotations:(S.quotations||[]).map(q=>Object.assign({},q,{items:undefined,payments:undefined})),
+      quotations:(S.quotations||[]).map(q=>({id:q.id,num:q.num,status:q.status,date:q.date,client:q.client,project:q.project,total:(typeof qSellWithVAT==='function'?qSellWithVAT(q):q.total)||0,pipelineId:q.pipelineId,companyId:q.companyId})),
       settings:S.settings,
       users:S.users,
-      lastModified:S.lastModified
+      clients:S.clients,
+      suppliers:S.suppliers,
+      lastModified:S.lastModified,
+      activeQId:null
     };
     await sbInsert(bkTable,{
       company_id:S.currentCompanyId,
@@ -1469,7 +1432,7 @@ async function createAutomaticBackup(type='daily'){
     console.log(`✓ ${type} backup created`);
     showBackupNotification(type);
     cleanupOldBackups();
-  }catch(err){console.error('Auto backup error:',err);}
+  }catch(err){console.error('[Backup] Error:',err);}
 }
 
 // Show backup notification
@@ -1512,7 +1475,10 @@ async function smartBackupCheck(changeType){
     deleteManyItems:true,
     deleteCompany:true,
     bulkPriceChange:true,
-    majorSystemChange:true
+    majorSystemChange:true,
+    saveQuotation:true,
+    savePipeline:true,
+    approveQuotation:true
   };
   
   if(smartBackupTriggers[changeType]){
@@ -2438,8 +2404,8 @@ function updateDashboard(){
   document.getElementById('dash-approved-c').textContent= appr.length+' projects';
   document.getElementById('dash-submitted').textContent = fmt(subAmt);
   document.getElementById('dash-sub-c').textContent     = sub.length+' pending';
-  document.getElementById('dash-inpricing').textContent = inPrice.length;
-  document.getElementById('dash-inpricing-val').textContent = fmt(inPrAmt);
+  var _dip=document.getElementById('dash-inpricing'); if(_dip) _dip.textContent=inPrice.length;
+  var _dipv=document.getElementById('dash-inpricing-val'); if(_dipv) _dipv.textContent=fmt(inPrAmt);
 
   // Active Pipeline = Total - Leads - out - Canceled
   const activePl = pl.filter(r=>r.status!=='Lead'&&r.status!=='out'&&r.status!=='Canceled');
@@ -2466,7 +2432,7 @@ function updateDashboard(){
   const qCostTotalV = latestQ.reduce((s,q)=>s+(typeof qCostTotal==='function'?qCostTotal(q):0),0);
 
   // Lead KPI
-  const leadItems=pl.filter(r=>r.status==='Lead');
+  const leadItems=filtered.filter(r=>r.status==='Lead');
   const leadAmt=leadItems.reduce((s,r)=>s+(r.amount||0),0);
   document.getElementById('dash-lead-val').textContent='SAR '+fmt(leadAmt);
   document.getElementById('dash-lead-count').textContent=leadItems.length+' leads';
@@ -2723,6 +2689,20 @@ function updatePipelineStatus(id,val){
   save(); updateDashboard(); renderVE();
 }
 
+function openActivePipeline(){
+  showPage('pipeline');
+  setTimeout(function(){
+    // Clear all filters first
+    var sel=document.getElementById('pl-status');
+    if(sel){sel.value='';filterPipeline();}
+    // Then filter client-side to show only active
+    var rows=document.querySelectorAll('#pipeline-list [data-status]');
+    // Filter by hiding Lead, out, Canceled via custom filter
+    window._activePipelineFilter=true;
+    filterPipeline();
+  },50);
+}
+
 function openPipelineFiltered(status){
   showPage('pipeline');
   setTimeout(function(){
@@ -2734,12 +2714,14 @@ function openPipelineFiltered(status){
 function filterPipeline(){
   const q=(document.getElementById('pl-search').value||'').toLowerCase();
   const s=(document.getElementById('pl-status')||{}).value||'';
+  const isActiveFilter=(s==='__active');
   const cl=(document.getElementById('pl-client-filter')||{}).value||'';
   const by=(document.getElementById('pl-by-filter')||{}).value||'';
   const yr=(document.getElementById('pl-year-filter')||{}).value||'';
   renderPipeline(S.pipeline.filter(p=>p.companyId===S.currentCompanyId).filter(r=>{
     if(q&&!(r.name+r.qtn+r.client+r.loc+r.by).toLowerCase().includes(q)) return false;
-    if(s&&r.status!==s) return false;
+    if(isActiveFilter){if(r.status==='Lead'||r.status==='out'||r.status==='Canceled')return false;}
+    else if(s&&r.status!==s) return false;
     if(cl&&r.client!==cl) return false;
     if(by&&r.by!==by) return false;
     if(yr&&(r.date||r.qtn||'').slice(0,4)!==yr) return false;
@@ -2797,12 +2779,14 @@ function onPmQtnLink(){
 }
 
 function plWizStep(dir){
-  if(dir===1&&_plWizStep===2){savePipelineItem();return;}
+  var isEdit=!!window._plEditId;
+  if(dir===1&&(isEdit||_plWizStep===2)){savePipelineItem();return;}
   _plWizStep=Math.max(1,Math.min(2,_plWizStep+dir));
   plWizRender();
 }
 
 function plWizRender(){
+  var isEdit=!!window._plEditId;
   var b1=document.getElementById('plwiz-body-1');
   var b2=document.getElementById('plwiz-body-2');
   var bar1=document.getElementById('plwiz-bar-1');
@@ -2810,14 +2794,17 @@ function plWizRender(){
   var back=document.getElementById('plwiz-back');
   var next=document.getElementById('plwiz-next');
   var sub=document.getElementById('plModal-step-sub');
-  if(b1) b1.style.display=_plWizStep===1?'block':'none';
-  if(b2) b2.style.display=_plWizStep===2?'block':'none';
+  if(b1) b1.style.display='block';
+  if(b2) b2.style.display=(!isEdit&&_plWizStep===2)?'block':'none';
+  // Hide progress bar in edit mode
+  var barWrap=document.querySelector('#plModal .modal-header + div');
+  if(barWrap) barWrap.style.display=isEdit?'none':'flex';
   if(bar1) bar1.style.background='var(--accent)';
-  if(bar2) bar2.style.background=_plWizStep===2?'var(--accent)':'var(--border)';
-  if(back) back.style.display=_plWizStep>1?'':'none';
-  if(next) next.textContent=_plWizStep===2?'✓ Save':'Next →';
-  if(sub) sub.textContent=_plWizStep===1?'Step 1 of 2 — Project Info':'Step 2 of 2 — Technical Evaluation';
-  if(_plWizStep===2) plRenderTechEval();
+  if(bar2) bar2.style.background=(!isEdit&&_plWizStep===2)?'var(--accent)':'var(--border)';
+  if(back) back.style.display=(!isEdit&&_plWizStep>1)?'':'none';
+  if(next) next.textContent=isEdit?'✓ Update & Close':(_plWizStep===2?'✓ Save':'Next →');
+  if(sub) sub.textContent=isEdit?'Edit Project Info':(_plWizStep===1?'Step 1 of 2 — Project Info':'Step 2 of 2 — Technical Evaluation');
+  if(!isEdit&&_plWizStep===2) plRenderTechEval();
 }
 
 function plBlankTE(){return {id:Date.now()+Math.random(),desc:'',reqWeight:0,ourAchieve:0};}
@@ -2864,16 +2851,16 @@ function savePipelineItem(){
     if(r){
       r.qtn=(document.getElementById('pm-qtn')||{}).value;
       r.printRef=((document.getElementById('pm-print-ref')||{}).value||'').trim()||r.qtn||'';
-      r.ref=document.getElementById('pm-ref').value;
-      r.name=document.getElementById('pm-name').value;
-      r.date=document.getElementById('pm-date').value;
-      r.type=document.getElementById('pm-type').value;
-      r.sys=document.getElementById('pm-sys').value;
-      r.client=document.getElementById('pm-client').value;
-      r.loc=document.getElementById('pm-loc').value;
-      r.status=document.getElementById('pm-status').value;
-      r.by=document.getElementById('pm-by').value;
-      r.note=document.getElementById('pm-note').value;
+      r.ref=(document.getElementById('pm-ref')||{}).value||'';
+      r.name=(document.getElementById('pm-name')||{}).value||'';
+      r.date=(document.getElementById('pm-date')||{}).value||'';
+      r.type=(document.getElementById('pm-type')||{}).value||'';
+      r.sys=(document.getElementById('pm-sys')||{}).value||'';
+      r.client=(document.getElementById('pm-client')||{}).value||'';
+      r.loc=(document.getElementById('pm-loc')||{}).value||'';
+      r.status=(document.getElementById('pm-status')||{}).value||'';
+      r.by=(document.getElementById('pm-by')||{}).value||'';
+      r.note=(document.getElementById('pm-note')||{}).value||'';
       var _co2=getCurrentCompany();
       var qs=S.quotations.filter(function(q){return q.num===r.qtn&&(!q.companyId||q.companyId===_co2.id);});
       if(qs.length){var pool=qs.filter(function(q){return q.status==='Draft'||q.status==='in pricing';});r.quotationId=(pool.length?pool:qs).reduce(function(a,b){return a.id>b.id?a:b;}).id;r.amount=Math.round(getPipelineAmount(r));}
@@ -2881,7 +2868,12 @@ function savePipelineItem(){
       if(r.status==='Approved') veOnApprove(r);
       if(window._teResult&&_plTechEval.length){r.techEval=_plTechEval.slice();r.teResult={score:window._teResult.score,pct:window._teResult.pct,pass:window._teResult.pass};}
       window._plEditId=null;
-      populateQNumDropdown();save();renderPipeline();updateDashboard();renderVE();closeModal('plModal');
+      closeModal('plModal');
+      try{populateQNumDropdown();}catch(e){console.warn(e);}
+      try{save();smartBackupCheck('savePipeline');}catch(e){console.warn(e);}
+      try{renderPipeline();}catch(e){console.warn(e);}
+      try{updateDashboard();}catch(e){console.warn(e);}
+      try{renderVE();}catch(e){console.warn(e);}
       if(r.status==='Approved'){showPage('ve');showToast&&showToast('✅ Project moved to Value Engineering');}
     }
     return;
@@ -2979,14 +2971,10 @@ function getPipelineAmount(row){
 }
 
 function getPipelineDate(row){
-  // Date = submission date of latest Submitted version, or any available date
+  // Date = submission date of latest Submitted version
   var q=getLatestSubmittedQ(row);
   if(q && q.date) return q.date;
-  if(row.date) return row.date;
-  // Try any linked quotation date
-  var anyQ=(S.quotations||[]).find(function(x){return x.id==row.quotationId||x.pipelineId==row.id;});
-  if(anyQ && anyQ.date) return anyQ.date;
-  return '';
+  return row.date||'';
 }
 
 // Migration: run once to set quotationId on all existing pipeline rows
@@ -4092,7 +4080,7 @@ function deleteQ(){
   const q=getQ();if(!q||!confirm(`Delete "${q.num||'this quotation'}"`))return;
   // Smart backup before deletion
   smartBackupCheck('deleteQuotation');
-  S.quotations=S.quotations.filter(o=>o.id!==q.id);S.activeQId=null;
+  smartBackupCheck('deleteQuotation');S.quotations=S.quotations.filter(o=>o.id!==q.id);S.activeQId=null;
   closeModal('modal-quotation-form');
   save();renderQList();
   const qs=S.quotations.filter(q=>!q.companyId||q.companyId===S.currentCompanyId);
@@ -4952,7 +4940,7 @@ function removeQuotationEditor(idx){
 }
 
 function getTableShared(){return S.settings.supabase.tableShared||'ftag_shared';}
-function getTableBackups(){return (S&&S.settings&&S.settings.supabase&&S.settings.supabase.tableBackups)||'ftag_backups';}
+function getTableBackups(){return S.settings.supabase.tableBackups||'ftag_backups';}
 
 function saveSupabaseConfig(){
   S.settings.supabase.url=document.getElementById('supabase-url').value;
@@ -6556,10 +6544,7 @@ if (_portalBridgePending) {
                       <div class="card-body"><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px" id="cs-summary-grid"></div></div>
                     </div>
                   </div>
-                  <div class="card">
-                    <div class="card-header"><div class="card-title">Profit Analysis</div></div>
-                    <div class="card-body" id="cs-profit-panel"></div>
-                  </div>
+                  
                 </div>
               </div>
 
