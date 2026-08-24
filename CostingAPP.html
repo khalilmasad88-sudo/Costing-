@@ -738,7 +738,10 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
       <div class="card">
         <div class="card-header">
           <div class="card-title">📦 Backups Management</div>
-          <button class="btn btn-primary btn-sm" onclick="createBackup()">+ Create Backup</button>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-secondary btn-sm" onclick="loadBackupsList()" title="Refresh backups list">🔄 Refresh</button>
+            <button class="btn btn-primary btn-sm" onclick="createBackup()">+ Create Backup</button>
+          </div>
         </div>
         <div class="card-body">
           <div id="backups-list" style="max-height:300px;overflow-y:auto">
@@ -1408,16 +1411,34 @@ async function createAutomaticBackup(type='daily'){
     const description=type==='daily'
       ?`نسخة يومية تلقائية - ${new Date().toLocaleDateString('ar-SA')}`
       :`نسخة ذكية - قبل تغييرات كبيرة`;
-    // Full backup — include all quotation data
-    const _bkData=Object.assign({},S,{activeQId:null});
-    await sbInsert(bkTable,{
-      company_id:S.currentCompanyId,
-      data:_bkData,
-      created_by:user?.email||'system',
-      description:description,
-      backup_date:new Date().toISOString().split('T')[0],
-      backup_type:type
-    });
+    // Backup with full quotation data but compressed
+    const _bkData={
+      currentCompanyId: S.currentCompanyId,
+      companies:        S.companies,
+      pipeline:         S.pipeline,
+      quotations:       S.quotations,
+      boqs:             S.boqs,
+      invoices:         S.invoices,
+      pos:              S.pos,
+      clients:          S.clients,
+      suppliers:        S.suppliers,
+      users:            S.users,
+      settings:         S.settings,
+      lastModified:     S.lastModified,
+      activeQId:        null
+    };
+    // Use upsert with date as conflict key to avoid duplicate daily backups
+    const _bkKey=`${S.currentCompanyId}_${type}_${new Date().toISOString().split('T')[0]}`;
+    await sbUpsert(bkTable,{
+      id:             _bkKey,
+      company_id:     S.currentCompanyId,
+      data:           _bkData,
+      created_by:     user?.email||'system',
+      description:    description,
+      backup_date:    new Date().toISOString().split('T')[0],
+      backup_type:    type,
+      updated_at:     new Date().toISOString()
+    },'id');
     console.log(`✓ ${type} backup created`);
     showBackupNotification(type);
     cleanupOldBackups();
