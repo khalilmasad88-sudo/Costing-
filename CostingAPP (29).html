@@ -376,10 +376,10 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <div class="stat-value" id="dash-submitted">SAR 0</div>
         <div class="stat-sub" id="dash-sub-c">0 pending</div>
       </div>
-      <div class="stat-card red" style="cursor:pointer" onclick="openPipelineFiltered('Canceled')">
-        <div class="stat-label">🚫 Canceled</div>
+      <div class="stat-card red" style="cursor:pointer" onclick="openPipelineFiltered('out')">
+        <div class="stat-label">🚫 Out</div>
         <div class="stat-value" id="dash-canceled-val">SAR 0</div>
-        <div class="stat-sub" id="dash-canceled-count">0 canceled</div>
+        <div class="stat-sub" id="dash-canceled-count">0 projects</div>
       </div>
     </div>
 
@@ -410,45 +410,17 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
     <div style="display:grid;grid-template-columns:1fr 200px 1fr;gap:14px">
 
       <!-- Pipeline Status Chart -->
-      <div class="card">
-        <div class="card-header"><div class="card-title">Pipeline by Status</div></div>
-        <div class="card-body">
-          <canvas id="dash-status-chart" style="max-height:200px"></canvas>
-          <div id="dash-by-status" style="margin-top:12px"></div>
-        </div>
-      </div>
+      
 
       <!-- Donut Chart -->
-      <div class="card" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
-        <div class="card-header" style="width:100%"><div class="card-title">Win / Out</div></div>
-        <div class="card-body" style="display:flex;align-items:center;justify-content:center;width:100%">
-          <canvas id="dash-donut-chart" style="max-width:140px;max-height:140px"></canvas>
-        </div>
-        <div id="dash-donut-legend" style="font-size:11px;color:var(--muted);text-align:center;padding:0 12px 12px"></div>
-      </div>
+      
 
       <!-- Upcoming Deadlines -->
-      <div class="card">
-        <div class="card-header"><div class="card-title">⏰ Upcoming Deadlines</div></div>
-        <div class="card-body" id="dash-deadlines"></div>
-      </div>
+      
 
     </div>
 
-    <!-- Row 4: Top Projects + Recent Quotations -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
-      <div class="card">
-        <div class="card-header"><div class="card-title">🏆 Top Projects by Value</div></div>
-        <div class="card-body" id="dash-top-projects"></div>
-      </div>
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">Recent Quotations</div>
-          <button class="btn btn-ghost btn-xs" onclick="showPage('quotation')">View all →</button>
-        </div>
-        <div class="card-body" id="dash-recent" style="max-height:280px;overflow-y:auto"></div>
-      </div>
-    </div>
+
 
   </div>
 
@@ -738,7 +710,10 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
       <div class="card">
         <div class="card-header">
           <div class="card-title">📦 Backups Management</div>
-          <button class="btn btn-primary btn-sm" onclick="createBackup()">+ Create Backup</button>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-secondary btn-sm" onclick="loadBackupsList()" title="Refresh backups list">🔄 Refresh</button>
+            <button class="btn btn-primary btn-sm" onclick="createBackup()">+ Create Backup</button>
+          </div>
         </div>
         <div class="card-body">
           <div id="backups-list" style="max-height:300px;overflow-y:auto">
@@ -1309,8 +1284,55 @@ async function autoBackupToSupabase() {
   }, 2000);
 }
 
-// Subscribe to real-time (disabled in iframe — LockManager blocked)
-async function subscribeToRealtimeUpdates() {
+let _realtimeChannel=null;
+
+function subscribeToRealtimeUpdates() {
+  if(!supabaseClient||!S.currentCompanyId) return;
+  // Unsubscribe previous channel
+  if(_realtimeChannel){
+    supabaseClient.removeChannel(_realtimeChannel);
+    _realtimeChannel=null;
+  }
+  _realtimeChannel=supabaseClient
+    .channel('shared-data-'+S.currentCompanyId)
+    .on('postgres_changes',{
+      event:'UPDATE',
+      schema:'public',
+      table:getTableShared(),
+      filter:'company_id=eq.'+S.currentCompanyId
+    },function(payload){
+      if(!payload.new||!payload.new.data) return;
+      const remote=payload.new.data;
+      // Don't apply if we just saved (avoid echo)
+      if(remote.lastModified&&remote.lastModified===S.lastModified) return;
+      const user=getCurrentUser();
+      const updatedBy=payload.new.updated_by||'';
+      if(user&&updatedBy===user.email) return; // our own save
+      console.log('[Real-time] Update from:',updatedBy);
+      // Merge remote into local
+      S.quotations = _mergeArrayById(S.quotations, remote.quotations);
+      S.pipeline   = _mergeArrayById(S.pipeline,   remote.pipeline);
+      S.pos        = _mergeArrayById(S.pos,        remote.pos);
+      S.invoices   = _mergeArrayById(S.invoices,   remote.invoices);
+      S.boqs       = _mergeArrayById(S.boqs,       remote.boqs);
+      S.clients    = _mergeArrayById(S.clients,    remote.clients);
+      S.suppliers  = _mergeArrayById(S.suppliers,  remote.suppliers);
+      S.lastModified = remote.lastModified;
+      // Refresh UI silently
+      try{renderPipeline();}catch(e){}
+      try{updateDashboard();}catch(e){}
+      try{renderVE();}catch(e){}
+      try{if(typeof renderInvoiceTable==='function')renderInvoiceTable();}catch(e){}
+      showToast&&showToast('🔄 Data updated by '+updatedBy,'info');
+    })
+    .subscribe(function(status){
+      console.log('[Real-time] Status:',status);
+    });
+  console.log('[Real-time] Subscribed to',getTableShared());
+}
+
+// OLD disabled version replaced above
+async function _subscribeToRealtimeUpdates_disabled() {
   console.log('✓ Real-time sync active (polling mode)');
   // Poll every 30s as fallback
   setInterval(async () => {
@@ -1408,27 +1430,34 @@ async function createAutomaticBackup(type='daily'){
     const description=type==='daily'
       ?`نسخة يومية تلقائية - ${new Date().toLocaleDateString('ar-SA')}`
       :`نسخة ذكية - قبل تغييرات كبيرة`;
-    // Reduce payload: strip item details to avoid timeout
+    // Backup with full quotation data but compressed
     const _bkData={
-      currentCompanyId:S.currentCompanyId,
-      companies:S.companies,
-      pipeline:S.pipeline,
-      quotations:(S.quotations||[]).map(q=>({id:q.id,num:q.num,status:q.status,date:q.date,client:q.client,project:q.project,total:(typeof qSellWithVAT==='function'?qSellWithVAT(q):q.total)||0,pipelineId:q.pipelineId,companyId:q.companyId})),
-      settings:S.settings,
-      users:S.users,
-      clients:S.clients,
-      suppliers:S.suppliers,
-      lastModified:S.lastModified,
-      activeQId:null
+      currentCompanyId: S.currentCompanyId,
+      companies:        S.companies,
+      pipeline:         S.pipeline,
+      quotations:       S.quotations,
+      boqs:             S.boqs,
+      invoices:         S.invoices,
+      pos:              S.pos,
+      clients:          S.clients,
+      suppliers:        S.suppliers,
+      users:            S.users,
+      settings:         S.settings,
+      lastModified:     S.lastModified,
+      activeQId:        null
     };
-    await sbInsert(bkTable,{
-      company_id:S.currentCompanyId,
-      data:_bkData,
-      created_by:user?.email||'system',
-      description:description,
-      backup_date:new Date().toISOString().split('T')[0],
-      backup_type:type
-    });
+    // Use upsert with date as conflict key to avoid duplicate daily backups
+    const _bkKey=`${S.currentCompanyId}_${type}_${new Date().toISOString().split('T')[0]}`;
+    await sbUpsert(bkTable,{
+      id:             _bkKey,
+      company_id:     S.currentCompanyId,
+      data:           _bkData,
+      created_by:     user?.email||'system',
+      description:    description,
+      backup_date:    new Date().toISOString().split('T')[0],
+      backup_type:    type,
+      updated_at:     new Date().toISOString()
+    },'id');
     console.log(`✓ ${type} backup created`);
     showBackupNotification(type);
     cleanupOldBackups();
@@ -2437,11 +2466,11 @@ function updateDashboard(){
   document.getElementById('dash-lead-val').textContent='SAR '+fmt(leadAmt);
   document.getElementById('dash-lead-count').textContent=leadItems.length+' leads';
 
-  // Canceled quotations KPI
-  const canceledQ=(S.quotations||[]).filter(q=>q.companyId===S.currentCompanyId&&q.status==='Canceled');
-  const canceledVal=canceledQ.reduce((s,q)=>s+(typeof qSellWithVAT==='function'?qSellWithVAT(q):0),0);
-  document.getElementById('dash-canceled-val').textContent='SAR '+fmt(canceledVal);
-  document.getElementById('dash-canceled-count').textContent=canceledQ.length+' canceled';
+  // Out pipeline projects KPI
+  const outItems=pl.filter(r=>r.status==='out');
+  const outAmt=outItems.reduce((s,r)=>s+getPipelineAmount(r),0);
+  document.getElementById('dash-canceled-val').textContent='SAR '+fmtN(outAmt);
+  document.getElementById('dash-canceled-count').textContent=outItems.length+' projects';
   var _dc=document.getElementById('dash-cost'); if(_dc) _dc.textContent=fmt(qCostTotalV);
   var _dcs=document.getElementById('dash-cost-sub'); if(_dcs) _dcs.textContent='from '+latestQ.length+' quotations';
 
@@ -4948,9 +4977,16 @@ function saveSupabaseConfig(){
   S.settings.supabase.tableShared=document.getElementById('supabase-table-shared').value.trim()||'ftag_shared';
   S.settings.supabase.tableBackups=document.getElementById('supabase-table-backups').value.trim()||'ftag_backups';
   if(S.settings.supabase.url&&S.settings.supabase.key){
-    supabaseClient=null; // REST mode — no JS client needed
+    // Initialize Supabase JS client for real-time
+    if(window.supabase&&S.settings.supabase.url&&S.settings.supabase.key){
+      try{
+        supabaseClient=window.supabase.createClient(S.settings.supabase.url,S.settings.supabase.key);
+        console.log('[Supabase] JS client initialized for real-time');
+      }catch(e){console.warn('[Supabase] Client init failed:',e);}
+    }
     subscribeToRealtimeUpdates();
     scheduleDailyBackup();
+  subscribeToRealtimeUpdates();
   }
   save();
   alert('Supabase config saved! ✓\n\nYou can now share this configuration with other devices using "Copy Config" button.');
@@ -6273,6 +6309,391 @@ if (_portalBridgePending) {
 
 
 </script>
+
+<!-- PROJECT QUOTATIONS MODAL -->
+<div class="modal-overlay" id="modal-proj-qtns" style="z-index:500">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="projqtn-title">Project Quotations</div>
+        <div id="projqtn-ref" style="font-size:18px;font-weight:800;color:var(--accent);margin-top:2px;display:none"></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px" id="projqtn-sub"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-proj-qtns')">✕</button>
+    </div>
+    <div style="padding:16px 20px">
+      <div id="projqtn-list" style="display:flex;flex-direction:column;gap:10px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-proj-qtns')">Close</button>
+      <div style="position:relative;display:inline-block" id="add-qtn-wrap">
+        <button class="btn btn-primary" onclick="toggleAddQtnDropdown()">+ Add Quotation ▾</button>
+        <div id="add-qtn-dropdown" style="display:none;position:absolute;bottom:110%;right:0;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:190px;z-index:10;overflow:hidden">
+          <div onclick="closeModal('modal-proj-qtns');newQuotation();hideAddQtnDropdown()" style="padding:11px 16px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+            ✨ New Quotation
+          </div>
+          <div onclick="openAddFromExistingQtn();hideAddQtnDropdown()" style="padding:11px 16px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--border)" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+            📋 Add Existing
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- QUOTATION FORM MODAL -->
+<div class="modal-overlay" id="modal-quotation-form" style="z-index:300;padding:0;align-items:stretch;justify-content:stretch">
+  <div style="background:var(--surface);width:100%;height:100%;overflow:auto;position:relative;display:flex;flex-direction:column">
+    <!-- Close button -->
+    <button onclick="closeQModal()" style="position:fixed;top:16px;right:20px;z-index:999;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:6px 14px;cursor:pointer;font-size:13px;color:var(--text)">✕ Close</button>
+    <!-- Quotation form content -->
+    <div style="padding:20px;flex:1">
+      <div id="q-form">
+          <div class="card" style="margin-bottom:18px">
+            <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+              <div style="display:flex;align-items:center;gap:12px">
+                <div>
+                  <div style="font-size:15px;font-weight:700;color:var(--text)" id="qf-title">Untitled</div>
+                  <div style="font-size:13px;color:var(--muted);margin-top:2px" id="qf-subtitle">No project</div>
+                </div>
+                <div class="badge badge-draft" id="qf-version-badge">v1</div>
+                <div id="qf-lock-badge" style="display:none" class="lock-indicator">🔒 Locked</div>
+              </div>
+              <div style="display:flex;gap:6px" class="no-print">
+                <button class="btn btn-ghost btn-sm" onclick="newVersion()">📋 Version</button>
+                <button class="btn btn-ghost btn-sm" onclick="duplicateQ()">📑 Duplicate</button>
+                <button class="btn btn-warning btn-sm" id="lock-btn" onclick="toggleLock()" style="display:none">🔓 Unlock</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteQ()">🗑 Delete</button>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-body">
+              <div class="tabs" id="q-tabs">
+                <div class="tab active" onclick="switchQTab(this,'qtab-info')">Info</div>
+                <div class="tab" onclick="switchQTab(this,'qtab-documents')">Documents</div>
+                <div class="tab" onclick="switchQTab(this,'qtab-costing')">Costing</div>
+                <div class="tab" onclick="switchQTab(this,'qtab-pricing')">Pricing</div>
+                <div class="tab" onclick="switchQTab(this,'qtab-terms')">Terms & Payment</div>
+                <div class="tab" onclick="switchQTab(this,'qtab-costsell')">Cost-Sell</div>
+
+              </div>
+
+              <!-- INFO TAB -->
+              <div id="qtab-info">
+                <!-- Basic Information Section -->
+                <div class="modern-card">
+                  <div class="card-section-header">
+                    <div class="section-icon">📋</div>
+                    <div class="section-title">Basic Information</div>
+                  </div>
+                  <div class="form-grid">
+                    <div class="field">
+                      <label>Quotation Number</label>
+                      <select id="q-num" onchange="autofillFromPipeline()"></select>
+                    </div>
+                    <div class="field"><label>Version</label><input id="q-version" placeholder="v1.0" onchange="saveQ()"></div>
+                    <div class="field"><label>Submission Date</label><input type="date" id="q-date" onchange="saveQ()"></div>
+                    <div class="field">
+                      <label>Status</label>
+                      <select id="q-status" onchange="saveQ()">
+                        <option>Draft</option><option>Lead</option><option>Submitted</option><option>Approved</option><option>in pricing</option><option>out</option><option>Canceled</option>
+                      </select>
+                    </div>
+                    <div class="field"><label>Quoted By</label><select id="q-by" onchange="saveQ()"></select></div>
+                  </div>
+                </div>
+
+                <!-- Project Details Section -->
+                <div class="modern-card">
+                  <div class="card-section-header">
+                    <div class="section-icon">🏗️</div>
+                    <div class="section-title">Project Details</div>
+                  </div>
+                  <div class="form-grid">
+                    <div class="field field-full"><label>Project Name</label><input id="q-project" placeholder="Enter project name..." onchange="saveQ()"></div>
+                    <div class="field"><label>Client</label><input id="q-client" placeholder="Client name..." onchange="saveQ()"></div>
+                    <div class="field"><label>Client Contact</label><input id="q-client-phone" placeholder="Phone number..." onchange="saveQ()"></div>
+                    <div class="field"><label>Address</label><input id="q-addr" placeholder="Location..." onchange="saveQ()"></div>
+                    <div class="field">
+                      <label>System Type</label>
+                      <select id="q-system" onchange="saveQ()">
+                        <option>CCTV</option><option>Security</option><option>Supplies</option><option>Fire Alarm</option><option>AV System</option><option>IT Network</option><option>Other</option>
+                      </select>
+                    </div>
+                    <div class="field"><label>Tender Reference</label><input id="q-tenderref" placeholder="Ref..." onchange="saveQ()"></div>
+                  </div>
+                </div>
+
+                <!-- Commercial Terms Section -->
+                <div class="modern-card">
+                  <div class="card-section-header">
+                    <div class="section-icon">💼</div>
+                    <div class="section-title">Commercial Terms</div>
+                  </div>
+                  <div class="form-grid">
+                    <div class="field"><label>Validity Period</label><input id="q-validity" placeholder="90 days" onchange="saveQ()"></div>
+                    <div class="field"><label>VAT %</label><input type="number" id="q-vat" value="15" min="0" max="100" onchange="saveQ()"></div>
+                    <div class="field"><label>Project Value (incl. VAT)</label><input type="number" id="q-project-value" placeholder="Enter or auto-calculated" onchange="saveQ()"></div>
+                    <div class="field"><label>Payment Terms</label><input id="q-payment-terms" placeholder="As per schedule" onchange="saveQ()"></div>
+                  </div>
+                </div>
+
+                <!-- Timeline Section -->
+                <div class="modern-card">
+                  <div class="card-section-header">
+                    <div class="section-icon">📅</div>
+                    <div class="section-title">Project Timeline</div>
+                  </div>
+                  <div class="form-grid">
+                    <div class="field"><label>Duration</label><input id="q-duration" placeholder="e.g., 6 months" onchange="saveQ()"></div>
+                    <div class="field"><label>Delivery Time</label><input id="q-delivery" placeholder="270 days from site handover" onchange="saveQ()"></div>
+                    <div class="field"><label>Implementation Period</label><input id="q-impl" placeholder="30 days from site handover" onchange="saveQ()"></div>
+                  </div>
+                </div>
+
+                <!-- Additional Information Section -->
+                <div class="modern-card">
+                  <div class="card-section-header">
+                    <div class="section-icon">📝</div>
+                    <div class="section-title">Additional Information</div>
+                  </div>
+                  <div class="form-grid">
+                    <div class="field field-full"><label>Scope of Work</label><textarea id="q-scope" rows="3" placeholder="Describe the project scope..." onchange="saveQ()"></textarea></div>
+                    <div class="field field-full"><label>Notes</label><textarea id="q-notes" rows="3" placeholder="Additional notes..." onchange="saveQ()"></textarea></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- DOCUMENTS TAB -->
+              <div id="qtab-documents" style="display:none">
+                <div style="margin-bottom:14px">
+                  <label class="btn btn-primary btn-sm" style="cursor:pointer">
+                    📎 Upload PDF Document (Max 5MB)
+                    <input type="file" accept=".pdf" style="display:none" onchange="handleDocUpload(event)">
+                  </label>
+                </div>
+                <div class="doc-list" id="doc-list"></div>
+              </div>
+
+              <!-- COSTING TAB -->
+              <div id="qtab-costing" style="display:none">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px" class="no-print">
+                  <div style="display:flex;gap:8px">
+                    <button class="btn btn-accent btn-sm" onclick="exportCostingPDF()">📄 Export BOQ (PDF)</button>
+                    <button class="btn btn-accent btn-sm" onclick="exportCostingExcel()">📊 Export BOQ (Excel)</button>
+                  </div>
+                  <div style="display:flex;gap:8px">
+                    <button class="btn btn-ghost btn-sm" onclick="importExcelItems()" title="Import full costing (Main+Sub items with all columns)">📥 Import Full</button>
+                    <button class="btn btn-ghost btn-sm" onclick="importMainItemsOnly()" title="Import main items only: Description / Qty / Unit / Notes">📋 Import Items</button>
+                    <button class="btn btn-ghost btn-sm" onclick="downloadImportTemplate()" title="Download Excel template with correct format">📋 Template</button>
+                    <button class="btn btn-primary btn-sm" onclick="addMainItem()">+ Add Item</button>
+                  </div>
+                  <input type="file" id="excel-import-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleExcelImport(event)">
+                </div>
+                <div id="cost-items-wrap"></div>
+                <div class="totals-bar" id="costing-totals"></div>
+              </div>
+
+              <!-- PRICING TAB -->
+              <div id="qtab-pricing" style="display:none">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap" class="no-print">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <label style="font-size:13px;font-weight:600">Profit %</label>
+                    <input type="number" id="profit-pct" value="25" min="0" max="100" step="5" style="width:70px;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:13px" onchange="saveQ();renderPricingTab()">
+                  </div>
+                  <div class="checkbox-field">
+                    <input type="checkbox" id="show-prices" onchange="renderPricingTab()">
+                    <label style="font-size:13px;margin:0">Show Prices</label>
+                  </div>
+                  <div style="margin-left:auto;display:flex;gap:8px">
+                    <button class="btn btn-ghost btn-sm" onclick="exportPricingPDF()">⬇ PDF</button>
+                    <button class="btn btn-ghost btn-sm" onclick="exportPricingPDF(true)">⬇ عربي</button>
+                    <button class="btn btn-ghost btn-sm" onclick="exportPricingPDF()">🖨 Print</button>
+                  </div>
+                </div>
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>#</th><th>Part #</th><th>Description</th><th>Unit</th><th>Qty</th><th>Cost Unit</th><th>Cost Total</th><th>Sell Unit</th><th>Sell Total</th><th>Optional</th></tr></thead>
+                    <tbody id="pricing-tbody"></tbody>
+                  </table>
+                </div>
+                <div class="totals-bar" id="pricing-totals"></div>
+              </div>
+
+              <!-- TERMS & PAYMENT -->
+              <div id="qtab-terms" style="display:none">
+                <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px" class="no-print">
+                  <button class="btn btn-ghost btn-sm" onclick="exportPaymentPDF()">⬇ PDF</button>
+                  <button class="btn btn-primary btn-sm" onclick="addPayRow()">+ Add Payment</button>
+                </div>
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>#</th><th>Milestone</th><th>%</th><th>Due Date</th><th>Amount (SAR)</th><th class="no-print"></th></tr></thead>
+                    <tbody id="pay-tbody"></tbody>
+                  </table>
+                </div>
+                <div class="totals-bar">
+                  <div class="total-item"><div class="total-label">% Allocated</div><div class="total-value" id="pay-pct-total" style="font-size:15px">0%</div></div>
+                  <div class="total-item"><div class="total-label">Total</div><div class="total-value tv-green" id="pay-total">SAR 0</div></div>
+                  <div class="total-item"><div class="total-label">Grand Total</div><div class="total-value tv-blue" id="pay-linked">SAR 0</div></div>
+                </div>
+              </div>
+
+              <!-- COST-SELL -->
+              <div id="qtab-costsell" style="display:none">
+                <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px" class="no-print">
+                  <button class="btn btn-ghost btn-sm" onclick="exportCostSellPDF()">⬇ PDF</button>
+                  <button class="btn btn-ghost btn-sm" onclick="exportCostSellPDF()">🖨 Print</button>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px">
+                  <div class="card">
+                    <div class="card-header"><div class="card-title">Cost by Type</div></div>
+                    <div class="card-body">
+                      <div class="chart-container"><canvas id="chart-by-type"></canvas></div>
+                      <div class="table-wrap" style="margin-top:12px">
+                        <table id="table-by-type">
+                          <thead><tr><th>Type</th><th>Amount (SAR)</th><th>% of Total</th></tr></thead>
+                          <tbody></tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="card">
+                    <div class="card-header"><div class="card-title">Cost by Vendor</div></div>
+                    <div class="card-body">
+                      <div class="chart-container"><canvas id="chart-by-vendor"></canvas></div>
+                      <div class="table-wrap" style="margin-top:12px">
+                        <table id="table-by-vendor">
+                          <thead><tr><th>Vendor</th><th>Amount (SAR)</th><th>% of Total</th><th class="no-print">Export</th></tr></thead>
+                          <tbody></tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 320px;gap:18px">
+                  <div>
+                    <div class="card">
+                      <div class="card-header"><div class="card-title">Cost vs Sell Summary</div></div>
+                      <div class="card-body"><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px" id="cs-summary-grid"></div></div>
+                    </div>
+                  </div>
+                  
+                </div>
+              </div>
+
+              <!-- TECHNICAL EVALUATION -->
+              
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+    </div>
+  </div>
+</div>
+
+<!-- NEW QUOTATION WIZARD -->
+<div class="modal-overlay" id="modal-new-q-wizard" style="z-index:600">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="wizard-step-title">New Quotation — Step 1 of 5</div>
+        <div style="font-size:11px;color:var(--muted)" id="wizard-step-sub">Quotation Info</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-new-q-wizard')">✕</button>
+    </div>
+    <!-- Progress bar -->
+    <div style="display:flex;gap:2px;padding:0 24px;margin-top:2px">
+      <div id="wiz-step-1" style="flex:1;height:4px;border-radius:4px 0 0 0;background:var(--accent);transition:.3s"></div>
+      <div id="wiz-step-2" style="flex:1;height:4px;background:var(--border);transition:.3s"></div>
+      <div id="wiz-step-3" style="flex:1;height:4px;background:var(--border);transition:.3s"></div>
+      <div id="wiz-step-4" style="flex:1;height:4px;background:var(--border);transition:.3s"></div>
+      <div id="wiz-step-5" style="flex:1;height:4px;border-radius:0 4px 0 0;background:var(--border);transition:.3s"></div>
+    </div>
+
+    <!-- Step 1: Quotation Info -->
+    <div id="wiz-body-1" style="padding:20px 24px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px">📋 Quotation Info</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div class="field" style="margin:0"><label>Pipeline / QTN Ref</label><select id="wiz-num" style="font-size:13px"><option value="">— New (auto) —</option></select></div>
+        <div class="field" style="margin:0"><label>Version</label><input id="wiz-version" placeholder="v1" style="font-size:13px" value="v1"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div class="field" style="margin:0"><label>Submission Date</label><input type="date" id="wiz-date" style="font-size:13px"></div>
+        <div class="field" style="margin:0"><label>Status</label><select id="wiz-status" style="font-size:13px"><option>Draft</option><option>Lead</option><option>in pricing</option><option>Submitted</option><option>Approved</option><option>out</option><option>Canceled</option></select></div>
+      </div>
+      <div class="field" style="margin:0"><label>Quoted By</label><select id="wiz-by" style="font-size:13px"><option value="">— Select —</option></select></div>
+    </div>
+
+    <!-- Step 2: Client & Project -->
+    <div id="wiz-body-2" style="padding:20px 24px;display:none">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px">🏢 Client & Project</div>
+      <div class="field" style="margin-bottom:12px"><label>Project Name *</label><input id="wiz-project" placeholder="e.g. CCTV System Supply & Installation" style="font-size:13px"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div class="field" style="margin:0"><label>Client *</label><input id="wiz-client" placeholder="Client name" list="client-datalist" style="font-size:13px"></div>
+        <div class="field" style="margin:0"><label>Client Contact</label><input id="wiz-client-phone" placeholder="Phone / email" style="font-size:13px"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="field" style="margin:0"><label>Address / Location</label><input id="wiz-addr" placeholder="City, district..." style="font-size:13px"></div>
+        <div class="field" style="margin:0"><label>Tender Reference</label><input id="wiz-tenderref" placeholder="Ref No." style="font-size:13px"></div>
+      </div>
+    </div>
+
+    <!-- Step 3: Technical -->
+    <div id="wiz-body-3" style="padding:20px 24px;display:none">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px">⚙️ Technical Details</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div class="field" style="margin:0"><label>System Type</label>
+          <select id="wiz-system" style="font-size:13px">
+            <option value="">— Select —</option>
+            <option>CCTV</option><option>Access Control</option><option>Fire Alarm</option><option>Intercom</option><option>Structured Cabling</option><option>Audio Visual</option><option>LED Screen</option><option>Other</option>
+          </select>
+        </div>
+        <div class="field" style="margin:0"><label>Duration</label><input id="wiz-duration" placeholder="e.g. 6 Weeks" style="font-size:13px"></div>
+      </div>
+      <div class="field" style="margin-bottom:12px"><label>Delivery Time</label><input id="wiz-delivery" placeholder="e.g. 270 days from site handover" style="font-size:13px"></div>
+      <div class="field" style="margin:0"><label>Scope of Work</label><textarea id="wiz-scope" rows="4" placeholder="Describe the project scope..." style="font-size:13px;resize:none"></textarea></div>
+    </div>
+
+    <!-- Step 4: Commercial -->
+    <div id="wiz-body-4" style="padding:20px 24px;display:none">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px">💼 Commercial Terms</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div class="field" style="margin:0"><label>Validity Period</label><input id="wiz-validity" placeholder="90 days" style="font-size:13px"></div>
+        <div class="field" style="margin:0"><label>VAT %</label><input id="wiz-vat" type="number" value="15" min="0" max="100" style="font-size:13px"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div class="field" style="margin:0"><label>Payment Terms</label><input id="wiz-payment" placeholder="e.g. 30 days net" style="font-size:13px"></div>
+        <div class="field" style="margin:0"><label>Project Value (incl. VAT)</label><input id="wiz-project-value" type="number" placeholder="Auto-calculated" style="font-size:13px"></div>
+      </div>
+      <div class="field" style="margin:0"><label>Warranty</label><input id="wiz-warranty" placeholder="e.g. 1 Year" style="font-size:13px"></div>
+    </div>
+
+    <!-- Step 5: Notes & Summary -->
+    <div id="wiz-body-5" style="padding:20px 24px;display:none">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px">📝 Notes & Summary</div>
+      <div class="field" style="margin-bottom:14px"><label>Notes / Exclusions</label><textarea id="wiz-notes" rows="3" placeholder="Any exclusions or special terms..." style="font-size:13px;resize:none"></textarea></div>
+      <div style="background:var(--surface2);border-radius:10px;padding:14px 16px;font-size:12px">
+        <div style="font-weight:700;margin-bottom:8px;color:var(--accent)">✅ Summary</div>
+        <div id="wiz-summary" style="color:var(--text);line-height:2;display:grid;grid-template-columns:1fr 1fr;gap:2px 16px"></div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button id="wiz-btn-back" class="btn btn-secondary" onclick="wizStep(-1)" style="display:none">← Back</button>
+      <button class="btn btn-secondary" onclick="closeModal('modal-new-q-wizard')">Cancel</button>
+      <button id="wiz-btn-next" class="btn btn-primary" onclick="wizStep(1)">Next →</button>
+    </div>
+  </div>
+</div>
+
+</body>
+    return '<div style="display:grid;grid-template-columns:1fr 1fr 120px 130px 160px auto;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;cursor:pointer" onclick="window.__veOpen(this.dataset.vid)" data-vid="'+r.id+'">'+
+
 
 <!-- PROJECT QUOTATIONS MODAL -->
 <div class="modal-overlay" id="modal-proj-qtns" style="z-index:500">
