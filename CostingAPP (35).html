@@ -1369,16 +1369,16 @@ async function restoreLatestFromSupabase(){
         S.lastModified=remoteTime;
         _storage.setItem('ftag_v5_state',JSON.stringify(S));
         console.log('✓ Restored from shared database (remote newer)');
-        // Refresh UI safely — only after init() has run
-        try {
-          if(typeof renderPipeline==='function')renderPipeline();
-          if(typeof renderQList==='function')renderQList();
-          if(typeof populateQNumDropdown==='function')populateQNumDropdown();
-          if(typeof updateDashboard==='function')updateDashboard();
-          if(S.activeQId&&S.quotations.find(q=>q.id===S.activeQId)){
-            openQuotation(S.activeQId);
-          }
-        } catch(uiErr){ console.warn('UI refresh after restore:', uiErr.message); }
+        // Refresh UI safely after a short delay to ensure init() has completed
+        setTimeout(function(){
+          try{if(typeof renderPipeline==='function')renderPipeline();}catch(e){}
+          try{if(typeof renderQList==='function')renderQList();}catch(e){}
+          try{if(typeof populateQNumDropdown==='function')populateQNumDropdown();}catch(e){}
+          try{if(typeof updateDashboard==='function')updateDashboard();}catch(e){console.warn('Dashboard error:',e.message);}
+          try{
+            if(S.activeQId&&S.quotations.find(q=>q.id===S.activeQId))openQuotation(S.activeQId);
+          }catch(e){}
+        }, 500);
       } else {
         console.log('✓ Local data is current — skipping restore');
       }
@@ -4918,7 +4918,7 @@ function delBOQ(id){S.boq.items=S.boq.items.filter(i=>i.id!==id);renderBOQ();sav
 // Settings & Cloud
 async function exportData(){
   // Show loading
-  showToast&&showToast('جاري تصدير البيانات...','info');
+  if(typeof showNotification==='function') showNotification('جاري تصدير البيانات...','info');
   let dataToExport=S;
   // Try to fetch latest from Supabase first
   if(sbReady()){
@@ -4940,7 +4940,7 @@ async function exportData(){
   a.href=URL.createObjectURL(b);
   a.download='future-tag-backup-'+new Date().toISOString().slice(0,10)+'.json';
   a.click();
-  showToast&&showToast('✅ تم تصدير البيانات بنجاح','success');
+  if(typeof showNotification==='function') showNotification('✅ تم تصدير البيانات بنجاح','success');
 }
 
 function importData(e){
