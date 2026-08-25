@@ -1407,8 +1407,8 @@ function scheduleDailyBackup(){
     const minute=riyadhTime.getMinutes();
     const today=riyadhTime.toISOString().split('T')[0];
     
-    // Run backup at 8:00 PM Riyadh time (20:00)
-    if(hour===20&&minute===0&&lastBackupDate!==today){
+    // Run backup at 8:00 PM Riyadh time OR if not backed up today yet
+    if(lastBackupDate!==today&&(hour>=20||hour<2)){
       await createAutomaticBackup('daily');
       lastBackupDate=today;
     }
@@ -1448,8 +1448,9 @@ async function createAutomaticBackup(type='daily'){
     };
     // Use upsert with date as conflict key to avoid duplicate daily backups
     const _bkKey=`${S.currentCompanyId}_${type}_${new Date().toISOString().split('T')[0]}`;
-    await sbUpsert(bkTable,{
-      id:             _bkKey,
+    // Try upsert with 'key' column (common backup table schema)
+    const _row={
+      key:            _bkKey,
       company_id:     S.currentCompanyId,
       data:           _bkData,
       created_by:     user?.email||'system',
@@ -1457,7 +1458,18 @@ async function createAutomaticBackup(type='daily'){
       backup_date:    new Date().toISOString().split('T')[0],
       backup_type:    type,
       updated_at:     new Date().toISOString()
-    },'id');
+    };
+    // Use fetch directly with UPSERT
+    const _bkUrl=sbUrl()+'/rest/v1/'+bkTable+'?on_conflict=key';
+    const _bkRes=await fetch(_bkUrl,{
+      method:'POST',
+      headers:Object.assign({},sbHeaders(),{'Prefer':'resolution=merge-duplicates,return=minimal'}),
+      body:JSON.stringify(_row)
+    });
+    if(!_bkRes.ok){
+      const _err=await _bkRes.text();
+      throw new Error(_bkRes.status+': '+_err);
+    }
     console.log(`✓ ${type} backup created`);
     showBackupNotification(type);
     cleanupOldBackups();
@@ -2878,7 +2890,8 @@ function savePipelineItem(){
   if(window._plEditId){
     var r=S.pipeline.find(function(p){return p.id==window._plEditId;});
     if(r){
-      r.qtn=(document.getElementById('pm-qtn')||{}).value;
+      var _qtnVal=(document.getElementById('pm-qtn')||{}).value;
+      r.qtn=_qtnVal||r.qtn||''; // preserve existing qtn if select is empty
       r.printRef=((document.getElementById('pm-print-ref')||{}).value||'').trim()||r.qtn||'';
       r.ref=(document.getElementById('pm-ref')||{}).value||'';
       r.name=(document.getElementById('pm-name')||{}).value||'';
@@ -4903,7 +4916,32 @@ function updBOQ(id,key,val){const r=S.boq.items.find(i=>i.id===id);if(r){r[key]=
 function delBOQ(id){S.boq.items=S.boq.items.filter(i=>i.id!==id);renderBOQ();save();}
 
 // Settings & Cloud
-function exportData(){const b=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='future-tag-'+new Date().toISOString().slice(0,10)+'.json';a.click();}
+async function exportData(){
+  // Show loading
+  showToast&&showToast('جاري تصدير البيانات...','info');
+  let dataToExport=S;
+  // Try to fetch latest from Supabase first
+  if(sbReady()){
+    try{
+      const rows=await sbSelect(getTableShared(),{company_id:S.currentCompanyId});
+      if(rows&&rows.length&&rows[0].data){
+        dataToExport=rows[0].data;
+        console.log('[Export] Fetched latest from Supabase');
+      }
+    }catch(e){console.warn('[Export] Using local data:',e);}
+  }
+  const _export={
+    exportDate: new Date().toISOString(),
+    version: '1.0',
+    data: dataToExport
+  };
+  const b=new Blob([JSON.stringify(_export,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(b);
+  a.download='future-tag-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  showToast&&showToast('✅ تم تصدير البيانات بنجاح','success');
+}
 
 function importData(e){
   const f=e.target.files[0];if(!f)return;
