@@ -2473,7 +2473,7 @@ function updateDashboard(){
   const qCostTotalV = latestQ.reduce((s,q)=>s+(typeof qCostTotal==='function'?qCostTotal(q):0),0);
 
   // Lead KPI
-  const leadItems=filtered.filter(r=>r.status==='Lead');
+  const leadItems=pl.filter(r=>r.status==='Lead');
   const leadAmt=leadItems.reduce((s,r)=>s+(r.amount||0),0);
   document.getElementById('dash-lead-val').textContent='SAR '+fmt(leadAmt);
   document.getElementById('dash-lead-count').textContent=leadItems.length+' leads';
