@@ -1281,7 +1281,7 @@ async function autoBackupToSupabase() {
       console.error('Sync error:', err);
       updateSupabaseStatus(false);
     }
-  }, 2000);
+  }, 5000);
 }
 
 let _realtimeChannel=null;
