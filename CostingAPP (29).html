@@ -1470,6 +1470,8 @@ async function createAutomaticBackup(type='daily'){
 }
 
 // Show backup notification
+function showNotification(msg, type){ showBackupNotification(type||'save'); }
+
 function showBackupNotification(type){
   const notification=document.createElement('div');
   notification.className='sync-notification backup-notification';
