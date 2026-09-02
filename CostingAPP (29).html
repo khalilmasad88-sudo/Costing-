@@ -2981,14 +2981,14 @@ function getLatestSubmittedQ(row){
     return false;
   });
   if(!qs.length) return null;
-  // Priority 1: Submitted (latest)
+  // Priority 1: in pricing (latest)
+  var inPricing=qs.filter(function(q){return q.status==='in pricing';});
+  if(inPricing.length) return inPricing.reduce(function(a,b){return a.id>b.id?a:b;});
+  // Priority 2: Submitted (latest)
   var submitted=qs.filter(function(q){return q.status==='Submitted';});
   if(submitted.length) return submitted.reduce(function(a,b){return a.id>b.id?a:b;});
-  // Priority 2: Draft/in pricing (latest)
-  var draft=qs.filter(function(q){return q.status==='Draft'||q.status==='in pricing';});
-  if(draft.length) return draft.reduce(function(a,b){return a.id>b.id?a:b;});
-  // Priority 3: any latest
-  return qs.reduce(function(a,b){return a.id>b.id?a:b;});
+  // No in pricing or Submitted — return null
+  return null;
 }
 
 function getPipelineAmount(row){
