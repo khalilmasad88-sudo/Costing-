@@ -1323,7 +1323,7 @@ function subscribeToRealtimeUpdates() {
       try{updateDashboard();}catch(e){}
       try{renderVE();}catch(e){}
       try{if(typeof renderInvoiceTable==='function')renderInvoiceTable();}catch(e){}
-      showToast&&showToast('🔄 Data updated by '+updatedBy,'info');
+      showNotification&&showNotification('🔄 Data updated by '+updatedBy,'info');
     })
     .subscribe(function(status){
       console.log('[Real-time] Status:',status);
@@ -1369,16 +1369,16 @@ async function restoreLatestFromSupabase(){
         S.lastModified=remoteTime;
         _storage.setItem('ftag_v5_state',JSON.stringify(S));
         console.log('✓ Restored from shared database (remote newer)');
-        // Refresh UI safely — only after init() has run
-        try {
-          if(typeof renderPipeline==='function')renderPipeline();
-          if(typeof renderQList==='function')renderQList();
-          if(typeof populateQNumDropdown==='function')populateQNumDropdown();
-          if(typeof updateDashboard==='function')updateDashboard();
-          if(S.activeQId&&S.quotations.find(q=>q.id===S.activeQId)){
-            openQuotation(S.activeQId);
-          }
-        } catch(uiErr){ console.warn('UI refresh after restore:', uiErr.message); }
+        // Refresh UI safely after a short delay to ensure init() has completed
+        setTimeout(function(){
+          try{if(typeof renderPipeline==='function')renderPipeline();}catch(e){}
+          try{if(typeof renderQList==='function')renderQList();}catch(e){}
+          try{if(typeof populateQNumDropdown==='function')populateQNumDropdown();}catch(e){}
+          try{if(typeof updateDashboard==='function')updateDashboard();}catch(e){console.warn('Dashboard error:',e.message);}
+          try{
+            if(S.activeQId&&S.quotations.find(q=>q.id===S.activeQId))openQuotation(S.activeQId);
+          }catch(e){}
+        }, 500);
       } else {
         console.log('✓ Local data is current — skipping restore');
       }
@@ -1446,24 +1446,18 @@ async function createAutomaticBackup(type='daily'){
       lastModified:     S.lastModified,
       activeQId:        null
     };
-    // Use upsert with date as conflict key to avoid duplicate daily backups
-    const _bkKey=`${S.currentCompanyId}_${type}_${new Date().toISOString().split('T')[0]}`;
-    // Try upsert with 'key' column (common backup table schema)
+    // Insert backup row (no conflict handling — each backup is a new row)
     const _row={
-      key:            _bkKey,
-      company_id:     S.currentCompanyId,
-      data:           _bkData,
-      created_by:     user?.email||'system',
-      description:    description,
-      backup_date:    new Date().toISOString().split('T')[0],
-      backup_type:    type,
-      updated_at:     new Date().toISOString()
+      company_id:  S.currentCompanyId,
+      data:        _bkData,
+      created_by:  user?.email||'system',
+      description: description,
+      backup_date: new Date().toISOString().split('T')[0],
+      backup_type: type
     };
-    // Use fetch directly with UPSERT
-    const _bkUrl=sbUrl()+'/rest/v1/'+bkTable+'?on_conflict=key';
-    const _bkRes=await fetch(_bkUrl,{
+    const _bkRes=await fetch(sbUrl()+'/rest/v1/'+bkTable,{
       method:'POST',
-      headers:Object.assign({},sbHeaders(),{'Prefer':'resolution=merge-duplicates,return=minimal'}),
+      headers:Object.assign({},sbHeaders(),{'Prefer':'return=minimal'}),
       body:JSON.stringify(_row)
     });
     if(!_bkRes.ok){
@@ -2439,12 +2433,12 @@ function updateDashboard(){
   const subAmt  = sub.reduce((s,r)=>s+getPipelineAmount(r),0);
   const inPrAmt = inPrice.reduce((s,r)=>s+getPipelineAmount(r),0);
 
-  document.getElementById('dash-total').textContent     = fmt(total);
-  document.getElementById('dash-count').textContent     = pl.length+' projects';
-  document.getElementById('dash-approved').textContent  = fmt(apprAmt);
-  document.getElementById('dash-approved-c').textContent= appr.length+' projects';
-  document.getElementById('dash-submitted').textContent = fmt(subAmt);
-  document.getElementById('dash-sub-c').textContent     = sub.length+' pending';
+  (document.getElementById('dash-total')||{}).textContent     = fmt(total);
+  (document.getElementById('dash-count')||{}).textContent     = pl.length+' projects';
+  (document.getElementById('dash-approved')||{}).textContent  = fmt(apprAmt);
+  (document.getElementById('dash-approved-c')||{}).textContent= appr.length+' projects';
+  (document.getElementById('dash-submitted')||{}).textContent = fmt(subAmt);
+  (document.getElementById('dash-sub-c')||{}).textContent     = sub.length+' pending';
   var _dip=document.getElementById('dash-inpricing'); if(_dip) _dip.textContent=inPrice.length;
   var _dipv=document.getElementById('dash-inpricing-val'); if(_dipv) _dipv.textContent=fmt(inPrAmt);
 
@@ -2457,8 +2451,8 @@ function updateDashboard(){
   // Win Rate = Approved / (Approved + Submitted + out)
   const resolved = appr.length + out.length;
   const winRate  = resolved > 0 ? Math.round(appr.length/resolved*100) : 0;
-  document.getElementById('dash-winrate').textContent     = winRate+'%';
-  document.getElementById('dash-winrate-sub').textContent = appr.length+' won / '+out.length+' lost';
+  (document.getElementById('dash-winrate')||{}).textContent     = winRate+'%';
+  (document.getElementById('dash-winrate-sub')||{}).textContent = appr.length+' won / '+out.length+' lost';
 
   // ── Latest Quotations ────────────────────────────────────────
   const allQ = S.quotations.filter(q=>!q.companyId||q.companyId===S.currentCompanyId);
@@ -2475,14 +2469,14 @@ function updateDashboard(){
   // Lead KPI
   const leadItems=pl.filter(r=>r.status==='Lead');
   const leadAmt=leadItems.reduce((s,r)=>s+(r.amount||0),0);
-  document.getElementById('dash-lead-val').textContent='SAR '+fmt(leadAmt);
-  document.getElementById('dash-lead-count').textContent=leadItems.length+' leads';
+  (document.getElementById('dash-lead-val')||{}).textContent='SAR '+fmt(leadAmt);
+  (document.getElementById('dash-lead-count')||{}).textContent=leadItems.length+' leads';
 
   // Out pipeline projects KPI
   const outItems=pl.filter(r=>r.status==='out');
   const outAmt=outItems.reduce((s,r)=>s+getPipelineAmount(r),0);
-  document.getElementById('dash-canceled-val').textContent='SAR '+fmtN(outAmt);
-  document.getElementById('dash-canceled-count').textContent=outItems.length+' projects';
+  (document.getElementById('dash-canceled-val')||{}).textContent='SAR '+fmtN(outAmt);
+  (document.getElementById('dash-canceled-count')||{}).textContent=outItems.length+' projects';
   var _dc=document.getElementById('dash-cost'); if(_dc) _dc.textContent=fmt(qCostTotalV);
   var _dcs=document.getElementById('dash-cost-sub'); if(_dcs) _dcs.textContent='from '+latestQ.length+' quotations';
 
@@ -2493,14 +2487,14 @@ function updateDashboard(){
     return sell>0?(sell-cost)/sell*100:0;
   });
   const avgMargin = margins.length>0 ? Math.round(margins.reduce((a,b)=>a+b,0)/margins.length) : 0;
-  document.getElementById('dash-margin').textContent     = avgMargin+'%';
-  document.getElementById('dash-margin-sub').textContent = 'avg across '+latestQ.length+' quotations';
+  (document.getElementById('dash-margin')||{}).textContent     = avgMargin+'%';
+  (document.getElementById('dash-margin-sub')||{}).textContent = 'avg across '+latestQ.length+' quotations';
 
   // ── Pipeline by Status list ───────────────────────────────────
   const byStatus={};
   pl.forEach(r=>{byStatus[r.status]=(byStatus[r.status]||0)+getPipelineAmount(r);});
   const statusColors={Approved:'var(--green)',Submitted:'var(--accent)','in pricing':'var(--amber)',out:'var(--muted)',Canceled:'var(--red)',Lead:'#a855f7',Draft:'var(--text2)',Evaluation:'#f97316','Value Engineering':'#06b6d4'};
-  document.getElementById('dash-by-status').innerHTML=Object.entries(byStatus)
+  (document.getElementById('dash-by-status')||{}).innerHTML=Object.entries(byStatus)
     .sort((a,b)=>b[1]-a[1])
     .map(([st,v])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
       <span style="color:${statusColors[st]||'var(--text2)'};font-size:13px">● ${st}</span>
@@ -2533,14 +2527,14 @@ function updateDashboard(){
       data:{labels:['Won','Lost'],datasets:[{data:[appr.length,out.length],backgroundColor:['#22c55e','#ef4444'],borderWidth:0,hoverOffset:4}]},
       options:{responsive:true,cutout:'65%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.label+': '+ctx.raw}}}}
     });
-    document.getElementById('dash-donut-legend').innerHTML=
+    (document.getElementById('dash-donut-legend')||{}).innerHTML=
       `<span style="color:var(--green)">✔ Won: ${appr.length}</span> &nbsp; <span style="color:var(--red)">✘ Lost: ${out.length}</span>`;
   } else if(donutEl){
-    document.getElementById('dash-donut-legend').innerHTML='<span style="color:var(--muted)">No resolved projects yet</span>';
+    (document.getElementById('dash-donut-legend')||{}).innerHTML='<span style="color:var(--muted)">No resolved projects yet</span>';
   }
 
   // ── Recent Quotations ─────────────────────────────────────────
-  document.getElementById('dash-recent').innerHTML=latestQ.slice(-8).reverse().map(q=>`
+  (document.getElementById('dash-recent')||{}).innerHTML=latestQ.slice(-8).reverse().map(q=>`
     <div style="padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="showPage('quotation');openQuotation(${q.id})">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:12px;font-weight:700;font-family:var(--mono);color:var(--accent)">${esc(q.num||'No #')}
@@ -2557,7 +2551,7 @@ function updateDashboard(){
   // ── Top Projects by Value ─────────────────────────────────────
   const topProjects=[...pl].sort((a,b)=>getPipelineAmount(b)-getPipelineAmount(a)).slice(0,6);
   const maxAmt=topProjects[0]?getPipelineAmount(topProjects[0])||1:1;
-  document.getElementById('dash-top-projects').innerHTML=topProjects.length?topProjects.map((r,i)=>{
+  (document.getElementById('dash-top-projects')||{}).innerHTML=topProjects.length?topProjects.map((r,i)=>{
     const pct=Math.round(getPipelineAmount(r)/maxAmt*100);
     const sc=({Approved:'var(--green)',Submitted:'var(--accent)','in pricing':'var(--amber)',out:'var(--muted)',Canceled:'var(--red)'}[r.status]||'var(--purple)');
     return`<div style="margin-bottom:10px">
@@ -2580,7 +2574,7 @@ function updateDashboard(){
     .map(r=>{const d=new Date(getPipelineDate(r));d.setHours(0,0,0,0);return{...r,_days:Math.ceil((d-today)/(864e5))};} )
     .filter(r=>r._days>=0)
     .sort((a,b)=>a._days-b._days).slice(0,10);
-  document.getElementById('dash-deadlines').innerHTML=upcoming.length?upcoming.map(r=>{
+  (document.getElementById('dash-deadlines')||{}).innerHTML=upcoming.length?upcoming.map(r=>{
     const color=r._days<0?'var(--red)':r._days<4?'#ef4444':r._days<=7?'var(--amber)':'var(--green)';
     const label=r._days<0?`⚠️ ${Math.abs(r._days)}d overdue`:r._days===0?'🔴 Today':r._days===1?'🟡 Tomorrow':`${r._days}d left`;
     return`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
@@ -2916,7 +2910,7 @@ function savePipelineItem(){
       try{renderPipeline();}catch(e){console.warn(e);}
       try{updateDashboard();}catch(e){console.warn(e);}
       try{renderVE();}catch(e){console.warn(e);}
-      if(r.status==='Approved'){showPage('ve');showToast&&showToast('✅ Project moved to Value Engineering');}
+      if(r.status==='Approved'){showPage('ve');showNotification&&showNotification('✅ Project moved to Value Engineering');}
     }
     return;
   }
@@ -2966,7 +2960,7 @@ function savePipelineItem(){
   if(_qLink) _newItem.quotationId=_qLink;
   if(window._teResult&&_plTechEval.length){_newItem.techEval=_plTechEval.slice();_newItem.teResult={score:window._teResult.score,pct:window._teResult.pct,pass:window._teResult.pass};}
   populateQNumDropdown();save();renderPipeline();updateDashboard();renderVE();closeModal('plModal');
-  if(_newItem.status==='Approved'){showPage('ve');showToast&&showToast('✅ Project moved to Value Engineering');}
+  if(_newItem.status==='Approved'){showPage('ve');showNotification&&showNotification('✅ Project moved to Value Engineering');}
 }
 
 function deletePipeline(id){if(!confirm('Remove?'))return;S.pipeline=S.pipeline.filter(r=>r.id!==id);save();renderPipeline();updateDashboard();}
@@ -3940,7 +3934,7 @@ function unlinkQtnFromProject(qId){
   save();
   if(typeof renderPipeline==='function') renderPipeline();
   openProjQtnsModal(_plId);
-  showToast&&showToast('Quotation removed from project');
+  showNotification&&showNotification('Quotation removed from project');
 }
 
 function statusColors(){
@@ -3961,7 +3955,7 @@ function updateQStatus(id, status){
   q.status=status;
   save();
   renderQList();
-  showToast&&showToast('Status updated: '+status);
+  showNotification&&showNotification('Status updated: '+status);
 }
 
 function closeQModal(){
@@ -4918,7 +4912,7 @@ function delBOQ(id){S.boq.items=S.boq.items.filter(i=>i.id!==id);renderBOQ();sav
 // Settings & Cloud
 async function exportData(){
   // Show loading
-  showToast&&showToast('جاري تصدير البيانات...','info');
+  try{showNotification('جاري تصدير البيانات...');}catch(e){}
   let dataToExport=S;
   // Try to fetch latest from Supabase first
   if(sbReady()){
@@ -4940,7 +4934,7 @@ async function exportData(){
   a.href=URL.createObjectURL(b);
   a.download='future-tag-backup-'+new Date().toISOString().slice(0,10)+'.json';
   a.click();
-  showToast&&showToast('✅ تم تصدير البيانات بنجاح','success');
+  try{showNotification('✅ تم تصدير البيانات بنجاح');}catch(e){}
 }
 
 function importData(e){
