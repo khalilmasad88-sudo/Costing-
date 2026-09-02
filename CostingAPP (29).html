@@ -1477,7 +1477,7 @@ function showBackupNotification(type){
     <div class="sync-icon">💾</div>
     <div class="sync-text">
       <strong>نسخة احتياطية</strong><br>
-      <small>${type==='daily'?'نسخة يومية':'نسخة ذكية'} تم حفظها</small>
+      <small>${type==='daily'?'نسخة يومية':type==='save'?'تم الحفظ':'نسخة ذكية'} تم حفظها</small>
     </div>
   `;
   document.body.appendChild(notification);
@@ -6387,7 +6387,7 @@ if (_portalBridgePending) {
                 <div class="tab" onclick="switchQTab(this,'qtab-terms')">Terms & Payment</div>
                 <div class="tab" onclick="switchQTab(this,'qtab-costsell')">Cost-Sell</div>
                 <div style="margin-left:auto;padding:0 8px">
-                  <button class="btn btn-primary btn-sm" onclick="saveQ();smartBackupCheck('saveQuotation');showNotification('Saved','success')">💾 Save</button>
+                  <button class="btn btn-primary btn-sm" onclick="saveQ();smartBackupCheck('saveQuotation');showBackupNotification('save')">💾 Save</button>
                 </div>
               </div>
 
@@ -6774,7 +6774,7 @@ if (_portalBridgePending) {
                 <div class="tab" onclick="switchQTab(this,'qtab-terms')">Terms & Payment</div>
                 <div class="tab" onclick="switchQTab(this,'qtab-costsell')">Cost-Sell</div>
                 <div style="margin-left:auto;padding:0 8px">
-                  <button class="btn btn-primary btn-sm" onclick="saveQ();smartBackupCheck('saveQuotation');showNotification('Saved','success')">💾 Save</button>
+                  <button class="btn btn-primary btn-sm" onclick="saveQ();smartBackupCheck('saveQuotation');showBackupNotification('save')">💾 Save</button>
                 </div>
               </div>
 
