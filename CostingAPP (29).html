@@ -1470,7 +1470,21 @@ async function createAutomaticBackup(type='daily'){
 }
 
 // Show backup notification
-function showNotification(msg, type){ showBackupNotification(type||'save'); }
+function showNotification(msg, type){ _showSaveToast(msg); }
+
+function _showSaveToast(msg){
+  var t=document.getElementById('_saveToast');
+  if(!t){
+    t=document.createElement('div');
+    t.id='_saveToast';
+    t.style.cssText='position:fixed;bottom:24px;right:24px;background:#22c55e;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,.2);transition:opacity .3s';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg||'✅ Saved';
+  t.style.opacity='1';
+  clearTimeout(t._timer);
+  t._timer=setTimeout(function(){t.style.opacity='0';},2500);
+}
 
 function showBackupNotification(type){
   const notification=document.createElement('div');
@@ -6389,7 +6403,7 @@ if (_portalBridgePending) {
                 <div class="tab" onclick="switchQTab(this,'qtab-terms')">Terms & Payment</div>
                 <div class="tab" onclick="switchQTab(this,'qtab-costsell')">Cost-Sell</div>
                 <div style="margin-left:auto;padding:0 8px">
-                  <button class="btn btn-primary btn-sm" onclick="saveQ();showBackupNotification('save');smartBackupCheck('saveQuotation')">💾 Save</button>
+                  <button class="btn btn-primary btn-sm" onclick="saveQ();_showSaveToast();smartBackupCheck('saveQuotation')">💾 Save</button>
                 </div>
               </div>
 
@@ -6776,7 +6790,7 @@ if (_portalBridgePending) {
                 <div class="tab" onclick="switchQTab(this,'qtab-terms')">Terms & Payment</div>
                 <div class="tab" onclick="switchQTab(this,'qtab-costsell')">Cost-Sell</div>
                 <div style="margin-left:auto;padding:0 8px">
-                  <button class="btn btn-primary btn-sm" onclick="saveQ();showBackupNotification('save');smartBackupCheck('saveQuotation')">💾 Save</button>
+                  <button class="btn btn-primary btn-sm" onclick="saveQ();_showSaveToast();smartBackupCheck('saveQuotation')">💾 Save</button>
                 </div>
               </div>
 
