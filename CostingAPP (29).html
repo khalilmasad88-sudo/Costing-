@@ -1287,6 +1287,7 @@ async function autoBackupToSupabase() {
 let _realtimeChannel=null;
 
 function subscribeToRealtimeUpdates() {
+  return; // disabled to reduce Supabase load
   if(!supabaseClient||!S.currentCompanyId) return;
   // Unsubscribe previous channel
   if(_realtimeChannel){
@@ -1407,8 +1408,8 @@ function scheduleDailyBackup(){
     const minute=riyadhTime.getMinutes();
     const today=riyadhTime.toISOString().split('T')[0];
     
-    // Run backup at 8:00 PM Riyadh time OR if not backed up today yet
-    if(lastBackupDate!==today&&(hour>=20||hour<2)){
+    // Run backup at 9:00 PM Riyadh time (21:00)
+    if(hour===21&&lastBackupDate!==today){
       await createAutomaticBackup('daily');
       lastBackupDate=today;
     }
@@ -1430,21 +1431,19 @@ async function createAutomaticBackup(type='daily'){
     const description=type==='daily'
       ?`نسخة يومية تلقائية - ${new Date().toLocaleDateString('ar-SA')}`
       :`نسخة ذكية - قبل تغييرات كبيرة`;
-    // Backup with full quotation data but compressed
+    // Smart backup — strip heavy sub-items to reduce size
+    const _isDaily = type==='daily';
     const _bkData={
       currentCompanyId: S.currentCompanyId,
       companies:        S.companies,
       pipeline:         S.pipeline,
-      quotations:       S.quotations,
-      boqs:             S.boqs,
-      invoices:         S.invoices,
-      pos:              S.pos,
-      clients:          S.clients,
-      suppliers:        S.suppliers,
-      users:            S.users,
-      settings:         S.settings,
-      lastModified:     S.lastModified,
-      activeQId:        null
+      // Full quotations for both daily and smart backups
+      quotations: S.quotations,
+      invoices:     S.invoices,
+      pos:          S.pos,
+      settings:     S.settings,
+      lastModified: S.lastModified,
+      activeQId:    null
     };
     // Insert backup row (no conflict handling — each backup is a new row)
     const _row={
@@ -1494,10 +1493,16 @@ function showBackupNotification(type){
 async function cleanupOldBackups(){
   if(!sbReady())return;
   try{
-    const thirtyDaysAgo=new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate()-30);
-    const r=await fetch(sbUrl()+'/rest/v1/'+getTableBackups()+'?company_id=eq.'+S.currentCompanyId+'&created_at=lt.'+encodeURIComponent(thirtyDaysAgo.toISOString()),{method:'DELETE',headers:Object.assign({},sbHeaders(),{'Prefer':'return=minimal'})});
-    if(r.ok)console.log('✓ Old backups cleaned up (>30 days)');
+    // Keep last 7 days only
+    const sevenDaysAgo=new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate()-7);
+    const r=await fetch(
+      sbUrl()+'/rest/v1/'+getTableBackups()
+      +'?company_id=eq.'+S.currentCompanyId
+      +'&created_at=lt.'+encodeURIComponent(sevenDaysAgo.toISOString()),
+      {method:'DELETE',headers:Object.assign({},sbHeaders(),{'Prefer':'return=minimal'})}
+    );
+    if(r.ok) console.log('✓ Old backups cleaned (>7 days)');
   }catch(err){console.error('Cleanup error:',err);}
 }
 
@@ -1517,6 +1522,15 @@ async function smartBackupCheck(changeType){
   };
   
   if(smartBackupTriggers[changeType]){
+    // Limit smart backups: max 3 per hour to avoid DB overload
+    const _now=Date.now();
+    if(!window._lastSmartBackup) window._lastSmartBackup=[];
+    window._lastSmartBackup=window._lastSmartBackup.filter(t=>_now-t<3600000);
+    if(window._lastSmartBackup.length>=3){
+      console.log('[Backup] Smart backup skipped — limit reached (3/hour)');
+      return;
+    }
+    window._lastSmartBackup.push(_now);
     await createAutomaticBackup('smart');
   }
 }
@@ -5009,13 +5023,7 @@ function saveSupabaseConfig(){
   S.settings.supabase.tableShared=document.getElementById('supabase-table-shared').value.trim()||'ftag_shared';
   S.settings.supabase.tableBackups=document.getElementById('supabase-table-backups').value.trim()||'ftag_backups';
   if(S.settings.supabase.url&&S.settings.supabase.key){
-    // Initialize Supabase JS client for real-time
-    if(window.supabase&&S.settings.supabase.url&&S.settings.supabase.key){
-      try{
-        supabaseClient=window.supabase.createClient(S.settings.supabase.url,S.settings.supabase.key);
-        console.log('[Supabase] JS client initialized for real-time');
-      }catch(e){console.warn('[Supabase] Client init failed:',e);}
-    }
+    // supabaseClient disabled (real-time not used)
     subscribeToRealtimeUpdates();
     scheduleDailyBackup();
   subscribeToRealtimeUpdates();
@@ -6371,14 +6379,16 @@ if (_portalBridgePending) {
           </div>
           <div class="card">
             <div class="card-body">
-              <div class="tabs" id="q-tabs">
+              <div class="tabs" id="q-tabs" style="display:flex;align-items:center">
                 <div class="tab active" onclick="switchQTab(this,'qtab-info')">Info</div>
                 <div class="tab" onclick="switchQTab(this,'qtab-documents')">Documents</div>
                 <div class="tab" onclick="switchQTab(this,'qtab-costing')">Costing</div>
                 <div class="tab" onclick="switchQTab(this,'qtab-pricing')">Pricing</div>
                 <div class="tab" onclick="switchQTab(this,'qtab-terms')">Terms & Payment</div>
                 <div class="tab" onclick="switchQTab(this,'qtab-costsell')">Cost-Sell</div>
-
+                <div style="margin-left:auto;padding:0 8px">
+                  <button class="btn btn-primary btn-sm" onclick="saveQ();smartBackupCheck('saveQuotation');showNotification('Saved','success')">💾 Save</button>
+                </div>
               </div>
 
               <!-- INFO TAB -->
@@ -6756,14 +6766,16 @@ if (_portalBridgePending) {
           </div>
           <div class="card">
             <div class="card-body">
-              <div class="tabs" id="q-tabs">
+              <div class="tabs" id="q-tabs" style="display:flex;align-items:center">
                 <div class="tab active" onclick="switchQTab(this,'qtab-info')">Info</div>
                 <div class="tab" onclick="switchQTab(this,'qtab-documents')">Documents</div>
                 <div class="tab" onclick="switchQTab(this,'qtab-costing')">Costing</div>
                 <div class="tab" onclick="switchQTab(this,'qtab-pricing')">Pricing</div>
                 <div class="tab" onclick="switchQTab(this,'qtab-terms')">Terms & Payment</div>
                 <div class="tab" onclick="switchQTab(this,'qtab-costsell')">Cost-Sell</div>
-
+                <div style="margin-left:auto;padding:0 8px">
+                  <button class="btn btn-primary btn-sm" onclick="saveQ();smartBackupCheck('saveQuotation');showNotification('Saved','success')">💾 Save</button>
+                </div>
               </div>
 
               <!-- INFO TAB -->
