@@ -1496,7 +1496,7 @@ async function cleanupOldBackups(){
   try{
     const thirtyDaysAgo=new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate()-30);
-    const r=await fetch(sbUrl()+'/rest/v1/'+getTableBackups()+'?company_id=eq.'+S.currentCompanyId+'&created_at=lt.'+encodeURIComponent(thirtyDaysAgo.toISOString()),{method:'DELETE',headers:sbHeaders()});
+    const r=await fetch(sbUrl()+'/rest/v1/'+getTableBackups()+'?company_id=eq.'+S.currentCompanyId+'&created_at=lt.'+encodeURIComponent(thirtyDaysAgo.toISOString()),{method:'DELETE',headers:Object.assign({},sbHeaders(),{'Prefer':'return=minimal'})});
     if(r.ok)console.log('✓ Old backups cleaned up (>30 days)');
   }catch(err){console.error('Cleanup error:',err);}
 }
@@ -6153,42 +6153,11 @@ function _downloadExcel(filename, sheetData){
 const _storage={_mem:{},getItem(k){try{return localStorage.getItem(k)}catch(e){return this._mem[k]||null}},setItem(k,v){try{localStorage.setItem(k,v)}catch(e){this._mem[k]=v}},removeItem(k){try{localStorage.removeItem(k)}catch(e){delete this._mem[k]}},clear(){try{localStorage.clear()}catch(e){this._mem={}}}};
 
 // Theme
-function toggleTheme(){
-  const root = document.documentElement;
-  const isLight = root.classList.toggle('light');
-  const label = isLight ? '☀️ Day' : '🌙 Night';
-  
-  // Update both theme labels
-  const mainLabel = document.getElementById('theme-label');
-  const loginLabel = document.getElementById('login-theme-label');
-  if(mainLabel) mainLabel.textContent = label;
-  if(loginLabel) loginLabel.textContent = label;
-  
-  // Save preference
-  _storage.setItem('ftag_theme', isLight ? 'light' : 'dark');
-  
-  console.log('Theme toggled to:', isLight ? 'light' : 'dark');
-}
+function toggleTheme(){}
 
 function applyTheme(){
-  const savedTheme = _storage.getItem('ftag_theme');
-  const isLight = savedTheme === 'light';
-  
-  if(isLight){
-    document.documentElement.classList.add('light');
-  }
-  
-  const label = isLight ? '☀️ Day' : '🌙 Night';
-  
-  // Set labels after a short delay to ensure elements are loaded
-  setTimeout(() => {
-    const mainLabel = document.getElementById('theme-label');
-    const loginLabel = document.getElementById('login-theme-label');
-    if(mainLabel) mainLabel.textContent = label;
-    if(loginLabel) loginLabel.textContent = label;
-  }, 10);
-  
-  console.log('Theme applied:', isLight ? 'light' : 'dark');
+  document.documentElement.classList.add('light');
+  _storage.setItem('ftag_theme','light');
 }
 
 applyTheme();
