@@ -366,8 +366,8 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <div class="stat-value" id="dash-lead-val">SAR 0</div>
         <div class="stat-sub" id="dash-lead-count">0 leads</div>
       </div>
-      <div class="stat-card green" style="cursor:pointer" onclick="openPipelineFiltered('Approved')">
-        <div class="stat-label">✅ Approved</div>
+      <div class="stat-card green" style="cursor:pointer" onclick="openWonQuotationsModal()">
+        <div class="stat-label">✅ Won</div>
         <div class="stat-value" id="dash-approved">SAR 0</div>
         <div class="stat-sub" id="dash-approved-c">0 projects</div>
       </div>
@@ -376,8 +376,8 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <div class="stat-value" id="dash-submitted">SAR 0</div>
         <div class="stat-sub" id="dash-sub-c">0 pending</div>
       </div>
-      <div class="stat-card red" style="cursor:pointer" onclick="openPipelineFiltered('out')">
-        <div class="stat-label">🚫 Out</div>
+      <div class="stat-card red" style="cursor:pointer" onclick="openLostQuotationsModal()">
+        <div class="stat-label">🚫 Lost</div>
         <div class="stat-value" id="dash-canceled-val">SAR 0</div>
         <div class="stat-sub" id="dash-canceled-count">0 projects</div>
       </div>
@@ -440,8 +440,8 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <option value="in pricing">in pricing</option>
         <option value="Submitted">Submitted</option>
         <option value="Evaluation">Evaluation</option>
-        <option value="Approved">Approved</option>
-        <option value="out">out</option>
+        <option value="Approved">Won</option>
+        <option value="out">Lost</option>
         <option value="Canceled">Canceled</option>
         <option value="Value Engineering">Value Engineering</option>
       </select>
@@ -476,7 +476,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
                 </select>
                 <select id="ql-status-filter" style="flex:1;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;color:var(--text)" onchange="renderQList()">
                   <option value="">All Status</option>
-                  <option>Draft</option><option>Lead</option><option>in pricing</option><option>Submitted</option><option>Approved</option><option>out</option><option>Canceled</option><option>Value Engineering</option>
+                  <option>Draft</option><option>Submitted</option><option>Evaluation</option><option>In Pricing</option><option>Won</option><option>Lost</option><option>Canceled</option>
                 </select>
                 <select id="ql-by-filter" style="flex:1;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;color:var(--text)" onchange="renderQList()">
                   <option value="">All Quoted By</option>
@@ -956,7 +956,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <div class="field"><label>Location</label><input id="pm-loc" placeholder="Location…"></div>
         <div class="field"><label>Quoted By</label><select id="pm-by"></select></div>
 
-        <div class="field"><label>Status</label><select id="pm-status"><option>Lead</option><option>Submitted</option><option>Approved</option><option>in pricing</option><option>out</option><option>Canceled</option><option>Evaluation</option></select></div>
+        <div class="field"><label>Status</label><select id="pm-status"><option value="Lead">Lead</option><option value="Submitted">Submitted</option><option value="Approved">Won</option><option value="in pricing">in pricing</option><option value="out">Lost</option><option value="Canceled">Canceled</option><option value="Evaluation">Evaluation</option></select></div>
         <div class="field field-full"><label>Link to Quotation <span style="color:var(--muted);font-size:10px">ربط بعرض سعر</span></label>
           <select id="pm-qtn-link" style="width:100%" onchange="onPmQtnLink()">
             <option value="">— None —</option>
@@ -1073,7 +1073,154 @@ const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g
 
 function blankCompany(o={}){return{id:Date.now()+Math.random(),name:'New Company',tag:'Description',color:'#3b82f6',logo:'',users:['Admin'],...o};}
 function blankUser(o={}){return{id:Date.now()+Math.random(),name:'',email:'',password:'',role:'Pre-sales',companies:[],permissions:{dashboard:true,pipeline:true,quotation:true,boq:true,users:false,settings:false},assignedProjects:[],...o};}
-function blankQ(o={}){return{id:Date.now()+Math.random(),num:'',date:new Date().toISOString().slice(0,10),project:'',client:'',addr:'',system:'CCTV',tenderref:'',duration:'',by:'',vat:15,status:'Draft',version:'v1',validity:'90 days',paymentTerms:'To Be Agreed On',scope:'',delivery:'270 days from site handover',impl:'30 days from site handover',notes:'',profitPct:25,showPricing:true,items:[],payments:[],documents:[],techEval:[],locked:false,...o};}
+function blankQ(o={}){return{id:Date.now()+Math.random(),num:'',date:new Date().toISOString().slice(0,10),project:'',client:'',addr:'',system:'CCTV',tenderref:'',duration:'',by:'',vat:15,status:'Draft',version:'v1',validity:'90 days',paymentTerms:'To Be Agreed On',scope:'',delivery:'270 days from site handover',impl:'30 days from site handover',notes:'',profitPct:25,showPricing:true,items:[],payments:[],documents:[],techEval:[],locked:false,teStatus:'Under Evaluation',teFailReason:'',feStatus:'Under Evaluation',feWinnerValue:'',feWinnerCompany:'',projectType:'Tender',contractStatus:'Pending Signature',contractNumber:'',contractDate:'',contractNotes:'',...o};}
+
+// Technical Evaluation status (per-quotation, independent of the techEval scoring table above)
+// Quote Status colors (Draft/Submitted/Evaluation/In Pricing/Won/Lost/Canceled)
+function qStatusStyle(s){
+  const m={
+    'Draft':      {bg:'#f3f4f6',border:'#d1d5db',text:'#6b7280'},
+    'Submitted':  {bg:'#dbeafe',border:'#3b82f6',text:'#1d4ed8'},
+    'Evaluation': {bg:'#e5e7eb',border:'#9ca3af',text:'#6b7280'},
+    'In Pricing': {bg:'#fef3c7',border:'#f59e0b',text:'#92400e'},
+    'Won':        {bg:'#d1fae5',border:'#10b981',text:'#065f46'},
+    'Lost':       {bg:'#fee2e2',border:'#ef4444',text:'#991b1b'},
+    'Canceled':   {bg:'#e5e7eb',border:'#9ca3af',text:'#6b7280'}
+  };
+  return m[s]||m['Draft'];
+}
+function teStatusStyle(s){
+  const m={
+    'Under Evaluation': {bg:'#fffbeb',border:'#f59e0b',text:'#92400e'},
+    'Pass':             {bg:'#f0fdf4',border:'#22c55e',text:'#166534'},
+    'Fail':             {bg:'#fef2f2',border:'#ef4444',text:'#991b1b'}
+  };
+  return m[s]||m['Under Evaluation'];
+}
+// If both Technical and Financial evaluations are Pass, the quotation is automatically marked Won
+// Keeps the linked Pipeline project's stage in sync with its quotation's status
+function syncPipelineStatusFromQuotation(q){
+  if(!q) return;
+  var map={
+    'Draft':'in pricing',
+    'In Pricing':'in pricing',
+    'Submitted':'Submitted',
+    'Evaluation':'Evaluation',
+    'Won':'Approved',
+    'Lost':'out',
+    'Canceled':'Canceled'
+  };
+  var mapped=map[q.status];
+  if(!mapped) return;
+  var baseNum=(q.num||'').replace(/ v\d+$/i,'').trim();
+  var row=null;
+  if(q.pipelineId) row=S.pipeline.find(function(r){return r.id===q.pipelineId;});
+  if(!row){
+    row=S.pipeline.find(function(r){
+      if(q.companyId && r.companyId && r.companyId!==q.companyId) return false;
+      var baseQtn=(r.qtn||'').replace(/ v\d+$/i,'').trim();
+      return r.qtn===q.num || baseQtn===baseNum;
+    });
+  }
+  if(!row || row.status===mapped) return;
+  row.status=mapped;
+  if(mapped==='Approved') veOnApprove(row); // preserve the existing Approved→VE behavior
+}
+
+function _checkAutoWin(q){
+  if(q.teStatus==='Pass' && q.feStatus==='Pass' && q.status!=='Won'){
+    q.status='Won';
+    syncPipelineStatusFromQuotation(q);
+    showNotification&&showNotification('🏆 Both evaluations passed — Quote Status set to Won');
+  }
+}
+
+// If either Technical or Financial evaluation is Fail, the quotation is automatically marked Lost
+function _checkAutoLost(q){
+  if((q.teStatus==='Fail' || q.feStatus==='Fail') && q.status!=='Lost'){
+    q.status='Lost';
+    syncPipelineStatusFromQuotation(q);
+    showNotification&&showNotification('❌ Evaluation failed — Quote Status set to Lost');
+  }
+}
+
+function updateQTechEval(id, val){
+  const q=S.quotations.find(x=>x.id===id);
+  if(!q) return;
+  if(val==='Fail'){
+    const reason=prompt('سبب الرسوب في التقييم الفني (مطلوب) / Fail reason (required):', q.teFailReason||'');
+    if(reason===null || !reason.trim()){
+      alert('لا يمكن تعيين الحالة إلى Fail بدون إدخال السبب.');
+      renderQList(); // revert the select back to the stored value
+      return;
+    }
+    q.teFailReason=reason.trim();
+  } else {
+    q.teFailReason='';
+  }
+  q.teStatus=val;
+  _checkAutoWin(q);
+  _checkAutoLost(q);
+  save();
+  renderQList();
+  showNotification&&showNotification('Technical Evaluation: '+val);
+}
+
+// Financial Evaluation status (per-quotation) — same color convention as Technical Evaluation
+function updateQFinancialEval(id, val){
+  const q=S.quotations.find(x=>x.id===id);
+  if(!q) return;
+  if(val==='Fail'){
+    const winnerValue=prompt('قيمة العرض الفائز (مطلوب) / Winning offer value (required):', q.feWinnerValue||'');
+    if(winnerValue===null || !String(winnerValue).trim()){
+      alert('لا يمكن تعيين الحالة إلى Fail بدون إدخال قيمة العرض الفائز.');
+      renderQList();
+      return;
+    }
+    const winnerCompany=prompt('اسم الشركة الفائزة (مطلوب) / Winning company name (required):', q.feWinnerCompany||'');
+    if(winnerCompany===null || !winnerCompany.trim()){
+      alert('لا يمكن تعيين الحالة إلى Fail بدون إدخال اسم الشركة الفائزة.');
+      renderQList();
+      return;
+    }
+    q.feWinnerValue=winnerValue.trim();
+    q.feWinnerCompany=winnerCompany.trim();
+  } else {
+    q.feWinnerValue='';
+    q.feWinnerCompany='';
+  }
+  q.feStatus=val;
+  _checkAutoWin(q);
+  _checkAutoLost(q);
+  save();
+  renderQList();
+  showNotification&&showNotification('Financial Evaluation: '+val);
+}
+
+// Contract Status (only relevant once a quotation is Won)
+let _csQId=null;
+function openContractStatusModal(id){
+  const q=S.quotations.find(x=>x.id===id);
+  if(!q) return;
+  _csQId=id;
+  document.getElementById('cs-status').value=q.contractStatus||'Pending Signature';
+  document.getElementById('cs-number').value=q.contractNumber||'';
+  document.getElementById('cs-date').value=q.contractDate||'';
+  document.getElementById('cs-notes').value=q.contractNotes||'';
+  openModal('modal-contract-status');
+}
+function saveContractStatusModal(){
+  const q=S.quotations.find(x=>x.id===_csQId);
+  if(!q) return;
+  q.contractStatus=document.getElementById('cs-status').value;
+  q.contractNumber=document.getElementById('cs-number').value.trim();
+  q.contractDate=document.getElementById('cs-date').value;
+  q.contractNotes=document.getElementById('cs-notes').value.trim();
+  save();
+  renderQList();
+  closeModal('modal-contract-status');
+  showNotification&&showNotification('Contract Status updated: '+q.contractStatus);
+}
 function blankMainItem(){return{id:Date.now()+Math.random(),desc:'',qty:1,unit:'Lot',priced:false,optional:false,subItems:[]};}
 function blankSubItem(){return{id:Date.now()+Math.random(),partno:'',desc:'',vendor:'',type:'Item',unit:'Pcs',qty:1,unitPrice:0,priced:false,notes:''};}
 function blankTechEval(){return{id:Date.now(),desc:'',reqWeight:0,ourAchieve:0};}
@@ -1091,7 +1238,7 @@ function getCurrentCompany(){return S.companies.find(c=>c.id===S.currentCompanyI
 function getCurrentUser(){return S.users.find(u=>u.id===S.currentUser);}
 function canEdit(){const q=getQ();if(!q)return true;if(!q.locked)return true;const u=getCurrentUser();return u&&(u.role==='Admin'||u.role==='Manager');}
 
-function statusBadge(s){const m={Approved:'approved',Submitted:'submitted',out:'out','in pricing':'pricing',Canceled:'canceled',Draft:'draft','Value Engineering':'ve'};return`<span class="badge badge-${m[s]||'out'}">${s||'—'}</span>`;}
+function statusBadge(s){const m={Draft:'draft',Submitted:'submitted',Evaluation:'out','In Pricing':'pricing',Won:'approved',Lost:'canceled',Canceled:'out'};return`<span class="badge badge-${m[s]||'out'}">${s||'—'}</span>`;}
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 
@@ -1258,7 +1405,59 @@ async function sbDelete(table, filters) {
 
 let realtimeChannel = null;  // kept for compat — realtime disabled in sandboxed iframe
 
-// Auto-save to shared table (UPSERT)
+// ===========================================
+// MERGE-ON-WRITE — combine local + remote arrays by id
+// instead of blindly overwriting the whole shared row.
+// One extra GET before the UPSERT; no polling, no realtime channel.
+// ===========================================
+
+// Merge two arrays of objects by `.id`. Items that exist only on one side
+// are kept. Items that exist on both sides: the local copy wins (it's the
+// one actively being saved right now), UNLESS the remote copy carries a
+// newer `_mt` stamp than the local copy — this only matters going forward,
+// once items start picking up `_mt` from future edits.
+function _mergeArrayById(localArr, remoteArr) {
+  if (!Array.isArray(remoteArr) || !remoteArr.length) return Array.isArray(localArr) ? localArr : [];
+  if (!Array.isArray(localArr) || !localArr.length) return remoteArr;
+
+  const localMap = new Map(localArr.map(it => [String(it && it.id), it]));
+  const merged = [];
+  const seen = new Set();
+
+  // Walk local first so local ordering/edits are preserved
+  for (const item of localArr) {
+    const key = String(item && item.id);
+    const remoteItem = remoteArr.find(r => String(r && r.id) === key);
+    if (!remoteItem) { merged.push(item); seen.add(key); continue; }
+    // Present on both sides — prefer whichever has the newer _mt if both have one,
+    // otherwise keep the local version (it's the side that just triggered this save).
+    if (item && remoteItem && item._mt && remoteItem._mt && remoteItem._mt > item._mt) {
+      merged.push(remoteItem);
+    } else {
+      merged.push(item);
+    }
+    seen.add(key);
+  }
+  // Anything that exists only remotely (added by another user) gets pulled in
+  for (const r of remoteArr) {
+    const key = String(r && r.id);
+    if (!seen.has(key)) merged.push(r);
+  }
+  return merged;
+}
+
+// Merge only the collaborative arrays; company-level settings/branding/numbering
+// stay local-wins since two people rarely edit those at the same instant, and
+// merging config objects field-by-field isn't worth the complexity.
+function _mergeStateWithRemote(remoteData) {
+  if (!remoteData) return;
+  S.companies  = _mergeArrayById(S.companies,  remoteData.companies);
+  S.users      = _mergeArrayById(S.users,      remoteData.users);
+  S.pipeline   = _mergeArrayById(S.pipeline,   remoteData.pipeline);
+  S.quotations = _mergeArrayById(S.quotations, remoteData.quotations);
+}
+
+// Auto-save to shared table — now reads-merges-writes instead of a blind UPSERT
 async function autoBackupToSupabase() {
   clearTimeout(backupTimeout);
   backupTimeout = setTimeout(async () => {
@@ -1266,7 +1465,32 @@ async function autoBackupToSupabase() {
     try {
       const user = getCurrentUser();
       const now = new Date().toISOString();
+
+      // 1) One extra read of the current shared row (cheap — single row by PK)
+      let remoteRow = null;
+      try {
+        const rows = await sbSelect(getTableShared(), { company_id: S.currentCompanyId });
+        if (rows && rows.length) remoteRow = rows[0];
+      } catch (readErr) {
+        console.warn('[Merge] Could not read remote row, falling back to plain save:', readErr);
+      }
+
+      // 2) Merge remote into local S if the remote row is actually newer than
+      //    what we last knew about (i.e. someone else saved since our last sync)
+      if (remoteRow && remoteRow.data && (remoteRow.updated_at ? new Date(remoteRow.updated_at).getTime() : 0) > (S.lastModified || 0)) {
+        _mergeStateWithRemote(remoteRow.data);
+        // Reflect the merge in the UI immediately so this user sees the other user's items too
+        try{ if (typeof renderPipeline === 'function') renderPipeline(); }catch(e){}
+        try{ if (typeof renderQList === 'function') renderQList(); }catch(e){}
+        try{ if (typeof populateQNumDropdown === 'function') populateQNumDropdown(); }catch(e){}
+        try{ if (typeof updateDashboard === 'function') updateDashboard(); }catch(e){}
+        console.log('[Merge] Combined remote changes into local state before saving');
+      }
+
       S.lastModified = Date.now();
+      // Persist the merged state locally too, so a refresh doesn't lose the merge
+      try{ _storage.setItem('ftag_v5_state', JSON.stringify(S)); }catch(e){}
+
       // Strip activeQId before saving to cloud — it's per-user, not shared
       const _dataToSave = Object.assign({}, S, {activeQId: null});
       await sbUpsert(getTableShared(), {
@@ -1276,7 +1500,7 @@ async function autoBackupToSupabase() {
         updated_at: now
       });
       updateSupabaseStatus(true);
-      console.log('✓ Synced to shared database');
+      console.log('✓ Synced to shared database (merged)');
     } catch(err) {
       console.error('Sync error:', err);
       updateSupabaseStatus(false);
@@ -2158,7 +2382,7 @@ function openVEDetail(pid){
     var qRows = quotations.length ? quotations.map(function(q){
     var qtot = typeof qSellWithVAT==='function' ? qSellWithVAT(q) : 0;
     var isLatest = quotations[0]&&q.id===quotations[0].id;
-    var statusColor={'Submitted':'#1a9e72','Value Engineering':'#7c3aed','Draft':'#888','Approved':'#1a4fa0','in pricing':'#a06800','out':'#d94040'}[q.status]||'#888';
+    var statusColor={'Submitted':'#1a9e72','Evaluation':'#6b7280','Draft':'#888','Won':'#1a4fa0','In Pricing':'#a06800','Lost':'#d94040','Canceled':'#6b7280'}[q.status]||'#888';
     return '<tr style="'+(isLatest?'background:rgba(59,130,246,.06)':'')+'">' +
       '<td style="padding:7px 10px;font-weight:700;color:var(--accent)">'+esc((q.num||'').replace(/ v\d+$/i,''))+' <span style="color:var(--muted);font-weight:400">'+esc(q.version||'v1')+'</span>'+(isLatest?' <span style="font-size:10px;background:var(--accent);color:#fff;padding:1px 6px;border-radius:8px;margin-left:4px">latest</span>':'')+' </td>'+
       '<td style="padding:7px 10px"><span style="background:'+statusColor+'22;color:'+statusColor+';padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">'+esc(q.status||'Draft')+'</span></td>'+
@@ -2445,6 +2669,289 @@ function openCanceledQtnsModal(){
   openModal('modal-canceled-qtns');
 }
 
+function openWonQuotationsModal(){
+  const co=getCurrentCompany();
+  const wonQ=(S.quotations||[]).filter(q=>(!q.companyId||q.companyId===co.id)&&q.status==='Won')
+    .sort((a,b)=>b.id-a.id);
+  const total=wonQ.reduce((s,q)=>s+(typeof qSellWithVAT==='function'?qSellWithVAT(q):0),0);
+
+  var m=document.getElementById('modal-won-qtns');
+  if(!m){
+    m=document.createElement('div');m.id='modal-won-qtns';
+    m.className='modal-overlay';m.style.zIndex='600';
+    document.body.appendChild(m);
+  }
+  const header=`<div style="display:grid;grid-template-columns:1.3fr 1.6fr 1.2fr 1.3fr 1fr;gap:10px;padding:8px 16px;border-bottom:2px solid var(--border);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)">
+    <div>Quotation #</div><div>Project</div><div>Client</div><div>Contract Status</div><div style="text-align:right">Amount</div>
+  </div>`;
+  const rows=wonQ.length?wonQ.map(q=>{
+    const tot=typeof qSellWithVAT==='function'?qSellWithVAT(q):0;
+    return `<div style="display:grid;grid-template-columns:1.3fr 1.6fr 1.2fr 1.3fr 1fr;gap:10px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer" onclick="closeModal('modal-won-qtns');openQuotation(${q.id})">
+      <div style="font-weight:700;font-family:monospace;color:var(--accent);font-size:13px">${esc(q.num||'—')} <span style="font-weight:400;font-size:11px;color:var(--muted)">${esc(q.version||'v1')}</span></div>
+      <div style="font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(q.project||'—')}</div>
+      <div style="font-size:13px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(q.client||'—')}</div>
+      <div style="font-size:12px;color:var(--green);font-weight:600">${esc(q.contractStatus||'—')}</div>
+      <div style="font-family:monospace;font-size:13px;color:var(--green);font-weight:700;text-align:right">SAR ${fmtN(tot)}</div>
+    </div>`;
+  }).join(''):'<div style="text-align:center;padding:32px;color:var(--muted)">No won projects yet</div>';
+  const totalRow=`<div style="display:grid;grid-template-columns:1.3fr 1.6fr 1.2fr 1.3fr 1fr;gap:10px;align-items:center;padding:12px 16px;border-top:2px solid var(--border);background:var(--surface2)">
+    <div style="grid-column:1/4;font-weight:700;font-size:13px;color:var(--text);text-align:right">TOTAL (${wonQ.length} project${wonQ.length!==1?'s':''})</div>
+    <div></div>
+    <div style="font-family:monospace;font-size:15px;color:var(--green);font-weight:800;text-align:right">SAR ${fmtN(total)}</div>
+  </div>`;
+
+  const inner=document.createElement('div');
+  inner.className='modal modal-lg';inner.style.maxWidth='800px';
+  const hdr=document.createElement('div');hdr.className='modal-header';
+  const ttl=document.createElement('div');ttl.className='modal-title';ttl.textContent='🏆 Won Projects';
+  const cls=document.createElement('button');cls.className='modal-close';cls.textContent='✕';cls.onclick=()=>closeModal('modal-won-qtns');
+  hdr.appendChild(ttl);hdr.appendChild(cls);
+  const bd=document.createElement('div');bd.style.cssText='max-height:65vh;overflow-y:auto';bd.innerHTML=header+rows+totalRow;
+  const ftr=document.createElement('div');ftr.className='modal-footer';
+  const pbtn=document.createElement('button');pbtn.className='btn btn-primary';pbtn.textContent='📄 Export PDF';pbtn.onclick=()=>exportWonProjectsPDF();
+  const cbtn=document.createElement('button');cbtn.className='btn btn-secondary';cbtn.textContent='Close';cbtn.onclick=()=>closeModal('modal-won-qtns');
+  ftr.appendChild(pbtn);ftr.appendChild(cbtn);
+  inner.appendChild(hdr);inner.appendChild(bd);inner.appendChild(ftr);
+  m.innerHTML='';m.appendChild(inner);
+  openModal('modal-won-qtns');
+}
+
+function exportWonProjectsPDF(){
+  const co=getCurrentCompany();
+  const colors=co.pdfColors||{tableHeader:'#3B82F6',tableHeaderText:'#FFFFFF',totalRow:'#3B82F6',totalRowText:'#FFFFFF'};
+  const branding=co.branding||{logo:'',footerAr:'',footerEn:''};
+  const wonQ=(S.quotations||[]).filter(q=>(!q.companyId||q.companyId===co.id)&&q.status==='Won')
+    .sort((a,b)=>b.id-a.id);
+  const total=wonQ.reduce((s,q)=>s+(typeof qSellWithVAT==='function'?qSellWithVAT(q):0),0);
+
+  const rows=wonQ.length?wonQ.map(q=>{
+    const tot=typeof qSellWithVAT==='function'?qSellWithVAT(q):0;
+    return `<tr>
+      <td style="text-align:left">${esc(q.num||'—')} <span style="color:#888">${esc(q.version||'v1')}</span></td>
+      <td style="text-align:left">${esc(q.project||'—')}</td>
+      <td style="text-align:left">${esc(q.client||'—')}</td>
+      <td>${esc(q.contractStatus||'—')}</td>
+      <td class="total-col">SAR ${fmtN(tot)}</td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="5" style="text-align:center;color:#888">No won projects yet</td></tr>';
+
+  const html=`
+  <div class="header">
+    <div class="logo-text">${esc(co.name||'')}</div>
+    <div class="qtn-info">
+      <div class="qtn-num">Won Projects Report</div>
+      <div class="qtn-date">${new Date().toLocaleDateString()}</div>
+    </div>
+  </div>
+  <div class="section">
+    <table class="price-table">
+      <thead><tr>
+        <th>Quotation #</th><th>Project</th><th>Client</th><th>Contract Status</th><th>Amount</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot>
+        <tr style="background:${colors.totalRow};color:${colors.totalRowText};font-weight:700">
+          <td colspan="4" style="text-align:right">TOTAL (${wonQ.length} project${wonQ.length!==1?'s':''})</td>
+          <td class="total-col" style="color:${colors.totalRowText}">SAR ${fmtN(total)}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  <div class="footer">
+    ${branding.footerAr?`<div>${esc(branding.footerAr)}</div>`:''}
+    ${branding.footerEn?`<div>${esc(branding.footerEn)}</div>`:''}
+  </div>
+  `;
+
+  let __html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Won Projects Report</title>
+  <style>
+  @page{size:A4;margin:0}
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  body{font-family:'Calibri','Traditional Arabic',sans-serif;font-size:11pt;color:#000;padding:20mm 15mm;background:#fff;line-height:1.5}
+  .header{display:flex;justify-content:space-between;align-items:center;padding-bottom:15px;margin-bottom:20px;border-bottom:2px solid ${colors.tableHeader}}
+  .logo-text{font-size:22pt;font-weight:700;color:${colors.tableHeader}}
+  .qtn-info{text-align:right}
+  .qtn-num{font-size:16pt;font-weight:700;color:${colors.tableHeader};margin-bottom:5px}
+  .qtn-date{font-size:10pt;color:#666}
+  .section{margin-bottom:25px}
+  .price-table{width:100%;border-collapse:collapse}
+  .price-table th{background:${colors.tableHeader};color:${colors.tableHeaderText};padding:10px 8px;text-align:center;font-weight:700;border:1px solid ${colors.tableHeader}}
+  .price-table td{padding:8px;border:1px solid #ddd;text-align:center;font-size:10pt}
+  .price-table tbody tr:nth-child(even){background:#f9f9f9}
+  .total-col{text-align:right;font-family:'Calibri',monospace;font-weight:600}
+  .footer{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #ddd;padding:8px 15mm;text-align:center;font-size:8pt;color:#666}
+  .footer div{margin:2px 0}
+  @media print{body{padding:20mm 15mm 25mm}.footer{position:fixed}}
+  </style></head><body>${html}</body></html>`;
+  __printViaBlob(__html);
+}
+
+function _getLostQuotations(byFilter){
+  const co=getCurrentCompany();
+  return (S.quotations||[]).filter(q=>(!q.companyId||q.companyId===co.id)&&q.status==='Lost'&&(!byFilter||q.by===byFilter))
+    .sort((a,b)=>b.id-a.id);
+}
+
+function _buildLostRowsHTML(byFilter){
+  const lostQ=_getLostQuotations(byFilter);
+  return lostQ.length?lostQ.map(q=>{
+    const ourAmt=typeof qSellWithVAT==='function'?qSellWithVAT(q):0;
+    const wonAmt=parseFloat(q.feWinnerValue)||0;
+    const diff=ourAmt-wonAmt;
+    const diffColor=diff>0?'#ef4444':(diff<0?'#22c55e':'var(--muted)');
+    return `<tr style="cursor:pointer;border-bottom:1px solid var(--border)" onclick="closeModal('modal-lost-qtns');openQuotation(${q.id})">
+      <td style="padding:8px 10px;font-family:monospace;font-weight:700;color:var(--accent);white-space:nowrap">${esc(q.num||'—')} <span style="font-weight:400;color:var(--muted);font-size:11px">${esc(q.version||'v1')}</span></td>
+      <td style="padding:8px 10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(q.project||'—')}</td>
+      <td style="padding:8px 10px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(q.client||'—')}</td>
+      <td style="padding:8px 10px;text-align:center">${esc(q.teStatus||'—')}</td>
+      <td style="padding:8px 10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#991b1b">${esc(q.teFailReason||'—')}</td>
+      <td style="padding:8px 10px;text-align:center">${esc(q.feStatus||'—')}</td>
+      <td style="padding:8px 10px;white-space:nowrap">${esc(q.feWinnerCompany||'—')}</td>
+      <td style="padding:8px 10px;text-align:right;font-family:monospace;white-space:nowrap">${q.feWinnerValue?'SAR '+fmtN(wonAmt):'—'}</td>
+      <td style="padding:8px 10px;text-align:right;font-family:monospace;white-space:nowrap">SAR ${fmtN(ourAmt)}</td>
+      <td style="padding:8px 10px;text-align:right;font-family:monospace;font-weight:700;white-space:nowrap;color:${diffColor}">${q.feWinnerValue?(diff>0?'+':'')+'SAR '+fmtN(diff):'—'}</td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--muted)">No lost projects'+(byFilter?' for '+esc(byFilter):'')+'</td></tr>';
+}
+
+function filterLostQuotationsModal(){
+  const sel=document.getElementById('lost-by-filter');
+  const wrap=document.getElementById('lost-qtns-tbody-wrap');
+  if(wrap) wrap.innerHTML=_buildLostRowsHTML(sel?sel.value:'');
+}
+
+function openLostQuotationsModal(){
+  var m=document.getElementById('modal-lost-qtns');
+  if(!m){
+    m=document.createElement('div');m.id='modal-lost-qtns';
+    m.className='modal-overlay';m.style.zIndex='600';
+    document.body.appendChild(m);
+  }
+
+  const allLost=_getLostQuotations();
+  const byOptions=[...new Set(allLost.map(q=>q.by||'').filter(Boolean))].sort();
+  const filterBar=`<div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+    <label style="font-size:11px;color:var(--muted);font-weight:600">Quoted By</label>
+    <select id="lost-by-filter" onchange="filterLostQuotationsModal()" style="font-size:12px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text)">
+      <option value="">All</option>
+      ${byOptions.map(b=>'<option value="'+esc(b)+'">'+esc(b)+'</option>').join('')}
+    </select>
+  </div>`;
+
+  const table=`<div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap">
+      <thead>
+        <tr style="border-bottom:2px solid var(--border);text-align:left">
+          <th style="padding:8px 10px;font-size:10px;text-transform:uppercase;color:var(--muted)">Quotation #</th>
+          <th style="padding:8px 10px;font-size:10px;text-transform:uppercase;color:var(--muted)">Project</th>
+          <th style="padding:8px 10px;font-size:10px;text-transform:uppercase;color:var(--muted)">Client</th>
+          <th style="padding:8px 10px;font-size:10px;text-transform:uppercase;color:var(--muted);text-align:center">Technical</th>
+          <th style="padding:8px 10px;font-size:10px;text-transform:uppercase;color:var(--muted)">Tech Fail Reason</th>
+          <th style="padding:8px 10px;font-size:10px;text-transform:uppercase;color:var(--muted);text-align:center">Financial</th>
+          <th style="padding:8px 10px;font-size:10px;text-transform:uppercase;color:var(--muted)">Won Company</th>
+          <th style="padding:8px 10px;font-size:10px;text-transform:uppercase;color:var(--muted);text-align:right">Won Amount</th>
+          <th style="padding:8px 10px;font-size:10px;text-transform:uppercase;color:var(--muted);text-align:right">Our Amount</th>
+          <th style="padding:8px 10px;font-size:10px;text-transform:uppercase;color:var(--muted);text-align:right">Difference</th>
+        </tr>
+      </thead>
+      <tbody id="lost-qtns-tbody-wrap">${_buildLostRowsHTML('')}</tbody>
+    </table>
+  </div>`;
+
+  const inner=document.createElement('div');
+  inner.className='modal modal-lg';inner.style.maxWidth='1100px';
+  const hdr=document.createElement('div');hdr.className='modal-header';
+  const ttl=document.createElement('div');ttl.className='modal-title';ttl.textContent='❌ Lost Projects';
+  const cls=document.createElement('button');cls.className='modal-close';cls.textContent='✕';cls.onclick=()=>closeModal('modal-lost-qtns');
+  hdr.appendChild(ttl);hdr.appendChild(cls);
+  const bd=document.createElement('div');bd.style.cssText='max-height:65vh;overflow-y:auto;padding:0';bd.innerHTML=filterBar+'<div style="padding:0 4px">'+table+'</div>';
+  const ftr=document.createElement('div');ftr.className='modal-footer';
+  const pbtn=document.createElement('button');pbtn.className='btn btn-primary';pbtn.textContent='📄 Export PDF';pbtn.onclick=()=>exportLostProjectsPDF();
+  const cbtn=document.createElement('button');cbtn.className='btn btn-secondary';cbtn.textContent='Close';cbtn.onclick=()=>closeModal('modal-lost-qtns');
+  ftr.appendChild(pbtn);ftr.appendChild(cbtn);
+  inner.appendChild(hdr);inner.appendChild(bd);inner.appendChild(ftr);
+  m.innerHTML='';m.appendChild(inner);
+  openModal('modal-lost-qtns');
+}
+
+function exportLostProjectsPDF(){
+  const co=getCurrentCompany();
+  const colors=co.pdfColors||{tableHeader:'#3B82F6',tableHeaderText:'#FFFFFF',totalRow:'#3B82F6',totalRowText:'#FFFFFF'};
+  const branding=co.branding||{logo:'',footerAr:'',footerEn:''};
+  const lostQ=(S.quotations||[]).filter(q=>(!q.companyId||q.companyId===co.id)&&q.status==='Lost')
+    .sort((a,b)=>b.id-a.id);
+
+  const rows=lostQ.length?lostQ.map(q=>{
+    const ourAmt=typeof qSellWithVAT==='function'?qSellWithVAT(q):0;
+    const wonAmt=parseFloat(q.feWinnerValue)||0;
+    const diff=ourAmt-wonAmt;
+    return `<tr>
+      <td style="text-align:left">${esc(q.num||'—')} <span style="color:#888">${esc(q.version||'v1')}</span></td>
+      <td style="text-align:left">${esc(q.project||'—')}</td>
+      <td style="text-align:left">${esc(q.client||'—')}</td>
+      <td>${esc(q.teStatus||'—')}</td>
+      <td style="text-align:left;color:#991b1b">${esc(q.teFailReason||'—')}</td>
+      <td>${esc(q.feStatus||'—')}</td>
+      <td style="text-align:left">${esc(q.feWinnerCompany||'—')}</td>
+      <td class="total-col">${q.feWinnerValue?'SAR '+fmtN(wonAmt):'—'}</td>
+      <td class="total-col">SAR ${fmtN(ourAmt)}</td>
+      <td class="total-col" style="color:${diff>0?'#ef4444':(diff<0?'#22c55e':'#000')}">${q.feWinnerValue?(diff>0?'+':'')+'SAR '+fmtN(diff):'—'}</td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="10" style="text-align:center;color:#888">No lost projects yet</td></tr>';
+
+  const html=`
+  <div class="header">
+    <div class="logo-text">${esc(co.name||'')}</div>
+    <div class="qtn-info">
+      <div class="qtn-num">Lost Projects Report</div>
+      <div class="qtn-date">${new Date().toLocaleDateString()}</div>
+    </div>
+  </div>
+  <div class="section">
+    <table class="price-table">
+      <thead><tr>
+        <th>Quotation #</th><th>Project</th><th>Client</th><th>Technical</th><th>Tech Fail Reason</th><th>Financial</th><th>Won Company</th><th>Won Amount</th><th>Our Amount</th><th>Difference</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>
+  <div class="footer">
+    ${branding.footerAr?`<div>${esc(branding.footerAr)}</div>`:''}
+    ${branding.footerEn?`<div>${esc(branding.footerEn)}</div>`:''}
+  </div>
+  `;
+
+  let __html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Lost Projects Report</title>
+  <style>
+  @page{size:A4;margin:0}
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  body{font-family:'Calibri','Traditional Arabic',sans-serif;font-size:9pt;color:#000;padding:15mm 10mm;background:#fff;line-height:1.4}
+  .header{display:flex;justify-content:space-between;align-items:center;padding-bottom:15px;margin-bottom:20px;border-bottom:2px solid ${colors.tableHeader}}
+  .logo-text{font-size:20pt;font-weight:700;color:${colors.tableHeader}}
+  .qtn-info{text-align:right}
+  .qtn-num{font-size:14pt;font-weight:700;color:${colors.tableHeader};margin-bottom:5px}
+  .qtn-date{font-size:9pt;color:#666}
+  .section{margin-bottom:25px}
+  .price-table{width:100%;border-collapse:collapse}
+  .price-table th{background:${colors.tableHeader};color:${colors.tableHeaderText};padding:6px;text-align:center;font-weight:700;border:1px solid ${colors.tableHeader};font-size:8pt}
+  .price-table td{padding:6px;border:1px solid #ddd;text-align:center;font-size:8pt}
+  .price-table tbody tr:nth-child(even){background:#f9f9f9}
+  .total-col{text-align:right;font-family:'Calibri',monospace;font-weight:600}
+  .footer{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #ddd;padding:8px 10mm;text-align:center;font-size:7pt;color:#666}
+  .footer div{margin:2px 0}
+  @media print{body{padding:15mm 10mm 20mm}.footer{position:fixed}}
+  </style></head><body>${html}</body></html>`;
+  __printViaBlob(__html);
+}
+
+// Dashboard-only display renaming: pipeline status values stay the same internally
+// (Approved/out), only how they're labeled on the Dashboard Overview changes.
+function pipelineStatusLabel(s){
+  if(s==='Approved') return 'Won';
+  if(s==='out') return 'Lost';
+  return s;
+}
+
 function updateDashboard(){
   const user=getCurrentUser();
   let pl=S.pipeline.filter(p=>p.companyId===S.currentCompanyId);
@@ -2527,7 +3034,7 @@ function updateDashboard(){
   (document.getElementById('dash-by-status')||{}).innerHTML=Object.entries(byStatus)
     .sort((a,b)=>b[1]-a[1])
     .map(([st,v])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
-      <span style="color:${statusColors[st]||'var(--text2)'};font-size:13px">● ${st}</span>
+      <span style="color:${statusColors[st]||'var(--text2)'};font-size:13px">● ${pipelineStatusLabel(st)}</span>
       <div style="text-align:right"><div style="font-family:var(--mono);color:var(--text);font-size:13px">${fmt(v)}</div>
       <div style="font-size:10px;color:var(--muted)">${byStatus[st]?Math.round(v/total*100):0}% of total</div></div>
     </div>`).join('');
@@ -2539,9 +3046,10 @@ function updateDashboard(){
     const labels=Object.keys(byStatus);
     const vals=labels.map(k=>byStatus[k]);
     const bgColors=labels.map(k=>({Approved:'#22c55e',Submitted:'#3b82f6','in pricing':'#f59e0b',out:'#64748b',Canceled:'#ef4444',Lead:'#a855f7',Draft:'#94a3b8',Evaluation:'#f97316','Value Engineering':'#06b6d4'}[k]||'#6366f1'));
+    const displayLabels=labels.map(pipelineStatusLabel);
     _dashStatusChart=new Chart(chartEl,{
       type:'bar',
-      data:{labels,datasets:[{data:vals,backgroundColor:bgColors,borderRadius:6,borderSkipped:false}]},
+      data:{labels:displayLabels,datasets:[{data:vals,backgroundColor:bgColors,borderRadius:6,borderSkipped:false}]},
       options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>fmt(ctx.raw)}}},
         scales:{y:{ticks:{callback:v=>'SAR '+v.toLocaleString()},grid:{color:'rgba(255,255,255,0.05)'}},
                 x:{grid:{display:false}}}}
@@ -2592,7 +3100,7 @@ function updateDashboard(){
       <div style="height:5px;background:var(--border);border-radius:3px;overflow:hidden">
         <div style="height:100%;width:${pct}%;background:${sc};border-radius:3px;transition:width .4s"></div>
       </div>
-      <div style="font-size:10px;color:${sc};margin-top:2px">${r.status} · ${esc(r.client||'—')}</div>
+      <div style="font-size:10px;color:${sc};margin-top:2px">${pipelineStatusLabel(r.status)} · ${esc(r.client||'—')}</div>
     </div>`;
   }).join('')
   :'<div style="color:var(--muted);font-size:13px;padding:20px 0;text-align:center">No pipeline data</div>';
@@ -2671,7 +3179,7 @@ function renderPipeline(data){
   }
   wrap.innerHTML=rows.map((r,i)=>{
     const amt=getPipelineAmount(r);
-    const linkedQ=getLatestSubmittedQ(r);
+    const linkedQ=getLinkedQuotationForCard(r);
     const linked=!!linkedQ;
     const date=getPipelineDate(r);
     const statusColors={
@@ -2686,10 +3194,10 @@ function renderPipeline(data){
     return '<div style="background:var(--surface);border:1.5px solid '+sc.border+';border-radius:12px;overflow:hidden;transition:.2s;box-shadow:0 2px 8px rgba(0,0,0,.06);cursor:pointer;display:flex;flex-direction:column;height:100%" onclick="openProjQtnsModal('+r.id+')">'+
       '<div style="background:'+sc.bg+';padding:10px 14px;display:flex;justify-content:space-between;align-items:center">'+
         '<div>'+
-          '<div style="font-family:var(--mono);font-size:12px;font-weight:700;color:'+sc.c+'">'+esc((r.printRef||r.qtn||'—').replace(/ v\d+$/i,''))+'</div>'+
+          '<div style="font-family:var(--mono);font-size:12px;font-weight:700;color:'+sc.c+'">'+esc((linkedQ?(linkedQ.num||'').replace(/ v\d+$/i,''):(r.printRef||r.qtn||'—')))+'</div>'+
           (linkedQ?'<div style="font-size:10px;color:'+sc.c+';opacity:.8">🔗 '+esc(linkedQ.version||'v1')+' · '+esc(linkedQ.status||'')+'</div>':'')+
         '</div>'+
-        '<span style="background:'+sc.c+'22;color:'+sc.c+';padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">'+(r.status||'—')+'</span>'+
+        '<span style="background:'+sc.c+'22;color:'+sc.c+';padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">'+pipelineStatusLabel(r.status||'—')+'</span>'+
       '</div>'+
       '<div style="padding:12px 14px">'+
         '<div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px;line-height:1.4">'+esc(r.name||'—')+'</div>'+
@@ -2707,6 +3215,13 @@ function renderPipeline(data){
             return '<div style="grid-column:1/-1">📅 '+esc(date)+' — '+_lbl+'</div>';
           })():'')+
         '</div>'+
+        (linkedQ?
+          '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">'+
+            '<span style="font-size:9px;font-weight:700;padding:3px 8px;border-radius:8px;background:'+teStatusStyle(linkedQ.teStatus||'Under Evaluation').bg+';color:'+teStatusStyle(linkedQ.teStatus||'Under Evaluation').text+'">Technical: '+esc(linkedQ.teStatus||'Under Evaluation')+'</span>'+
+            '<span style="font-size:9px;font-weight:700;padding:3px 8px;border-radius:8px;background:'+teStatusStyle(linkedQ.feStatus||'Under Evaluation').bg+';color:'+teStatusStyle(linkedQ.feStatus||'Under Evaluation').text+'">Financial: '+esc(linkedQ.feStatus||'Under Evaluation')+'</span>'+
+            (linkedQ.status==='Won'&&linkedQ.contractStatus?'<span style="font-size:9px;font-weight:700;padding:3px 8px;border-radius:8px;background:#d1fae5;color:#065f46">Contract: '+esc(linkedQ.contractStatus)+'</span>':'')+
+          '</div>'
+        :'')+
         '<div style="display:flex;justify-content:space-between;align-items:center">'+
           '<div>'+
             '<div style="font-size:16px;font-weight:800;color:'+(amt>0?'var(--green)':'var(--muted)')+'">SAR '+fmtN(amt)+'</div>'+
@@ -2929,7 +3444,7 @@ function savePipelineItem(){
       r.note=(document.getElementById('pm-note')||{}).value||'';
       var _co2=getCurrentCompany();
       var qs=S.quotations.filter(function(q){return q.num===r.qtn&&(!q.companyId||q.companyId===_co2.id);});
-      if(qs.length){var pool=qs.filter(function(q){return q.status==='Draft'||q.status==='in pricing';});r.quotationId=(pool.length?pool:qs).reduce(function(a,b){return a.id>b.id?a:b;}).id;r.amount=Math.round(getPipelineAmount(r));}
+      if(qs.length){var pool=qs.filter(function(q){return q.status==='Draft'||q.status==='In Pricing';});r.quotationId=(pool.length?pool:qs).reduce(function(a,b){return a.id>b.id?a:b;}).id;r.amount=Math.round(getPipelineAmount(r));}
       else{r.amount=+(document.getElementById('pm-amount')||{}).value||0;}
       if(r.status==='Approved') veOnApprove(r);
       if(window._teResult&&_plTechEval.length){r.techEval=_plTechEval.slice();r.teResult={score:window._teResult.score,pct:window._teResult.pct,pass:window._teResult.pass};}
@@ -2957,8 +3472,8 @@ function savePipelineItem(){
     const qs=S.quotations.filter(q=>(!q.companyId||q.companyId===co.id)&&((q.num||'').replace(/ v\d+$/i,'').trim()===baseQtn2));
     if(qs.length){
       // Always link to latest Submitted version
-      const submitted=qs.filter(q=>q.status==='Submitted');
-      const draft=qs.filter(q=>q.status==='Draft'||q.status==='in pricing');
+      const submitted=qs.filter(q=>q.status==='Submitted'||q.status==='Evaluation');
+      const draft=qs.filter(q=>q.status==='Draft'||q.status==='In Pricing');
       const pool=submitted.length?submitted:draft.length?draft:qs;
       const best=pool.reduce((a,b)=>a.id>b.id?a:b);
       quotationId=best.id;
@@ -2997,6 +3512,21 @@ function deletePipeline(id){if(!confirm('Remove?'))return;S.pipeline=S.pipeline.
 
 // Get live amount for a pipeline row
 // Priority: quotationId (direct link) → qtn name match → stored amount
+// Like getLatestSubmittedQ, but for display purposes only — never returns null
+// as long as a matching quotation exists, regardless of its status (Won/Lost/Draft included).
+function getLinkedQuotationForCard(row){
+  var baseQtn=(row.qtn||'').replace(/ v\d+$/i,'').trim();
+  var qs=S.quotations.filter(function(q){
+    if(q.companyId && q.companyId!==row.companyId) return false;
+    var baseNum=(q.num||'').replace(/ v\d+$/i,'').trim();
+    if(baseQtn && (q.num===row.qtn || baseNum===baseQtn)) return true;
+    if(row.quotationId && q.id==row.quotationId) return true;
+    return false;
+  });
+  if(!qs.length) return null;
+  return qs.reduce(function(a,b){return a.id>b.id?a:b;}); // always the latest version, whatever its status
+}
+
 function getLatestSubmittedQ(row){
   // Find ALL quotations for this pipeline project
   // Match ALL versions with same QTN number (versions share the same num)
@@ -3012,10 +3542,10 @@ function getLatestSubmittedQ(row){
   });
   if(!qs.length) return null;
   // Priority 1: in pricing (latest)
-  var inPricing=qs.filter(function(q){return q.status==='in pricing';});
+  var inPricing=qs.filter(function(q){return q.status==='In Pricing';});
   if(inPricing.length) return inPricing.reduce(function(a,b){return a.id>b.id?a:b;});
   // Priority 2: Submitted (latest)
-  var submitted=qs.filter(function(q){return q.status==='Submitted';});
+  var submitted=qs.filter(function(q){return q.status==='Submitted'||q.status==='Evaluation';});
   if(submitted.length) return submitted.reduce(function(a,b){return a.id>b.id?a:b;});
   // No in pricing or Submitted — return null
   return null;
@@ -3052,8 +3582,8 @@ function migratePipelineQuotationIds(){
     const qs=S.quotations.filter(q=>q.num===row.qtn&&(!q.companyId||q.companyId===row.companyId));
     if(!qs.length) return;
     // Pick active version: Draft/in pricing preferred, else latest
-    const submitted=qs.filter(q=>q.status==='Submitted');
-    const draft=qs.filter(q=>q.status==='Draft'||q.status==='in pricing');
+    const submitted=qs.filter(q=>q.status==='Submitted'||q.status==='Evaluation');
+    const draft=qs.filter(q=>q.status==='Draft'||q.status==='In Pricing');
     const pool=submitted.length?submitted:draft.length?draft:qs;
     const best=pool.reduce((a,b)=>a.id>b.id?a:b);
     row.quotationId=best.id;
@@ -3103,8 +3633,8 @@ function onPmQtnChange(){
   }
 
   // Always use latest Submitted version; fallback to Draft/in pricing; fallback to latest
-  const submitted=qs.filter(q=>q.status==='Submitted');
-  const draft=qs.filter(q=>q.status==='Draft'||q.status==='in pricing');
+  const submitted=qs.filter(q=>q.status==='Submitted'||q.status==='Evaluation');
+  const draft=qs.filter(q=>q.status==='Draft'||q.status==='In Pricing');
   const pool=submitted.length?submitted:draft.length?draft:qs;
   const best=pool.reduce((a,b)=>a.id>b.id?a:b);
 
@@ -3253,7 +3783,7 @@ function openQFromPipeline(pId){
       const linked=matches.find(x=>x.pipelineId==pId);
       if(linked) q=linked;
       else {
-        const active=matches.filter(x=>x.status==='Draft'||x.status==='in pricing');
+        const active=matches.filter(x=>x.status==='Draft'||x.status==='In Pricing');
         const pool=active.length?active:matches;
         q=pool.reduce((a,b)=>a.id>b.id?a:b);
       }
@@ -3399,7 +3929,7 @@ function renderQList(){
   list.sort((a,b)=>b.id-a.id);
 
   document.getElementById('q-list').innerHTML=list.length?list.map(q=>`
-    <div class="q-list-item ${q.id===S.activeQId?'active':''}" style="${(function(){var sc={'Approved':'border-left:4px solid #10b981;background:#f0fdf4','Submitted':'border-left:4px solid #3b82f6;background:#eff6ff','in pricing':'border-left:4px solid #f59e0b;background:#fffbeb','out':'border-left:4px solid #ef4444;background:#fef2f2','Canceled':'border-left:4px solid #9ca3af;background:#f9fafb','Draft':'border-left:4px solid #d1d5db;background:var(--surface)'};return sc[q.status]||'border-left:4px solid var(--border)';})()}">
+    <div class="q-list-item ${q.id===S.activeQId?'active':''}" style="${(function(){var sc={'Won':'border-left:4px solid #10b981;background:#f0fdf4','Submitted':'border-left:4px solid #3b82f6;background:#eff6ff','Evaluation':'border-left:4px solid #9ca3af;background:#f9fafb','In Pricing':'border-left:4px solid #f59e0b;background:#fffbeb','Lost':'border-left:4px solid #ef4444;background:#fef2f2','Canceled':'border-left:4px solid #9ca3af;background:#f9fafb','Draft':'border-left:4px solid #d1d5db;background:var(--surface)'};return sc[q.status]||'border-left:4px solid var(--border)';})()}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
@@ -3413,13 +3943,34 @@ function renderQList(){
             ${q.tenderref?'<span>📋 '+esc(q.tenderref)+'</span>':''}
             <span>${statusBadge(q.status)}</span>
           </div>
+          ${q.teStatus==='Fail'&&q.teFailReason?'<div style="font-size:12px;color:'+teStatusStyle('Fail').text+';margin-top:4px">⚠️ '+esc(q.teFailReason)+'</div>':''}
+          ${q.feStatus==='Fail'&&(q.feWinnerValue||q.feWinnerCompany)?'<div style="font-size:12px;color:'+teStatusStyle('Fail').text+';margin-top:4px">⚠️ Winning offer: '+esc(q.feWinnerCompany||'—')+' — '+esc(q.feWinnerValue||'—')+'</div>':''}
+          ${q.status==='Won'&&q.contractStatus?'<div style="font-size:12px;color:'+teStatusStyle('Pass').text+';margin-top:4px">'+(q.contractStatus==='Signed'?'✓':'⚠️')+' Contract: '+esc(q.contractStatus)+(q.contractNumber?' — '+esc(q.contractNumber):'')+'</div>':''}
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
           <span style="font-size:20px;font-weight:900;font-family:monospace;color:var(--green)">${fmtN(qSellWithVAT(q))}</span>
-          <div style="display:flex;align-items:center;gap:6px">
-            <select style="font-size:12px;padding:5px 8px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer" onchange="updateQStatus(${q.id},this.value)" onclick="event.stopPropagation()">
-              ${['Draft','in pricing','Submitted','Approved','out','Canceled','Value Engineering'].map(function(s){return '<option value="'+s+'"'+(q.status===s?' selected':'')+'>'+s+'</option>';}).join('')}
-            </select>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+              <span style="font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)">Quote Status</span>
+              <select style="font-size:12px;padding:5px 8px;border-radius:6px;border:1.5px solid ${qStatusStyle(q.status).border};background:${qStatusStyle(q.status).bg};color:${qStatusStyle(q.status).text};font-weight:600;cursor:pointer" onchange="updateQStatus(${q.id},this.value)" onclick="event.stopPropagation()">
+                ${['Draft','Submitted','Evaluation','In Pricing','Won','Lost','Canceled'].map(function(s){return '<option value="'+s+'"'+(q.status===s?' selected':'')+'>'+s+'</option>';}).join('')}
+              </select>
+            </div>
+            ${(q.status==='Submitted'||q.status==='Won'||q.status==='Lost')?`
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+              <span style="font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)">Technical</span>
+              <select title="${q.teStatus==='Fail'&&q.teFailReason?esc(q.teFailReason):'Technical Evaluation'}" style="font-size:12px;padding:5px 8px;border-radius:6px;border:1.5px solid ${teStatusStyle(q.teStatus||'Under Evaluation').border};background:${teStatusStyle(q.teStatus||'Under Evaluation').bg};color:${teStatusStyle(q.teStatus||'Under Evaluation').text};font-weight:600;cursor:pointer" onchange="updateQTechEval(${q.id},this.value)" onclick="event.stopPropagation()">
+                ${['Under Evaluation','Pass','Fail'].map(function(s){return '<option value="'+s+'"'+((q.teStatus||'Under Evaluation')===s?' selected':'')+'>'+s+'</option>';}).join('')}
+              </select>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+              <span style="font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)">Financial</span>
+              <select title="${q.feStatus==='Fail'&&(q.feWinnerValue||q.feWinnerCompany)?('Winner: '+esc(q.feWinnerCompany||'—')+' — '+esc(q.feWinnerValue||'—')):'Financial Evaluation'}" style="font-size:12px;padding:5px 8px;border-radius:6px;border:1.5px solid ${teStatusStyle(q.feStatus||'Under Evaluation').border};background:${teStatusStyle(q.feStatus||'Under Evaluation').bg};color:${teStatusStyle(q.feStatus||'Under Evaluation').text};font-weight:600;cursor:pointer" onchange="updateQFinancialEval(${q.id},this.value)" onclick="event.stopPropagation()">
+                ${['Under Evaluation','Pass','Fail'].map(function(s){return '<option value="'+s+'"'+((q.feStatus||'Under Evaluation')===s?' selected':'')+'>'+s+'</option>';}).join('')}
+              </select>
+            </div>
+            `:''}
+            ${q.status==='Won'?'<button class="btn btn-primary" style="font-size:14px;padding:7px 20px" onclick="event.stopPropagation();openContractStatusModal('+q.id+')">📄 Contract Status</button>':''}
             <button class="btn btn-primary" style="font-size:14px;padding:7px 20px" onclick="openQuotation(${q.id})">👁 View</button>
           </div>
         </div>
@@ -3537,11 +4088,12 @@ function onNumFormatChange(){
   updateNumPreview();
 }
 
-function newQuotation(){
+function newQuotation(pipelineId){
   const co=getCurrentCompany();
   if(!co){alert('No company found. Please refresh the page.');return;}
   // Open wizard
   wizCurrentStep=1;
+  _wizOriginPipelineId=pipelineId||null;
   // Populate Quoted By
   var byEl=document.getElementById('wiz-by');
   if(byEl){
@@ -3555,7 +4107,7 @@ function newQuotation(){
   var stEl=document.getElementById('wiz-status'); if(stEl) stEl.value='Draft';
   var vEl=document.getElementById('wiz-version'); if(vEl) vEl.value='v1';
   var dEl=document.getElementById('wiz-date'); if(dEl) dEl.value=new Date().toISOString().slice(0,10);
-  // Populate pipeline dropdown
+  // Populate pipeline dropdown — always defaults to "New (auto)", never preselected
   var numEl=document.getElementById('wiz-num');
   if(numEl){
     var pipeRows=(S.pipeline||[]).filter(function(r){
@@ -3564,9 +4116,43 @@ function newQuotation(){
     numEl.innerHTML='<option value="">— New (auto) —</option>'+pipeRows.map(function(r){
       return '<option value="'+r.id+'">'+esc((r.printRef||r.qtn||''))+' — '+esc(r.name||r.client||'')+'</option>';
     }).join('');
+    numEl.value=''; // always default to New (auto), even when opened from a project card
   }
+  // Coming from a project card: pull in the shared fields even though the
+  // dropdown itself stays on "New (auto)"
+  if(pipelineId) wizAutofillFromPipeline(pipelineId);
   wizRender();
   openModal('modal-new-q-wizard');
+}
+
+// Remembers which project (if any) this wizard session was opened from, so the
+// new quotation can still be linked to it even though "wiz-num" stays on "New (auto)".
+var _wizOriginPipelineId=null;
+
+// Fills the fields shared between a pipeline project and a quotation
+// (project name, client, location, tender ref, system, quoted by).
+// pid: explicit pipeline id (used when opened from a project card); if omitted,
+// reads the currently selected "Pipeline / QTN Ref" dropdown value instead.
+function wizAutofillFromPipeline(pid){
+  if(!pid){ var numEl=document.getElementById('wiz-num'); pid=numEl?numEl.value:''; }
+  if(!pid) return;
+  var r=S.pipeline.find(function(p){return String(p.id)===String(pid);});
+  if(!r) return;
+  var s=function(id,v){var el=document.getElementById(id);if(el&&v)el.value=v;};
+  s('wiz-project', r.name);
+  s('wiz-client', r.client);
+  s('wiz-addr', r.loc);
+  s('wiz-tenderref', r.ref);
+  if(r.by) s('wiz-by', r.by);
+  // Pipeline and wizard use slightly different System option lists — only
+  // apply the value when it actually matches one of the wizard's options.
+  var sysEl=document.getElementById('wiz-system');
+  if(sysEl && r.sys){
+    var matches=false;
+    for(var i=0;i<sysEl.options.length;i++){ if(sysEl.options[i].value===r.sys){matches=true;break;} }
+    if(matches) sysEl.value=r.sys;
+  }
+  if(wizCurrentStep===5) wizRender(); // refresh the summary if already on the last step
 }
 
 var wizCurrentStep=1;
@@ -3622,6 +4208,8 @@ function wizCreateQuotation(){
   var co=getCurrentCompany();if(!co) return;
   var g=function(id){return (document.getElementById(id)||{}).value||'';};
   var num=generateQNum(); bumpQNumSequence();
+  var pipelineId=g('wiz-num')||_wizOriginPipelineId||null;
+  var linkedRow=pipelineId?S.pipeline.find(function(r){return String(r.id)===String(pipelineId);}):null;
   var q=blankQ({
     companyId:co.id, num:num,
     version: g('wiz-version')||'v1',
@@ -3635,9 +4223,12 @@ function wizCreateQuotation(){
     scope: g('wiz-scope'),
     validity: g('wiz-validity'), vat: parseFloat(g('wiz-vat'))||15,
     paymentTerms: g('wiz-payment'), warranty: g('wiz-warranty'),
-    notes: g('wiz-notes')
+    notes: g('wiz-notes'),
+    pipelineId: linkedRow?linkedRow.id:null,
+    projectType: linkedRow&&linkedRow.type?linkedRow.type:'Tender'
   });
   S.quotations.push(q);
+  if(linkedRow && !linkedRow.quotationId) linkedRow.quotationId=q.id;
   save(); renderQList();
   closeModal('modal-new-q-wizard');
   openQuotation(q.id);
@@ -3659,7 +4250,7 @@ function newVersion(){
     return r.status==='Approved' && (r.qtn===q.num||r.qtn===baseQtn||
       (r.qtn||'').replace(/ v\d+$/i,'').trim()===baseQtn);
   });
-  copy.status = pipelineItem ? 'Value Engineering' : 'Draft';
+  copy.status = pipelineItem ? 'Submitted' : 'Draft';
   copy.pipelineId = pipelineItem ? pipelineItem.id : (q.pipelineId||null);
   S.quotations.push(copy);
   // Link new version to pipeline
@@ -3969,13 +4560,13 @@ function unlinkQtnFromProject(qId){
 
 function statusColors(){
   return {
-    'Approved':   {bg:'#d1fae5',c:'#065f46'},
+    'Won':        {bg:'#d1fae5',c:'#065f46'},
     'Submitted':  {bg:'#dbeafe',c:'#1d4ed8'},
-    'in pricing': {bg:'#fef3c7',c:'#92400e'},
-    'out':        {bg:'#fee2e2',c:'#991b1b'},
+    'Evaluation': {bg:'#e5e7eb',c:'#6b7280'},
+    'In Pricing': {bg:'#fef3c7',c:'#92400e'},
+    'Lost':       {bg:'#fee2e2',c:'#991b1b'},
     'Canceled':   {bg:'#e5e7eb',c:'#6b7280'},
     'Draft':      {bg:'#f3f4f6',c:'#6b7280'},
-    'Value Engineering':{bg:'#ede9fe',c:'#5b21b6'},
   };
 }
 
@@ -3983,8 +4574,10 @@ function updateQStatus(id, status){
   var q=S.quotations.find(function(x){return x.id===id;});
   if(!q) return;
   q.status=status;
+  syncPipelineStatusFromQuotation(q);
   save();
   renderQList();
+  if(typeof renderPipeline==='function') renderPipeline();
   showNotification&&showNotification('Status updated: '+status);
 }
 
@@ -4065,6 +4658,7 @@ function syncQFields(q){
   
   const sys=document.getElementById('q-system');if(sys)sys.value=q.system||'CCTV';
   const st=document.getElementById('q-status');if(st)st.value=q.status||'Draft';
+  const ptEl=document.getElementById('q-project-type');if(ptEl)ptEl.value=q.projectType||'Tender';
   const byEl=document.getElementById('q-by');
   if(byEl){
     const currentUser=getCurrentUser();
@@ -4104,7 +4698,8 @@ function saveQ(){
   const numEl=document.getElementById('q-num');if(numEl)q.num=numEl.value;
   q.date=g('q-date');q.project=g('q-project');q.client=g('q-client');q.clientPhone=g('q-client-phone');q.addr=g('q-addr');
   q.system=g('q-system');q.tenderref=g('q-tenderref');q.duration=g('q-duration');
-  q.by=g('q-by');q.vat=+g('q-vat')||15;q.status=g('q-status');q.version=g('q-version')||'v1';
+  q.by=g('q-by');q.vat=+g('q-vat')||15;q.status=g('q-status');q.version=g('q-version')||'v1';q.projectType=g('q-project-type');
+  syncPipelineStatusFromQuotation(q);
   q.validity=g('q-validity');q.paymentTerms=g('q-payment-terms');q.scope=g('q-scope');
   q.delivery=g('q-delivery');q.impl=g('q-impl');q.notes=g('q-notes');
   const pp=document.getElementById('profit-pct');if(pp)q.profitPct=+pp.value||25;
@@ -4123,7 +4718,7 @@ function saveQ(){
   }
   
   // Auto-lock when status is Submitted
-  if(q.status==='Submitted'&&!q.locked){
+  if((q.status==='Submitted'||q.status==='Evaluation')&&!q.locked){
     q.locked=true;
     openQuotation(q.id);
   }
@@ -4139,6 +4734,7 @@ function saveQ(){
     });
     updateDashboard();
   }
+  if(typeof renderPipeline==='function') renderPipeline();
   renderQList();
 }
 
@@ -6234,7 +6830,7 @@ if(!S.pipeline.length){
 }
 
 if(!S.quotations.length){
-  const d=blankQ({companyId:1,id:1001,num:'QTN-26001',project:'CCTV – Main Site',client:'Security Corp',addr:'Riyadh',system:'CCTV',date:'2026-01-15',by:'Khalil Massad',status:'Submitted',version:'v1',profitPct:25});
+  const d=blankQ({companyId:1,id:1001,num:'QTN-26001',project:'CCTV – Main Site',client:'Security Corp',addr:'Riyadh',system:'CCTV',date:'2026-01-15',by:'Khalil Massad',status:'Evaluation',version:'v1',profitPct:25});
   d.items=[{id:2001,desc:'CCTV System Supply & Install',qty:1,unit:'Lot',priced:false,subItems:[
     {id:3001,partno:'AX-P3245V',desc:'Axis P3245-V Fixed Dome',vendor:'Axis',type:'Item',unit:'Pcs',qty:10,unitPrice:1850,priced:false,notes:''},
     {id:3002,partno:'GEN-NVR32',desc:'Genetec NVR 32CH',vendor:'Genetec',type:'Item',unit:'Pcs',qty:1,unitPrice:18000,priced:false,notes:''},
@@ -6354,7 +6950,7 @@ if (_portalBridgePending) {
       <div style="position:relative;display:inline-block" id="add-qtn-wrap">
         <button class="btn btn-primary" onclick="toggleAddQtnDropdown()">+ Add Quotation ▾</button>
         <div id="add-qtn-dropdown" style="display:none;position:absolute;bottom:110%;right:0;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:190px;z-index:10;overflow:hidden">
-          <div onclick="closeModal('modal-proj-qtns');newQuotation();hideAddQtnDropdown()" style="padding:11px 16px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+          <div onclick="closeModal('modal-proj-qtns');newQuotation(window._currentPipelineId);hideAddQtnDropdown()" style="padding:11px 16px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
             ✨ New Quotation
           </div>
           <div onclick="openAddFromExistingQtn();hideAddQtnDropdown()" style="padding:11px 16px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--border)" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
@@ -6425,10 +7021,16 @@ if (_portalBridgePending) {
                     <div class="field">
                       <label>Status</label>
                       <select id="q-status" onchange="saveQ()">
-                        <option>Draft</option><option>Lead</option><option>Submitted</option><option>Approved</option><option>in pricing</option><option>out</option><option>Canceled</option>
+                        <option>Draft</option><option>Submitted</option><option>Evaluation</option><option>In Pricing</option><option>Won</option><option>Lost</option><option>Canceled</option>
                       </select>
                     </div>
                     <div class="field"><label>Quoted By</label><select id="q-by" onchange="saveQ()"></select></div>
+                    <div class="field">
+                      <label>Project Type</label>
+                      <select id="q-project-type" onchange="saveQ()">
+                        <option>Tender</option><option>RFQ</option><option>Lead</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
@@ -6646,12 +7248,12 @@ if (_portalBridgePending) {
     <div id="wiz-body-1" style="padding:20px 24px">
       <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px">📋 Quotation Info</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-        <div class="field" style="margin:0"><label>Pipeline / QTN Ref</label><select id="wiz-num" style="font-size:13px"><option value="">— New (auto) —</option></select></div>
+        <div class="field" style="margin:0"><label>Pipeline / QTN Ref</label><select id="wiz-num" style="font-size:13px" onchange="wizAutofillFromPipeline()"><option value="">— New (auto) —</option></select></div>
         <div class="field" style="margin:0"><label>Version</label><input id="wiz-version" placeholder="v1" style="font-size:13px" value="v1"></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
         <div class="field" style="margin:0"><label>Submission Date</label><input type="date" id="wiz-date" style="font-size:13px"></div>
-        <div class="field" style="margin:0"><label>Status</label><select id="wiz-status" style="font-size:13px"><option>Draft</option><option>Lead</option><option>in pricing</option><option>Submitted</option><option>Approved</option><option>out</option><option>Canceled</option></select></div>
+        <div class="field" style="margin:0"><label>Status</label><select id="wiz-status" style="font-size:13px"><option>Draft</option><option>Submitted</option><option>Evaluation</option><option>In Pricing</option><option>Won</option><option>Lost</option><option>Canceled</option></select></div>
       </div>
       <div class="field" style="margin:0"><label>Quoted By</label><select id="wiz-by" style="font-size:13px"><option value="">— Select —</option></select></div>
     </div>
@@ -6718,6 +7320,39 @@ if (_portalBridgePending) {
   </div>
 </div>
 
+<!-- CONTRACT STATUS MODAL -->
+<div class="modal-overlay" id="modal-contract-status" style="z-index:700" onclick="if(event.target===this)closeModal('modal-contract-status')">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <div class="modal-title">📄 Contract Status</div>
+      <button class="modal-close" onclick="closeModal('modal-contract-status')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field" style="margin-bottom:12px">
+        <label>Contract Status</label>
+        <select id="cs-status" style="font-size:13px">
+          <option>Project Hold</option>
+          <option>Company Evaluation</option>
+          <option>PO – Received</option>
+          <option>Bond Submission</option>
+          <option>Payment Approval</option>
+          <option>Pending Signature</option>
+          <option>Signed</option>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div class="field" style="margin:0"><label>Contract Number</label><input id="cs-number" placeholder="e.g. CTR-2026-014" style="font-size:13px"></div>
+        <div class="field" style="margin:0"><label>Contract Date</label><input type="date" id="cs-date" style="font-size:13px"></div>
+      </div>
+      <div class="field" style="margin:0"><label>Notes</label><textarea id="cs-notes" rows="3" placeholder="Any notes about the contract..." style="font-size:13px;resize:none"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-contract-status')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveContractStatusModal()">Save</button>
+    </div>
+  </div>
+</div>
+
 </body>
     return '<div style="display:grid;grid-template-columns:1fr 1fr 120px 130px 160px auto;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;cursor:pointer" onclick="window.__veOpen(this.dataset.vid)" data-vid="'+r.id+'">'+
 
@@ -6741,7 +7376,7 @@ if (_portalBridgePending) {
       <div style="position:relative;display:inline-block" id="add-qtn-wrap">
         <button class="btn btn-primary" onclick="toggleAddQtnDropdown()">+ Add Quotation ▾</button>
         <div id="add-qtn-dropdown" style="display:none;position:absolute;bottom:110%;right:0;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:190px;z-index:10;overflow:hidden">
-          <div onclick="closeModal('modal-proj-qtns');newQuotation();hideAddQtnDropdown()" style="padding:11px 16px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+          <div onclick="closeModal('modal-proj-qtns');newQuotation(window._currentPipelineId);hideAddQtnDropdown()" style="padding:11px 16px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
             ✨ New Quotation
           </div>
           <div onclick="openAddFromExistingQtn();hideAddQtnDropdown()" style="padding:11px 16px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--border)" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
@@ -6812,10 +7447,16 @@ if (_portalBridgePending) {
                     <div class="field">
                       <label>Status</label>
                       <select id="q-status" onchange="saveQ()">
-                        <option>Draft</option><option>Lead</option><option>Submitted</option><option>Approved</option><option>in pricing</option><option>out</option><option>Canceled</option>
+                        <option>Draft</option><option>Submitted</option><option>Evaluation</option><option>In Pricing</option><option>Won</option><option>Lost</option><option>Canceled</option>
                       </select>
                     </div>
                     <div class="field"><label>Quoted By</label><select id="q-by" onchange="saveQ()"></select></div>
+                    <div class="field">
+                      <label>Project Type</label>
+                      <select id="q-project-type" onchange="saveQ()">
+                        <option>Tender</option><option>RFQ</option><option>Lead</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
@@ -7033,12 +7674,12 @@ if (_portalBridgePending) {
     <div id="wiz-body-1" style="padding:20px 24px">
       <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px">📋 Quotation Info</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-        <div class="field" style="margin:0"><label>Pipeline / QTN Ref</label><select id="wiz-num" style="font-size:13px"><option value="">— New (auto) —</option></select></div>
+        <div class="field" style="margin:0"><label>Pipeline / QTN Ref</label><select id="wiz-num" style="font-size:13px" onchange="wizAutofillFromPipeline()"><option value="">— New (auto) —</option></select></div>
         <div class="field" style="margin:0"><label>Version</label><input id="wiz-version" placeholder="v1" style="font-size:13px" value="v1"></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
         <div class="field" style="margin:0"><label>Submission Date</label><input type="date" id="wiz-date" style="font-size:13px"></div>
-        <div class="field" style="margin:0"><label>Status</label><select id="wiz-status" style="font-size:13px"><option>Draft</option><option>Lead</option><option>in pricing</option><option>Submitted</option><option>Approved</option><option>out</option><option>Canceled</option></select></div>
+        <div class="field" style="margin:0"><label>Status</label><select id="wiz-status" style="font-size:13px"><option>Draft</option><option>Submitted</option><option>Evaluation</option><option>In Pricing</option><option>Won</option><option>Lost</option><option>Canceled</option></select></div>
       </div>
       <div class="field" style="margin:0"><label>Quoted By</label><select id="wiz-by" style="font-size:13px"><option value="">— Select —</option></select></div>
     </div>
