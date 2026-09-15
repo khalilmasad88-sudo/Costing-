@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>مراقب منافسات اعتماد</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!--
+  VERIFY: this app expects the same PortalBridge script your other apps
+  (client-tracker.html, PM_APP.html) use, exposing window.bridge and firing
+  a `portalBridgeReady` event once bridge.companyStorage has Supabase
+  credentials loaded. Point this at wherever Zeina portal serves it from.
+-->
+<script src="/portal-bridge.js"></script>
+
+<style>
+  :root {
+    --navy: #0f2447;
+    --navy-light: #16345f;
+    --amber: #d9a441;
+    --green: #2f8f5b;
+    --bg: #f4f6f9;
+    --card: #ffffff;
+    --text: #1c2733;
+    --muted: #6b7684;
+    --danger: #c0392b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'IBM Plex Sans Arabic', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .layout { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 220px;
+    background: var(--navy);
+    color: #fff;
+    padding: 24px 16px;
+    flex-shrink: 0;
+  }
+  .sidebar h1 { font-size: 16px; margin: 0 0 24px; color: var(--amber); }
+  .nav-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-bottom: 6px;
+    color: #d7e0ec;
+    font-size: 14px;
+  }
+  .nav-item:hover { background: var(--navy-light); }
+  .nav-item.active { background: var(--navy-light); color: #fff; font-weight: 600; }
+  .badge {
+    background: var(--amber);
+    color: var(--navy);
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 1px 8px;
+  }
+  .main { flex: 1; padding: 28px; }
+  .card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(15, 36, 71, 0.08);
+    margin-bottom: 18px;
+  }
+  h2 { margin-top: 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 10px 8px; text-align: right; border-bottom: 1px solid #eaecef; }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; }
+  tr.is-new td:first-child { position: relative; }
+  .new-pill {
+    background: var(--green);
+    color: #fff;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-inline-end: 6px;
+  }
+  .btn {
+    background: var(--navy);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 16px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+  }
+  .btn.secondary { background: #eef1f5; color: var(--text); }
+  .btn.danger { background: var(--danger); }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  .form-grid.full { grid-template-columns: 1fr; }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  input[type=text], input[type=date] {
+    width: 100%; padding: 8px 10px; border: 1px solid #dde2e8; border-radius: 8px; font-family: inherit; font-size: 14px;
+  }
+  .profile-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
+  .profile-row:last-child { border-bottom: none; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .empty-state { text-align: center; color: var(--muted); padding: 40px 0; }
+  a.tender-link { color: var(--navy); font-weight: 600; text-decoration: none; }
+  a.tender-link:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <div class="sidebar">
+    <h1>مراقب منافسات اعتماد</h1>
+    <div class="nav-item active" data-view="tenders">
+      <span>المنافسات المطابقة</span>
+      <span class="badge" id="newCountBadge" style="display:none">0</span>
+    </div>
+    <div class="nav-item" data-view="profiles">
+      <span>ملفات البحث</span>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- Tenders view -->
+    <section id="view-tenders">
+      <div class="toolbar">
+        <h2>المنافسات المطابقة</h2>
+        <button class="btn secondary" id="markAllSeenBtn">تعليم الكل كمقروء</button>
+      </div>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>اسم المنافسة</th>
+              <th>الجهة</th>
+              <th>الرقم المرجعي</th>
+              <th>تاريخ النشر</th>
+              <th>آخر موعد للتقديم</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tendersBody"></tbody>
+        </table>
+        <div class="empty-state" id="tendersEmpty" style="display:none">لا توجد منافسات مطابقة بعد. تأكد من تشغيل جهاز الفحص اليومي.</div>
+      </div>
+    </section>
+
+    <!-- Profiles view -->
+    <section id="view-profiles" style="display:none">
+      <div class="toolbar">
+        <h2>ملفات البحث</h2>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0">إضافة ملف بحث جديد</h3>
+        <div class="form-grid">
+          <div>
+            <label>اسم الملف (للتمييز فقط)</label>
+            <input type="text" id="newName" placeholder="مثال: كاميرات مراقبة - وزارة الداخلية">
+          </div>
+          <div>
+            <label>الجهة الحكومية (اختياري)</label>
+            <input type="text" id="newEntity" placeholder="اتركه فارغًا لأي جهة">
+          </div>
+        </div>
+        <div class="form-grid full">
+          <div>
+            <label>الكلمات المفتاحية (افصل بينها بفاصلة)</label>
+            <input type="text" id="newKeywords" placeholder="كاميرات مراقبة, CCTV, أنظمة أمنية">
+          </div>
+        </div>
+        <div class="form-grid">
+          <div>
+            <label>من تاريخ (اختياري)</label>
+            <input type="date" id="newDateFrom">
+          </div>
+          <div>
+            <label>إلى تاريخ (اختياري)</label>
+            <input type="date" id="newDateTo">
+          </div>
+        </div>
+        <button class="btn" id="addProfileBtn">إضافة</button>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0">الملفات الحالية</h3>
+        <div id="profilesList"></div>
+        <div class="empty-state" id="profilesEmpty" style="display:none">لم تُضف أي ملفات بحث بعد.</div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+let supabase = null;
+let tenders = [];
+let profiles = [];
+
+// --- PortalBridge wiring -------------------------------------------------
+// VERIFY: property names against your real PortalBridge script; this
+// mirrors the documented convention (bridge.companyStorage holds Supabase
+// creds, portalBridgeReady fires once loaded, auto-login bypasses a
+// separate login screen) used by client-tracker.html / PM_APP.html.
+window.addEventListener('portalBridgeReady', () => {
+  const creds = window.bridge && window.bridge.companyStorage;
+  if (!creds || !creds.supabaseUrl || !creds.supabaseKey) {
+    console.error('PortalBridge did not provide Supabase credentials.');
+    return;
+  }
+  supabase = window.supabase.createClient(creds.supabaseUrl, creds.supabaseKey);
+  init();
+});
+
+async function init() {
+  await Promise.all([loadTenders(), loadProfiles()]);
+  render();
+}
+
+// --- Data access ----------------------------------------------------------
+async function loadTenders() {
+  const { data, error } = await supabase
+    .from('etimad_tenders')
+    .select('*')
+    .order('first_seen_at', { ascending: false });
+  if (error) { console.error(error); return; }
+  tenders = data || [];
+}
+
+async function loadProfiles() {
+  const { data, error } = await supabase
+    .from('etimad_search_profiles')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) { console.error(error); return; }
+  profiles = data || [];
+}
+
+async function markSeen(id) {
+  await supabase.from('etimad_tenders').update({ is_new: false }).eq('id', id);
+  const t = tenders.find(x => x.id === id);
+  if (t) t.is_new = false;
+  render();
+}
+
+async function markAllSeen() {
+  const newIds = tenders.filter(t => t.is_new).map(t => t.id);
+  if (!newIds.length) return;
+  await supabase.from('etimad_tenders').update({ is_new: false }).in('id', newIds);
+  tenders.forEach(t => t.is_new = false);
+  render();
+}
+
+async function addProfile() {
+  const name = document.getElementById('newName').value.trim();
+  const entity = document.getElementById('newEntity').value.trim();
+  const keywordsRaw = document.getElementById('newKeywords').value.trim();
+  const dateFrom = document.getElementById('newDateFrom').value || null;
+  const dateTo = document.getElementById('newDateTo').value || null;
+
+  if (!name || !keywordsRaw) {
+    alert('الاسم والكلمات المفتاحية مطلوبة');
+    return;
+  }
+  const keywords = keywordsRaw.split(',').map(k => k.trim()).filter(Boolean);
+
+  const { error } = await supabase.from('etimad_search_profiles').insert({
+    name, keywords, end_user: entity || null, date_from: dateFrom, date_to: dateTo, active: true,
+  });
+  if (error) { alert('تعذر الإضافة: ' + error.message); return; }
+
+  document.getElementById('newName').value = '';
+  document.getElementById('newEntity').value = '';
+  document.getElementById('newKeywords').value = '';
+  document.getElementById('newDateFrom').value = '';
+  document.getElementById('newDateTo').value = '';
+
+  await loadProfiles();
+  render();
+}
+
+async function toggleProfileActive(id, active) {
+  await supabase.from('etimad_search_profiles').update({ active }).eq('id', id);
+  const p = profiles.find(x => x.id === id);
+  if (p) p.active = active;
+  render();
+}
+
+async function deleteProfile(id) {
+  if (!confirm('حذف ملف البحث هذا؟')) return;
+  await supabase.from('etimad_search_profiles').delete().eq('id', id);
+  profiles = profiles.filter(p => p.id !== id);
+  render();
+}
+
+// --- Rendering --------------------------------------------------------------
+function render() {
+  renderBadge();
+  renderTenders();
+  renderProfiles();
+}
+
+function renderBadge() {
+  const count = tenders.filter(t => t.is_new).length;
+  const badge = document.getElementById('newCountBadge');
+  badge.style.display = count ? 'inline-block' : 'none';
+  badge.textContent = count;
+}
+
+function renderTenders() {
+  const body = document.getElementById('tendersBody');
+  const empty = document.getElementById('tendersEmpty');
+  body.innerHTML = '';
+  empty.style.display = tenders.length ? 'none' : 'block';
+
+  for (const t of tenders) {
+    const tr = document.createElement('tr');
+    if (t.is_new) tr.classList.add('is-new');
+    tr.innerHTML = `
+      <td>${t.is_new ? '<span class="new-pill">جديد</span>' : ''}${escapeHtml(t.title || '')}</td>
+      <td>${escapeHtml(t.entity || '')}</td>
+      <td>${escapeHtml(t.reference_number || '')}</td>
+      <td>${t.publish_date || ''}</td>
+      <td>${t.submission_deadline || ''}</td>
+      <td>
+        ${t.source_url ? `<a class="tender-link" href="${t.source_url}" target="_blank" rel="noopener">فتح</a>` : ''}
+      </td>
+    `;
+    tr.addEventListener('click', () => { if (t.is_new) markSeen(t.id); });
+    body.appendChild(tr);
+  }
+}
+
+function renderProfiles() {
+  const list = document.getElementById('profilesList');
+  const empty = document.getElementById('profilesEmpty');
+  list.innerHTML = '';
+  empty.style.display = profiles.length ? 'none' : 'block';
+
+  for (const p of profiles) {
+    const row = document.createElement('div');
+    row.className = 'profile-row';
+    row.innerHTML = `
+      <div>
+        <div><strong>${escapeHtml(p.name)}</strong></div>
+        <div class="muted">
+          ${p.keywords.map(escapeHtml).join('، ')}
+          ${p.end_user ? ' · الجهة: ' + escapeHtml(p.end_user) : ''}
+          ${p.date_from ? ' · من ' + p.date_from : ''}
+          ${p.date_to ? ' إلى ' + p.date_to : ''}
+        </div>
+      </div>
+      <div>
+        <button class="btn secondary toggle-btn">${p.active ? 'إيقاف' : 'تفعيل'}</button>
+        <button class="btn danger del-btn">حذف</button>
+      </div>
+    `;
+    row.querySelector('.toggle-btn').addEventListener('click', () => toggleProfileActive(p.id, !p.active));
+    row.querySelector('.del-btn').addEventListener('click', () => deleteProfile(p.id));
+    list.appendChild(row);
+  }
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, s => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[s]));
+}
+
+// --- Navigation ---------------------------------------------------------
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+    const view = item.dataset.view;
+    document.getElementById('view-tenders').style.display = view === 'tenders' ? 'block' : 'none';
+    document.getElementById('view-profiles').style.display = view === 'profiles' ? 'block' : 'none';
+  });
+});
+
+document.getElementById('markAllSeenBtn').addEventListener('click', markAllSeen);
+document.getElementById('addProfileBtn').addEventListener('click', addProfile);
+</script>
+</body>
+</html>
