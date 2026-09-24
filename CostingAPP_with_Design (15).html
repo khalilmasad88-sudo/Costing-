@@ -1393,7 +1393,13 @@ function getCurrentUser(){return S.users.find(u=>u.id===S.currentUser);}
 function getTeamRole(){
   const user=getCurrentUser();
   if(!user) return '';
-  const entry=(S.settings.quotationEditors||[]).find(p=>p.name===user.name||(p.email&&p.email===user.email));
+  const uName=(user.name||'').trim().toLowerCase();
+  const uEmail=(user.email||'').trim().toLowerCase();
+  const entry=(S.settings.quotationEditors||[]).find(p=>{
+    const pName=(p.name||'').trim().toLowerCase();
+    const pEmail=(p.email||'').trim().toLowerCase();
+    return (pName&&pName===uName)||(pEmail&&pEmail===uEmail);
+  });
   return entry?entry.role||'':'';
 }
 
