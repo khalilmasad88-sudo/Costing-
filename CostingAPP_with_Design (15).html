@@ -2735,6 +2735,8 @@ function switchToQuotation(qid){
 }
 
 function showPage(id){
+  // Hard enforcement: HR team-role can only ever land on Assets, regardless of how showPage was triggered
+  if(getTeamRole()==='HR' && id!=='assets') id='assets';
   if(id==='ve') renderVE();
   if(id==='design'){ renderDesignPriceList(); renderDesignDocsList(); }
   if(id==='bizdev'){ renderBizSystems(); }
