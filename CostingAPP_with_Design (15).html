@@ -1274,9 +1274,10 @@ function syncPipelineStatusFromQuotation(q){
       return r.qtn===q.num || baseQtn===baseNum;
     });
   }
-  if(!row || row.status===mapped) return;
+  if(!row) return;
+  if(mapped==='Approved') veOnApprove(row); // ensure a VE record exists whenever the quotation is Won, even if pipeline status was already Approved
+  if(row.status===mapped) return;
   row.status=mapped;
-  if(mapped==='Approved') veOnApprove(row); // preserve the existing Approved→VE behavior
 }
 
 function _checkAutoWin(q){
@@ -2062,7 +2063,7 @@ function applyCompany(){
   document.getElementById('co-tag').value=co.tag;
   document.getElementById('co-color').value=co.color;
   document.documentElement.style.setProperty('--accent',co.color);
-  const brandingLogo=S.settings&&S.settings.branding&&S.settings.branding.logo?S.settings.branding.logo:co.logo;
+  const brandingLogo=(co.branding&&co.branding.logo)?co.branding.logo:co.logo;
   if(brandingLogo){document.getElementById('logoImgEl').src=brandingLogo;document.getElementById('logoImgEl').style.display='block';document.getElementById('logoEmoji').style.display='none';}
   else{document.getElementById('logoImgEl').style.display='none';document.getElementById('logoEmoji').style.display='block';}
 }
@@ -2338,7 +2339,7 @@ function changeMyPassword(){
 }
 
 // Navigation & Pages
-const PAGE_TITLES={dashboard:'Dashboard <span>Overview</span>',pipeline:'Pipeline <span>2026</span>',quotation:'Quotations <span>per Project</span>',boq:'Bill of <span>Quantity</span>',design:'Design <span>Quantity Takeoff</span>',assets:'Assets <span>Library</span>',bizdev:'Business Development <span>Business Lines</span>',settings:'Settings <span>& Config</span>'};
+const PAGE_TITLES={dashboard:'Dashboard <span>Overview</span>',pipeline:'Pipeline <span>2026</span>',quotation:'Quotations <span>per Project</span>',boq:'Bill of <span>Quantity</span>',design:'Design <span>Quantity Takeoff</span>',assets:'Assets <span>Library</span>',ve:'Value Engineering <span>Won Projects</span>',bizdev:'Business Development <span>Business Lines</span>',settings:'Settings <span>& Config</span>'};
 
 // ══════════════════════════════════════════════════════════
 // VALUE ENGINEERING
@@ -2460,7 +2461,10 @@ function veAddManualProject(){
 function renderVE(){
   var search = (document.getElementById('ve-search')||{}).value||'';
   var pl = (S.pipeline||[]).filter(function(p){return !S.currentCompanyId||p.companyId===S.currentCompanyId;});
-  var won = pl.filter(function(r){ return r.status==='Approved'; });
+  var won = pl.filter(function(r){
+    var q=getLinkedQuotationForCard(r);
+    return q ? q.status==='Won' : r.status==='Approved';
+  });
 
   // Update stats
   var veIn=0, veReady=0, totalAmt=0;
@@ -3856,6 +3860,9 @@ function getPipelineAmount(row){
     row.amount=live;
     // Update date to latest submitted quotation's date
     if(q.date) row.date=q.date;
+    // Keep the card's Name/Client in sync with the quotation, so edits made on the quotation show up on the pipeline card too
+    if(q.project) row.name=q.project;
+    if(q.client) row.client=q.client;
     // Update quotationId to point to latest submitted version
     row.quotationId=q.id;
     return live;
@@ -6101,6 +6108,7 @@ function handleLogoUpload(e){
     if(!co.branding)co.branding={};
     co.branding.logo=ev.target.result;
     document.getElementById('logo-preview').innerHTML=`<img src="${ev.target.result}" style="max-width:200px;max-height:80px;border-radius:4px">`;
+    applyCompany();
     save();
   };
   r.readAsDataURL(f);
@@ -7968,6 +7976,7 @@ function selectBizSystem(id){
   renderBizSystems();
 }
 
+
 // ══════════════════════════════════════════════════════════════
 // ASSETS — ready-made files library (certificates, presentations, templates)
 // ══════════════════════════════════════════════════════════════
@@ -8363,6 +8372,10 @@ if(saved)try{
   });
   // Ensure Assets module structure exists (added later — backward compatibility)
   if(!S.assets)S.assets=[];
+  // Backfill: make sure every already-Won quotation has its Value Engineering record created
+  // (covers quotations that were marked Won before this sync existed, or whose pipeline row's
+  // status was already "Approved" so the auto-create never ran)
+  (S.quotations||[]).forEach(q=>{ if(q.status==='Won') syncPipelineStatusFromQuotation(q); });
 }catch(e){console.error('Load error:',e)}
 
 // Initialize default data if needed
