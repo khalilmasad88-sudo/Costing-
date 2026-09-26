@@ -1590,8 +1590,9 @@ function _findPortalUser(email,name){
 // (configured in Settings ▸ Users & Access) is what actually governs permissions in this app.
 function _portalAutoLogin(portalUser){
   let user=_findPortalUser(portalUser.email, portalUser.name);
+  const isSuperAdmin=portalUser.role==='superadmin';
   if(!user){
-    const role=portalUser.role==='superadmin'?'Admin':(portalUser.role||'Viewer');
+    const role=isSuperAdmin?'Admin':(portalUser.role||'Viewer');
     const presetKey=role.toLowerCase().replace(/[^a-z]/g,'');
     user=blankUser({
       name: portalUser.name || (portalUser.email||'').split('@')[0],
@@ -1601,20 +1602,25 @@ function _portalAutoLogin(portalUser){
       permissions: Object.fromEntries(ALL_PAGES.map(pg=>[pg.id, (ACCESS_PRESETS[presetKey]||ACCESS_PRESETS.viewer).includes(pg.id)]))
     });
     S.users.push(user);
+  } else if(isSuperAdmin){
+    // Portal Super Admin always gets full local Admin access, even if their existing
+    // local user record here had narrower permissions saved from before.
+    user.role='Admin';
+    user.permissions=Object.fromEntries(ALL_PAGES.map(pg=>[pg.id,true]));
   }
   S.currentUser=user.id;
   _showAppAfterLogin();
-  save();
+  save(true);
   console.log('✅ Auto-logged in via PortalBridge as', user.name);
 }
 
-function save(){
+function save(immediate){
   try{
     S.lastModified = Date.now(); // timestamp every save for conflict resolution
     _storage.setItem('ftag_v5_state',JSON.stringify(S));
     // Auto-sync to Supabase (REST mode — no supabaseClient needed)
     if(sbReady()){
-      autoBackupToSupabase();
+      autoBackupToSupabase(immediate);
     }
   }catch(e){console.error('Save error:',e)}
 }
@@ -1736,9 +1742,9 @@ function _mergeStateWithRemote(remoteData) {
 }
 
 // Auto-save to shared table — now reads-merges-writes instead of a blind UPSERT
-async function autoBackupToSupabase() {
+async function autoBackupToSupabase(immediate) {
   clearTimeout(backupTimeout);
-  backupTimeout = setTimeout(async () => {
+  const run = async () => {
     if (!sbReady()) return;
     try {
       const user = getCurrentUser();
@@ -1783,7 +1789,9 @@ async function autoBackupToSupabase() {
       console.error('Sync error:', err);
       updateSupabaseStatus(false);
     }
-  }, 5000);
+  };
+  if(immediate){ await run(); }
+  else{ backupTimeout = setTimeout(run, 5000); }
 }
 
 let _realtimeChannel=null;
@@ -2409,7 +2417,7 @@ function saveUser(){
   const proj=document.getElementById('user-projects').value.split(',').map(s=>s.trim()).filter(Boolean);
   user.assignedProjects=proj.length?proj:[];
   if(!id)S.users.push(user);
-  renderUsersList();save();closeModal('userModal');
+  renderUsersList();save(true);closeModal('userModal');
   document.getElementById('user-name').dataset.userId='';
   applyPermissions();
 }
@@ -2455,7 +2463,7 @@ function editUser(id){
 function deleteUser(id){
   if(!confirm('Delete this user?'))return;
   S.users=S.users.filter(u=>u.id!==id);
-  renderUsersList();save();
+  renderUsersList();save(true);
 }
 
 function changeUserPassword(id){
