@@ -302,7 +302,16 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
   .print-arabic table{direction:rtl}
   .print-arabic .company-footer-print{text-align:left!important}
 }
-@media(max-width:900px){.sidebar{transform:translateX(-100%)}.main{margin-left:0}.stats-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:900px){
+  .sidebar{transform:translateX(-100%);transition:transform .25s ease}
+  .sidebar.mobile-open{transform:translateX(0)}
+  .main{margin-left:0}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .mobile-menu-btn{display:flex!important}
+  .mobile-sidebar-backdrop.show{display:block}
+}
+.mobile-menu-btn{display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:18px;flex-shrink:0}
+.mobile-sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99}
 </style>
 </head>
 <body>
@@ -351,8 +360,11 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
   </nav>
 </aside>
 
+<div class="mobile-sidebar-backdrop" id="mobile-sidebar-backdrop" onclick="closeMobileSidebar()"></div>
+
 <main class="main">
   <div class="topbar">
+    <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" aria-label="Menu">☰</button>
     <div class="page-title" id="pageTitle">Dashboard <span>Overview</span></div>
     <div class="topbar-right">
       <div class="supabase-status-badge" id="supabase-status-badge">
@@ -791,6 +803,20 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
 
 <div class="page" id="page-settings">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+      <div class="card">
+        <div class="card-header"><div class="card-title">👤 Users &amp; Access</div>
+          <button class="btn btn-primary btn-sm" onclick="addUser()">+ Add User</button>
+        </div>
+        <div class="card-body">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Companies</th><th>Access</th><th>Projects</th><th class="no-print"></th></tr></thead>
+              <tbody id="users-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-header"><div class="card-title">📝 Teams & Members</div>
           <button class="btn btn-primary btn-sm" onclick="addQuotationEditor()">+ Add Person</button>
@@ -1233,7 +1259,7 @@ const fmtN = n => (+n||0).toLocaleString('en-SA',{minimumFractionDigits:2,maximu
 const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
 
 function blankCompany(o={}){return{id:Date.now()+Math.random(),name:'New Company',tag:'Description',color:'#3b82f6',logo:'',users:['Admin'],...o};}
-function blankUser(o={}){return{id:Date.now()+Math.random(),name:'',email:'',password:'',role:'Pre-sales',companies:[],permissions:{dashboard:true,pipeline:true,quotation:true,boq:true,users:false,settings:false},assignedProjects:[],...o};}
+function blankUser(o={}){return{id:Date.now()+Math.random(),name:'',email:'',password:'',role:'Pre-sales',companies:[],permissions:{dashboard:true,pipeline:true,quotation:true,boq:true,design:true,assets:true,ve:true,bizdev:true,users:false,settings:false},assignedProjects:[],...o};}
 function blankQ(o={}){return{id:Date.now()+Math.random(),num:'',date:new Date().toISOString().slice(0,10),project:'',client:'',addr:'',system:'CCTV',tenderref:'',duration:'',by:'',salesPerson:'',vat:15,status:'Draft',version:'v1',validity:'90 days',paymentTerms:'To Be Agreed On',scope:'',delivery:'270 days from site handover',impl:'30 days from site handover',notes:'',profitPct:25,showPricing:true,items:[],payments:[],documents:[],techEval:[],locked:false,teStatus:'Under Evaluation',teFailReason:'',feStatus:'Under Evaluation',feWinnerValue:'',feWinnerCompany:'',projectType:'Tender',contractStatus:'Pending Signature',contractNumber:'',contractDate:'',contractNotes:'',cover:{title:'',subtitle:'',image:''},spacers:[],...o};}
 
 // Technical Evaluation status (per-quotation, independent of the techEval scoring table above)
@@ -1796,7 +1822,7 @@ async function restoreLatestFromSupabase(){
 let lastBackupDate=null;
 let dailyBackupInterval=null;
 
-// Schedule daily backup at 8 PM Riyadh time
+// Schedule daily backup at 4 PM Riyadh time
 function scheduleDailyBackup(){
   if(dailyBackupInterval)clearInterval(dailyBackupInterval);
   
@@ -1809,8 +1835,8 @@ function scheduleDailyBackup(){
     const minute=riyadhTime.getMinutes();
     const today=riyadhTime.toISOString().split('T')[0];
     
-    // Run backup at 9:00 PM Riyadh time (21:00)
-    if(hour===21&&lastBackupDate!==today){
+    // Run backup at 4:00 PM Riyadh time (16:00)
+    if(hour===16&&lastBackupDate!==today){
       await createAutomaticBackup('daily');
       lastBackupDate=today;
     }
@@ -2180,12 +2206,35 @@ function applyUser(){
   if(roleEl)roleEl.textContent=user.role||'—';
 }
 
+// ── Page Access control (mirrors PM_APP's per-user page permissions) ──
+const ALL_PAGES=[
+  {id:'dashboard',label:'Dashboard',icon:'📊'},
+  {id:'pipeline',label:'Pipeline',icon:'🔄'},
+  {id:'quotation',label:'Quotations',icon:'📄'},
+  {id:'boq',label:'BOQ',icon:'📐'},
+  {id:'design',label:'Design',icon:'📐'},
+  {id:'assets',label:'Assets',icon:'📎'},
+  {id:'ve',label:'Value Engineering',icon:'🏗️'},
+  {id:'bizdev',label:'Business Development',icon:'📈'},
+  {id:'users',label:'Users',icon:'👤'},
+  {id:'settings',label:'Settings',icon:'⚙️'}
+];
+const ACCESS_PRESETS={
+  admin:    ALL_PAGES.map(p=>p.id),
+  manager:  ['dashboard','pipeline','quotation','boq','design','assets','ve','bizdev'],
+  presales: ['dashboard','pipeline','quotation','boq','design','assets','ve'],
+  sales:    ['dashboard','pipeline','quotation'],
+  finance:  ['dashboard','quotation','assets'],
+  viewer:   ['dashboard'],
+  none:     []
+};
+
 function applyPermissions(){
   const user=getCurrentUser();
   if(!user)return;
   const p=user.permissions||{};
   const teamRole=getTeamRole();
-  ['dashboard','pipeline','quotation','boq','settings'].forEach(page=>{
+  ALL_PAGES.map(pg=>pg.id).forEach(page=>{
     const el=document.querySelector(`[data-page="${page}"]`);
     if(!el)return;
     let allowed=p[page];
@@ -2201,13 +2250,33 @@ function applyPermissions(){
   }
 }
 
+function renderUserAccessGrid(checkedPages){
+  const grid=document.getElementById('user-access-grid');
+  if(!grid) return;
+  grid.innerHTML=ALL_PAGES.map(pg=>`<label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:400;cursor:pointer;padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;background:var(--surface2)" id="acc-lbl-${pg.id}"><input type="checkbox" value="${pg.id}" class="usr-access-cb" onchange="highlightAccessLbl(this)" style="accent-color:var(--accent)" ${(checkedPages||[]).includes(pg.id)?'checked':''}/>${pg.icon} ${esc(pg.label)}</label>`).join('');
+  grid.querySelectorAll('.usr-access-cb').forEach(cb=>highlightAccessLbl(cb));
+}
+function highlightAccessLbl(cb){
+  const lbl=cb.closest('label');
+  if(lbl){ lbl.style.borderColor=cb.checked?'var(--accent)':'var(--border)'; lbl.style.background=cb.checked?'var(--surface3)':'var(--surface2)'; }
+}
+function getCheckedAccessPages(){
+  return [...document.querySelectorAll('.usr-access-cb')].filter(cb=>cb.checked).map(cb=>cb.value);
+}
+function setAccessPreset(preset){
+  const pages=ACCESS_PRESETS[preset]||[];
+  document.querySelectorAll('.usr-access-cb').forEach(cb=>{ cb.checked=pages.includes(cb.value); highlightAccessLbl(cb); });
+}
+
 function renderCompanyCheckboxes(){
   const html=S.companies.map(c=>`<div class="checkbox-field"><input type="checkbox" id="company-${c.id}" value="${c.id}"><label>${esc(c.name)}</label></div>`).join('');
   document.getElementById('company-checkboxes').innerHTML=html;
 }
 
 function renderUsersList(){
-  document.getElementById('users-tbody').innerHTML=S.users.map(u=>`<tr>
+  const tbody=document.getElementById('users-tbody');
+  if(!tbody) return;
+  tbody.innerHTML=S.users.map(u=>`<tr>
     <td>${esc(u.name)}</td>
     <td>${esc(u.email)}</td>
     <td><span class="badge badge-draft">${esc(u.role)}</span></td>
@@ -2221,97 +2290,86 @@ function renderUsersList(){
   </tr>`).join('');
 }
 
+function canManageUsers(){
+  const cu=getCurrentUser();
+  return cu && (cu.role==='Admin' || cu.permissions?.users);
+}
+
+function addUser(){
+  if(!canManageUsers()){ alert('⚠️ ليس لديك صلاحية لإضافة مستخدمين'); return; }
+  document.getElementById('user-modal-title').textContent='Add User';
+  document.getElementById('user-modal-error').style.display='none';
+  const nameEl=document.getElementById('user-name');
+  nameEl.value=''; nameEl.dataset.userId='';
+  document.getElementById('user-email').value='';
+  document.getElementById('user-phone').value='';
+  const pwEl=document.getElementById('user-password');
+  pwEl.value=''; pwEl.placeholder='';
+  document.getElementById('user-role').value='Pre-sales';
+  document.getElementById('user-projects').value='';
+  renderCompanyCheckboxes();
+  renderUserAccessGrid(ACCESS_PRESETS.presales);
+  openModal('userModal');
+  setTimeout(()=>nameEl.focus(),100);
+}
+
 function saveUser(){
+  const name=document.getElementById('user-name').value.trim();
+  const email=document.getElementById('user-email').value.trim();
+  const errEl=document.getElementById('user-modal-error');
+  errEl.style.display='none';
+  if(!name||!email){ errEl.textContent='Name and Email are required.'; errEl.style.display='block'; return; }
+
   const id=document.getElementById('user-name').dataset.userId;
   const user=id?S.users.find(u=>u.id==id):blankUser();
-  user.name=document.getElementById('user-name').value;
-  user.email=document.getElementById('user-email').value;
+  user.name=name;
+  user.email=email;
   user.phone=document.getElementById('user-phone').value;
   const pwd=document.getElementById('user-password').value;
   if(pwd)user.password=pwd;
   user.role=document.getElementById('user-role').value;
   user.companies=S.companies.filter(c=>document.getElementById(`company-${c.id}`)?.checked).map(c=>c.id);
-  user.permissions={
-    dashboard:document.getElementById('perm-dashboard')?.checked||false,
-    pipeline:document.getElementById('perm-pipeline')?.checked||false,
-    quotation:document.getElementById('perm-quotation')?.checked||false,
-    boq:document.getElementById('perm-boq')?.checked||false,
-    users:document.getElementById('perm-users')?.checked||false,
-    settings:document.getElementById('perm-settings')?.checked||false
-  };
+  const checkedPages=getCheckedAccessPages();
+  user.permissions=Object.fromEntries(ALL_PAGES.map(pg=>[pg.id,checkedPages.includes(pg.id)]));
   const proj=document.getElementById('user-projects').value.split(',').map(s=>s.trim()).filter(Boolean);
   user.assignedProjects=proj.length?proj:[];
   if(!id)S.users.push(user);
   renderUsersList();save();closeModal('userModal');
   document.getElementById('user-name').dataset.userId='';
+  applyPermissions();
 }
 
 function editUser(id){
-  const currentUser=getCurrentUser();
-  if(!currentUser||(!currentUser.permissions.users&&currentUser.role!=='Admin')){
-    alert('⚠️ ليس لديك صلاحية لتعديل المستخدمين');
-    return;
-  }
-  
+  if(!canManageUsers()){ alert('⚠️ ليس لديك صلاحية لتعديل المستخدمين'); return; }
+
   const user=S.users.find(u=>u.id===id);
-  if(!user){
-    alert('⚠️ المستخدم غير موجود');
-    return;
-  }
-  
+  if(!user){ alert('⚠️ المستخدم غير موجود'); return; }
+
   try{
-    const modalTitle=document.getElementById('user-modal-title');
-    if(modalTitle)modalTitle.textContent='Edit User';
-    
+    document.getElementById('user-modal-title').textContent='Edit User';
+    document.getElementById('user-modal-error').style.display='none';
+
     const userName=document.getElementById('user-name');
-    if(userName){
-      userName.value=user.name;
-      userName.dataset.userId=user.id;
-    }
-    
-    const userEmail=document.getElementById('user-email');
-    if(userEmail)userEmail.value=user.email;
-    
-    const userPhone=document.getElementById('user-phone');
-    if(userPhone)userPhone.value=user.phone||'';
-    
+    userName.value=user.name;
+    userName.dataset.userId=user.id;
+
+    document.getElementById('user-email').value=user.email;
+    document.getElementById('user-phone').value=user.phone||'';
     const userPassword=document.getElementById('user-password');
-    if(userPassword){
-      userPassword.value='';
-      userPassword.placeholder='Leave empty to keep current';
-    }
-    
-    const userRole=document.getElementById('user-role');
-    if(userRole)userRole.value=user.role;
-    
-    // Set company checkboxes
+    userPassword.value='';
+    userPassword.placeholder='Leave empty to keep current';
+    document.getElementById('user-role').value=user.role;
+    document.getElementById('user-projects').value=(user.assignedProjects||[]).join(', ');
+
+    renderCompanyCheckboxes();
     S.companies.forEach(c=>{
       const cb=document.getElementById(`company-${c.id}`);
       if(cb)cb.checked=(user.companies||[]).includes(c.id);
     });
-    
-    // Set permissions - with null checks
-    const permDashboard=document.getElementById('perm-dashboard');
-    if(permDashboard)permDashboard.checked=user.permissions?.dashboard||false;
-    
-    const permPipeline=document.getElementById('perm-pipeline');
-    if(permPipeline)permPipeline.checked=user.permissions?.pipeline||false;
-    
-    const permQuotation=document.getElementById('perm-quotation');
-    if(permQuotation)permQuotation.checked=user.permissions?.quotation||false;
-    
-    const permBoq=document.getElementById('perm-boq');
-    if(permBoq)permBoq.checked=user.permissions?.boq||false;
-    
-    const permUsers=document.getElementById('perm-users');
-    if(permUsers)permUsers.checked=user.permissions?.users||false;
-    
-    const permSettings=document.getElementById('perm-settings');
-    if(permSettings)permSettings.checked=user.permissions?.settings||false;
-    
-    const userProjects=document.getElementById('user-projects');
-    if(userProjects)userProjects.value=(user.assignedProjects||[]).join(', ');
-    
+
+    const checkedPages=Object.entries(user.permissions||{}).filter(([k,v])=>v).map(([k])=>k);
+    renderUserAccessGrid(checkedPages);
+
     openModal('userModal');
   }catch(err){
     console.error('Edit user error:',err);
@@ -2747,10 +2805,12 @@ function switchToQuotation(qid){
 function showPage(id){
   // Hard enforcement: HR team-role can only ever land on Assets, regardless of how showPage was triggered
   if(getTeamRole()==='HR' && id!=='assets') id='assets';
+  if(typeof closeMobileSidebar==='function') closeMobileSidebar();
   if(id==='ve') renderVE();
   if(id==='design'){ renderDesignPriceList(); renderDesignDocsList(); }
   if(id==='bizdev'){ renderBizSystems(); }
   if(id==='assets'){ renderAssets(); }
+  if(id==='settings'){ renderUsersList(); }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
@@ -3905,7 +3965,10 @@ function getLatestSubmittedQ(row){
   // Priority 2: Submitted (latest)
   var submitted=qs.filter(function(q){return q.status==='Submitted'||q.status==='Evaluation';});
   if(submitted.length) return submitted.reduce(function(a,b){return a.id>b.id?a:b;});
-  // No in pricing or Submitted — return null
+  // Priority 3: Won / Lost — keep showing the amount after the quotation is decided
+  var decided=qs.filter(function(q){return q.status==='Won'||q.status==='Lost';});
+  if(decided.length) return decided.reduce(function(a,b){return a.id>b.id?a:b;});
+  // No in pricing, Submitted, or decided quotation — return null
   return null;
 }
 
@@ -4044,7 +4107,7 @@ function onPmQtnChange(){
 function populatePmByDropdown(selectedVal){
   var byEl=document.getElementById('pm-by');
   if(!byEl) return;
-  var editors=(S.settings&&S.settings.quotationEditors||[]).filter(function(e){return e.name;});
+  var editors=(S.settings&&S.settings.quotationEditors||[]).filter(function(e){return e.name&&e.role==='Pre-sales';});
   byEl.innerHTML='<option value="">— Select —</option>'+editors.map(function(e){
     return '<option value="'+esc(e.name)+'" '+(selectedVal===e.name?'selected':'')+'>'+esc(e.name)+'</option>';
   }).join('');
@@ -4470,7 +4533,7 @@ function newQuotation(pipelineId){
   // Populate Quoted By
   var byEl=document.getElementById('wiz-by');
   if(byEl){
-    var editors=(S.settings&&S.settings.quotationEditors||[]).filter(function(e){return e.name;});
+    var editors=(S.settings&&S.settings.quotationEditors||[]).filter(function(e){return e.name&&e.role==='Pre-sales';});
     byEl.innerHTML='<option value="">— Select —</option>'+editors.map(function(p){return '<option>'+esc(p.name)+'</option>';}).join('');
   }
   // Reset fields
@@ -5035,7 +5098,7 @@ function syncQFields(q){
   const byEl=document.getElementById('q-by');
   if(byEl){
     const currentUser=getCurrentUser();
-    const editors=(S.settings.quotationEditors||[]).filter(e=>e.name);
+    const editors=(S.settings.quotationEditors||[]).filter(e=>e.name&&e.role==='Pre-sales');
     byEl.innerHTML=`<option ${q.by==='unassigned'?'selected':''}>unassigned</option>`+editors.map(p=>{
       return `<option ${p.name===q.by?'selected':''}>${esc(p.name)}</option>`;
     }).join('');
@@ -8393,6 +8456,16 @@ function exportCoverPDF(){
 }
 
 // Theme
+// Mobile sidebar toggle (sidebar is off-canvas below 900px width)
+function toggleMobileSidebar(){
+  document.querySelector('.sidebar').classList.toggle('mobile-open');
+  document.getElementById('mobile-sidebar-backdrop').classList.toggle('show');
+}
+function closeMobileSidebar(){
+  document.querySelector('.sidebar').classList.remove('mobile-open');
+  document.getElementById('mobile-sidebar-backdrop').classList.remove('show');
+}
+
 function toggleTheme(){
   const isLight=document.documentElement.classList.toggle('light');
   const label=document.getElementById('theme-label');
@@ -8446,6 +8519,13 @@ if(saved)try{
   });
   // Ensure Assets module structure exists (added later — backward compatibility)
   if(!S.assets)S.assets=[];
+  // Backward compatibility: existing users saved before the Design/Assets/VE/Business Development
+  // pages existed default to having access to them (those pages were open to everyone before this
+  // permission set existed), so nobody loses access they already had.
+  (S.users||[]).forEach(u=>{
+    if(!u.permissions) u.permissions={};
+    ['design','assets','ve','bizdev'].forEach(k=>{ if(u.permissions[k]===undefined) u.permissions[k]=true; });
+  });
   // Backfill: make sure every already-Won quotation has its Value Engineering record created
   // (covers quotations that were marked Won before this sync existed, or whose pipeline row's
   // status was already "Approved" so the auto-create never ran)
@@ -9575,6 +9655,59 @@ if (_portalBridgePending) {
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-bizline')">Cancel</button>
       <button class="btn btn-primary" onclick="saveBizLine()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- USER MODAL -->
+<div class="modal-overlay" id="userModal" onclick="if(event.target===this)closeModal('userModal')">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-header">
+      <div class="modal-title" id="user-modal-title">Add User</div>
+      <button class="modal-close" onclick="closeModal('userModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="user-modal-error" style="display:none;background:rgba(239,68,68,.1);color:var(--red);padding:8px 12px;border-radius:6px;margin-bottom:12px;font-size:12px"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div class="field" style="margin:0"><label>Name</label><input id="user-name"></div>
+        <div class="field" style="margin:0"><label>Email</label><input id="user-email" type="email"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div class="field" style="margin:0"><label>Phone</label><input id="user-phone"></div>
+        <div class="field" style="margin:0"><label>Password</label><input id="user-password" type="password" placeholder=""></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div class="field" style="margin:0"><label>Role</label>
+          <select id="user-role">
+            <option>Admin</option><option>Manager</option><option>Pre-sales</option><option>Sales</option><option>Finance</option><option>HR</option><option>Viewer</option>
+          </select>
+        </div>
+        <div class="field" style="margin:0"><label>Assigned Projects <span style="font-weight:400;color:var(--muted)">(optional, comma-separated QTN #s)</span></label><input id="user-projects" placeholder="leave empty for all"></div>
+      </div>
+      <div class="field" style="margin-bottom:12px">
+        <label>Companies</label>
+        <div id="company-checkboxes" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px"></div>
+      </div>
+      <div class="field" style="margin:0">
+        <label>Page Access</label>
+        <div style="margin-top:6px">
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;align-items:center">
+            <span style="font-size:11px;color:var(--muted);font-weight:600">Quick set:</span>
+            <button type="button" class="btn btn-primary btn-xs" onclick="setAccessPreset('admin')">Admin</button>
+            <button type="button" class="btn btn-ghost btn-xs" onclick="setAccessPreset('manager')">Manager</button>
+            <button type="button" class="btn btn-ghost btn-xs" onclick="setAccessPreset('presales')">Pre-sales</button>
+            <button type="button" class="btn btn-ghost btn-xs" onclick="setAccessPreset('sales')">Sales</button>
+            <button type="button" class="btn btn-ghost btn-xs" onclick="setAccessPreset('finance')">Finance</button>
+            <button type="button" class="btn btn-ghost btn-xs" onclick="setAccessPreset('viewer')">Viewer</button>
+            <button type="button" class="btn btn-ghost btn-xs" onclick="setAccessPreset('none')">None</button>
+          </div>
+          <div id="user-access-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('userModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveUser()">Save</button>
     </div>
   </div>
 </div>
