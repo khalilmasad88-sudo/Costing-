@@ -369,6 +369,12 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
   <!-- DASHBOARD -->
   <div class="page active" id="page-dashboard">
 
+    <div style="display:flex;justify-content:flex-end;align-items:center;padding:0 0 12px">
+      <select id="dash-year-filter" onchange="updateDashboard()" style="font-size:13px;padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text)">
+        <option value="">All Years</option>
+      </select>
+    </div>
+
     <!-- Row 1: KPI Cards -->
     <div class="stats-grid" style="grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:16px">
       <div class="stat-card blue" style="cursor:pointer" onclick="openPipelineFiltered('')">
@@ -483,6 +489,9 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
       </select>
       <select id="pl-by-filter" style="flex:1;min-width:120px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px" onchange="filterPipeline()">
         <option value="">All Quoted By</option>
+      </select>
+      <select id="pl-salesperson-filter" style="flex:1;min-width:120px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px" onchange="filterPipeline()">
+        <option value="">All Sales Persons</option>
       </select>
       <select id="pl-year-filter" style="flex:1;min-width:100px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px" onchange="filterPipeline()">
         <option value="">All Years</option>
@@ -1089,6 +1098,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
         <div class="field"><label>Client</label><input id="pm-client" placeholder="Client…"></div>
         <div class="field"><label>Location</label><input id="pm-loc" placeholder="Location…"></div>
         <div class="field"><label>Quoted By</label><select id="pm-by"></select></div>
+        <div class="field"><label>Sales Person</label><select id="pm-salesperson"></select></div>
 
         <div class="field"><label>Status</label><select id="pm-status"><option value="Lead">Lead</option><option value="Submitted">Submitted</option><option value="Approved">Won</option><option value="in pricing">in pricing</option><option value="out">Lost</option><option value="Canceled">Canceled</option><option value="Evaluation">Evaluation</option></select></div>
         <div class="field field-full"><label>Link to Quotation <span style="color:var(--muted);font-size:10px">ربط بعرض سعر</span></label>
@@ -1224,7 +1234,7 @@ const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g
 
 function blankCompany(o={}){return{id:Date.now()+Math.random(),name:'New Company',tag:'Description',color:'#3b82f6',logo:'',users:['Admin'],...o};}
 function blankUser(o={}){return{id:Date.now()+Math.random(),name:'',email:'',password:'',role:'Pre-sales',companies:[],permissions:{dashboard:true,pipeline:true,quotation:true,boq:true,users:false,settings:false},assignedProjects:[],...o};}
-function blankQ(o={}){return{id:Date.now()+Math.random(),num:'',date:new Date().toISOString().slice(0,10),project:'',client:'',addr:'',system:'CCTV',tenderref:'',duration:'',by:'',vat:15,status:'Draft',version:'v1',validity:'90 days',paymentTerms:'To Be Agreed On',scope:'',delivery:'270 days from site handover',impl:'30 days from site handover',notes:'',profitPct:25,showPricing:true,items:[],payments:[],documents:[],techEval:[],locked:false,teStatus:'Under Evaluation',teFailReason:'',feStatus:'Under Evaluation',feWinnerValue:'',feWinnerCompany:'',projectType:'Tender',contractStatus:'Pending Signature',contractNumber:'',contractDate:'',contractNotes:'',cover:{title:'',subtitle:'',image:''},spacers:[],...o};}
+function blankQ(o={}){return{id:Date.now()+Math.random(),num:'',date:new Date().toISOString().slice(0,10),project:'',client:'',addr:'',system:'CCTV',tenderref:'',duration:'',by:'',salesPerson:'',vat:15,status:'Draft',version:'v1',validity:'90 days',paymentTerms:'To Be Agreed On',scope:'',delivery:'270 days from site handover',impl:'30 days from site handover',notes:'',profitPct:25,showPricing:true,items:[],payments:[],documents:[],techEval:[],locked:false,teStatus:'Under Evaluation',teFailReason:'',feStatus:'Under Evaluation',feWinnerValue:'',feWinnerCompany:'',projectType:'Tender',contractStatus:'Pending Signature',contractNumber:'',contractDate:'',contractNotes:'',cover:{title:'',subtitle:'',image:''},spacers:[],...o};}
 
 // Technical Evaluation status (per-quotation, independent of the techEval scoring table above)
 // Quote Status colors (Draft/Submitted/Evaluation/In Pricing/Won/Lost/Canceled)
@@ -3139,16 +3149,40 @@ function pipelineStatusLabel(s){
   return s;
 }
 
+function populateDashboardYearFilter(){
+  const sel=document.getElementById('dash-year-filter');
+  if(!sel) return;
+  const current=sel.value;
+  const years=new Set();
+  (S.pipeline||[]).forEach(r=>{ const d=getPipelineDate(r); if(d){ const y=new Date(d).getFullYear(); if(!isNaN(y)) years.add(y); } });
+  (S.quotations||[]).forEach(q=>{ if(q.date){ const y=new Date(q.date).getFullYear(); if(!isNaN(y)) years.add(y); } });
+  const sortedYears=Array.from(years).sort((a,b)=>b-a);
+  const optionsHtml='<option value="">All Years</option>'+sortedYears.map(y=>`<option value="${y}">${y}</option>`).join('');
+  if(sel.dataset.built!==optionsHtml){
+    sel.innerHTML=optionsHtml;
+    sel.dataset.built=optionsHtml;
+    sel.value=sortedYears.map(String).includes(current)?current:'';
+  }
+}
+
 function updateDashboard(){
   const user=getCurrentUser();
   let pl=S.pipeline.filter(p=>p.companyId===S.currentCompanyId);
   if(user&&user.role!=='Admin'&&user.role!=='Manager'&&user.assignedProjects&&user.assignedProjects.length>0){
     pl=pl.filter(r=>user.assignedProjects.includes(r.qtn));
   }
+  populateDashboardYearFilter();
+  const yearFilter=(document.getElementById('dash-year-filter')||{}).value||'';
+  if(yearFilter){
+    pl=pl.filter(r=>{
+      const d=getPipelineDate(r);
+      return d && String(new Date(d).getFullYear())===yearFilter;
+    });
+  }
 
   // ── Pipeline KPIs ────────────────────────────────────────────
   const total   = pl.reduce((s,r)=>s+getPipelineAmount(r),0);
-  const appr    = pl.filter(r=>r.status==='Approved');
+  const appr    = pl.filter(r=>{ const q=getLinkedQuotationForCard(r); return q?q.status==='Won':r.status==='Approved'; });
   const sub     = pl.filter(r=>r.status==='Submitted');
   const inPrice = pl.filter(r=>r.status==='in pricing');
   const out     = pl.filter(r=>r.status==='out');
@@ -3324,7 +3358,9 @@ function toggleAccountClient(key){
 function renderAccountsWindow(){
   const wrap=document.getElementById('dash-accounts-list');
   if(!wrap) return;
-  const qs=(S.quotations||[]).filter(q=>!q.companyId||q.companyId===S.currentCompanyId);
+  let qs=(S.quotations||[]).filter(q=>!q.companyId||q.companyId===S.currentCompanyId);
+  const yearFilter=(document.getElementById('dash-year-filter')||{}).value||'';
+  if(yearFilter) qs=qs.filter(q=>q.date&&String(new Date(q.date).getFullYear())===yearFilter);
   const byClient={};
   qs.forEach(q=>{
     const client=(q.client||'').trim()||'(No Client)';
@@ -3384,7 +3420,9 @@ function toggleSystemGroup(key){
 function renderSystemsWindow(){
   const wrap=document.getElementById('dash-systems-list');
   if(!wrap) return;
-  const qs=(S.quotations||[]).filter(q=>!q.companyId||q.companyId===S.currentCompanyId);
+  let qs=(S.quotations||[]).filter(q=>!q.companyId||q.companyId===S.currentCompanyId);
+  const yearFilter=(document.getElementById('dash-year-filter')||{}).value||'';
+  if(yearFilter) qs=qs.filter(q=>q.date&&String(new Date(q.date).getFullYear())===yearFilter);
   const bySystem={};
   qs.forEach(q=>{
     const sys=(q.system||'').trim()||'Other';
@@ -3606,6 +3644,7 @@ function filterPipeline(){
   const isActiveFilter=(s==='__active');
   const cl=(document.getElementById('pl-client-filter')||{}).value||'';
   const by=(document.getElementById('pl-by-filter')||{}).value||'';
+  const sp=(document.getElementById('pl-salesperson-filter')||{}).value||'';
   const yr=(document.getElementById('pl-year-filter')||{}).value||'';
   renderPipeline(S.pipeline.filter(p=>p.companyId===S.currentCompanyId).filter(r=>{
     if(q&&!(r.name+r.qtn+r.client+r.loc+r.by).toLowerCase().includes(q)) return false;
@@ -3613,6 +3652,7 @@ function filterPipeline(){
     else if(s&&r.status!==s) return false;
     if(cl&&r.client!==cl) return false;
     if(by&&r.by!==by) return false;
+    if(sp&&r.salesPerson!==sp) return false;
     if(yr&&(r.date||r.qtn||'').slice(0,4)!==yr) return false;
     return true;
   }));
@@ -3622,6 +3662,7 @@ function populatePipelineFilters(){
   var rows=S.pipeline.filter(function(p){return !p.companyId||p.companyId===S.currentCompanyId;});
   var clients=[...new Set(rows.map(function(r){return r.client||'';}).filter(Boolean))].sort();
   var bys=[...new Set(rows.map(function(r){return r.by||'';}).filter(Boolean))].sort();
+  var salesPersons=[...new Set(rows.map(function(r){return r.salesPerson||'';}).filter(Boolean))].sort();
   var clEl=document.getElementById('pl-client-filter');
   if(clEl){
     var curCl=clEl.value;
@@ -3631,6 +3672,11 @@ function populatePipelineFilters(){
   if(byEl){
     var curBy=byEl.value;
     byEl.innerHTML='<option value="">All Quoted By</option>'+bys.map(function(b){return '<option value="'+esc(b)+'"'+(b===curBy?' selected':'')+'>'+esc(b)+'</option>';}).join('');
+  }
+  var spEl=document.getElementById('pl-salesperson-filter');
+  if(spEl){
+    var curSp=spEl.value;
+    spEl.innerHTML='<option value="">All Sales Persons</option>'+salesPersons.map(function(sp){return '<option value="'+esc(sp)+'"'+(sp===curSp?' selected':'')+'>'+esc(sp)+'</option>';}).join('');
   }
   // Populate year filter
   var yearEl=document.getElementById('pl-year-filter');
@@ -3660,6 +3706,7 @@ function onPmQtnLink(){
   var nameEl=document.getElementById('pm-name'); if(nameEl&&!nameEl.value) nameEl.value=q.project||'';
   var clientEl=document.getElementById('pm-client'); if(clientEl&&!clientEl.value) clientEl.value=q.client||'';
   if(!document.getElementById('pm-by').value&&q.by) populatePmByDropdown(q.by); else populatePmByDropdown(document.getElementById('pm-by').value);
+  if(!document.getElementById('pm-salesperson').value&&q.salesPerson) populatePmSalesPersonDropdown(q.salesPerson); else populatePmSalesPersonDropdown(document.getElementById('pm-salesperson').value);
   var dateEl=document.getElementById('pm-date'); if(dateEl&&!dateEl.value) dateEl.value=q.date||'';
   if(infoEl){
     infoEl.textContent='🔗 '+esc(q.num||'')+(q.project?' — '+esc(q.project):'');
@@ -3750,6 +3797,7 @@ function savePipelineItem(){
       r.loc=(document.getElementById('pm-loc')||{}).value||'';
       r.status=(document.getElementById('pm-status')||{}).value||'';
       r.by=(document.getElementById('pm-by')||{}).value||'';
+      r.salesPerson=(document.getElementById('pm-salesperson')||{}).value||'';
       r.note=(document.getElementById('pm-note')||{}).value||'';
       var _co2=getCurrentCompany();
       var qs=S.quotations.filter(function(q){return q.num===r.qtn&&(!q.companyId||q.companyId===_co2.id);});
@@ -3806,6 +3854,7 @@ function savePipelineItem(){
     amount:    amount,
     status:    document.getElementById('pm-status').value,
     by:        document.getElementById('pm-by').value,
+    salesPerson: document.getElementById('pm-salesperson').value,
     note:      document.getElementById('pm-note').value
   };
   if(_newItem.status==='Approved') veOnApprove(_newItem);
@@ -4002,6 +4051,16 @@ function populatePmByDropdown(selectedVal){
   if(selectedVal) byEl.value=selectedVal;
 }
 
+function populatePmSalesPersonDropdown(selectedVal){
+  var spEl=document.getElementById('pm-salesperson');
+  if(!spEl) return;
+  var salesPeople=(S.settings&&S.settings.quotationEditors||[]).filter(function(e){return e.name&&e.role==='Sales';});
+  spEl.innerHTML='<option value="">— none —</option>'+salesPeople.map(function(e){
+    return '<option value="'+esc(e.name)+'" '+(selectedVal===e.name?'selected':'')+'>'+esc(e.name)+'</option>';
+  }).join('');
+  if(selectedVal) spEl.value=selectedVal;
+}
+
 function openAddPipelineModal(){
   populateQNumDropdown();
   const t=document.querySelector('#plModal .modal-title');
@@ -4015,6 +4074,7 @@ function openAddPipelineModal(){
   document.getElementById('pm-date').value=''; // will be filled from quotation
   _plWizStep=1;_plTechEval=[];window._teResult=null;window._plEditId=null;
   populatePmByDropdown('');
+  populatePmSalesPersonDropdown('');
   // Populate quotation link dropdown
   var qLinkEl=document.getElementById('pm-qtn-link');
   if(qLinkEl){
@@ -4047,6 +4107,7 @@ function editPipelineItem(pId){
   document.getElementById('pm-status').value=r.status||'Submitted';
   document.getElementById('pm-note').value=r.note||'';
   populatePmByDropdown(r.by||'');
+  populatePmSalesPersonDropdown(r.salesPerson||'');
   // Show link indicator if linked
   const pmEl=document.getElementById('pm-qtn'); if(pmEl&&r.qtn){pmEl.value=r.qtn;} if(r.qtn) onPmQtnChange();
   // Change Save button to update existing row
@@ -4992,6 +5053,11 @@ function syncQFields(q){
       byEl.title='';
     }
   }
+  const spEl=document.getElementById('q-salesperson');
+  if(spEl){
+    const salesPeople=(S.settings.quotationEditors||[]).filter(e=>e.name&&e.role==='Sales');
+    spEl.innerHTML='<option value="">— none —</option>'+salesPeople.map(p=>`<option ${p.name===q.salesPerson?'selected':''}>${esc(p.name)}</option>`).join('');
+  }
   const pp=document.getElementById('profit-pct');if(pp)pp.value=q.profitPct||25;
   populateQNumDropdown();
   const numEl=document.getElementById('q-num');if(numEl&&q.num)numEl.value=q.num;
@@ -5010,7 +5076,7 @@ function saveQ(){
   const numEl=document.getElementById('q-num');if(numEl)q.num=numEl.value;
   q.date=g('q-date');q.project=g('q-project');q.client=g('q-client');q.clientPhone=g('q-client-phone');q.addr=g('q-addr');
   q.system=g('q-system');q.tenderref=g('q-tenderref');q.duration=g('q-duration');
-  q.by=g('q-by');q.vat=+g('q-vat')||15;q.status=g('q-status');q.version=g('q-version')||'v1';q.projectType=g('q-project-type');
+  q.by=g('q-by');q.salesPerson=g('q-salesperson');q.vat=+g('q-vat')||15;q.status=g('q-status');q.version=g('q-version')||'v1';q.projectType=g('q-project-type');
   syncPipelineStatusFromQuotation(q);
   q.validity=g('q-validity');q.paymentTerms=g('q-payment-terms');q.scope=g('q-scope');
   q.delivery=g('q-delivery');q.impl=g('q-impl');q.notes=g('q-notes');
@@ -5111,7 +5177,7 @@ function deleteDoc(id){
 }
 
 // Item Costing
-const ITEM_TYPES=['Item','Installation material','Shipping','Custom','Professional Services'];
+const ITEM_TYPES=['Item','Installation material','Shipping','Custom','Professional Services','Sub-Contract'];
 
 function addMainItem(){const q=getQ();if(!q||!canEdit())return;q.items.push(blankMainItem());save();renderCostingTab();restoreExpandedSubItems();}
 function deleteMainItem(mid){const q=getQ();if(!q||!canEdit())return;q.items=q.items.filter(m=>m.id!==mid);save();renderCostingTab();restoreExpandedSubItems();}
@@ -8616,6 +8682,7 @@ if (_portalBridgePending) {
                       </select>
                     </div>
                     <div class="field"><label>Quoted By</label><select id="q-by" onchange="saveQ()"></select></div>
+                    <div class="field"><label>Sales Person</label><select id="q-salesperson" onchange="saveQ()"></select></div>
                     <div class="field">
                       <label>Project Type</label>
                       <select id="q-project-type" onchange="saveQ()">
@@ -9064,6 +9131,7 @@ if (_portalBridgePending) {
                       </select>
                     </div>
                     <div class="field"><label>Quoted By</label><select id="q-by" onchange="saveQ()"></select></div>
+                    <div class="field"><label>Sales Person</label><select id="q-salesperson" onchange="saveQ()"></select></div>
                     <div class="field">
                       <label>Project Type</label>
                       <select id="q-project-type" onchange="saveQ()">
