@@ -1599,14 +1599,24 @@ function _portalAutoLogin(portalUser){
   let user=_findPortalUser(portalUser.email, portalUser.name);
   const isSuperAdmin=portalUser.role==='superadmin';
   if(!user){
-    const role=isSuperAdmin?'Admin':(portalUser.role||'Viewer');
-    const presetKey=role.toLowerCase().replace(/[^a-z]/g,'');
+    if(!isSuperAdmin){
+      // No matching email among the app's own Users — do not auto-login or auto-create.
+      // Leave the manual login screen showing, with a clear explanation.
+      const err=document.getElementById('login-error');
+      if(err){
+        err.textContent='بريدك الإلكتروني ('+(portalUser.email||'')+') غير مسجَّل كمستخدم في هذا التطبيق. تواصل مع المسؤول لإضافتك، أو سجّل الدخول يدويًا إذا كان لديك حساب.';
+        err.style.display='block';
+      }
+      console.warn('Portal user has no matching app account, auto-login blocked:', portalUser.email);
+      return;
+    }
+    // Portal Super Admin with no existing local record yet — auto-provision as Admin.
     user=blankUser({
       name: portalUser.name || (portalUser.email||'').split('@')[0],
       email: portalUser.email,
       password: portalUser.password || '',
-      role: role,
-      permissions: Object.fromEntries(ALL_PAGES.map(pg=>[pg.id, (ACCESS_PRESETS[presetKey]||ACCESS_PRESETS.viewer).includes(pg.id)]))
+      role: 'Admin',
+      permissions: Object.fromEntries(ALL_PAGES.map(pg=>[pg.id,true]))
     });
     S.users.push(user);
   } else if(isSuperAdmin){
