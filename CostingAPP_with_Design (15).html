@@ -1577,11 +1577,18 @@ function _showAppAfterLogin(){
 function _findPortalUser(email,name){
   const e=(email||'').trim().toLowerCase();
   const n=(name||'').trim().toLowerCase();
-  return S.users.find(function(u){
-    if(e && (u.email||'').trim().toLowerCase()===e) return true;
-    if(n && (u.name||'').trim().toLowerCase()===n) return true;
-    return false;
-  });
+  // Prefer an exact email match — this is the reliable, unique identifier.
+  if(e){
+    const byEmail=S.users.find(function(u){ return (u.email||'').trim().toLowerCase()===e; });
+    if(byEmail) return byEmail;
+  }
+  // Only fall back to matching by name when no email was provided at all (name alone is
+  // ambiguous — e.g. two different people can share a first name like "Rana" — so it must
+  // never override a case where an email was given but simply didn't match anyone).
+  if(!e && n){
+    return S.users.find(function(u){ return (u.name||'').trim().toLowerCase()===n; });
+  }
+  return null;
 }
 
 // Auto-login using the identity Zeina portal passed via window.PortalBridge.user
