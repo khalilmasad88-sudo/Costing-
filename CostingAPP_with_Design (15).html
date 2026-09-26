@@ -316,8 +316,27 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 
+<!-- LOGIN SCREEN -->
+<div class="login-screen active" id="loginScreen">
+  <div class="theme-toggle login-theme-toggle" onclick="toggleTheme()">
+    <span id="theme-label-login">🌙 Night</span>
+    <div class="toggle-track"><div class="toggle-thumb"></div></div>
+  </div>
+  <div class="login-box">
+    <div class="login-logo"><div>🏷️</div></div>
+    <div class="login-title">Future Tag</div>
+    <div class="login-subtitle">Sign in to continue</div>
+    <form onsubmit="return handleLogin(event)">
+      <div class="field" style="margin-bottom:14px"><label>Email</label><input id="login-email" type="email" autocomplete="username" required></div>
+      <div class="field" style="margin-bottom:14px"><label>Password</label><input id="login-password" type="password" autocomplete="current-password" required></div>
+      <div id="login-error" style="display:none;background:rgba(239,68,68,.1);color:var(--red);padding:8px 12px;border-radius:6px;margin-bottom:14px;font-size:12px"></div>
+      <button type="submit" class="btn btn-primary" style="width:100%">Sign In</button>
+    </form>
+  </div>
+</div>
+
 <!-- APP CONTAINER -->
-<div class="app-container active" id="appContainer">
+<div class="app-container" id="appContainer">
 
 <aside class="sidebar">
   <div class="logo-block">
@@ -1513,6 +1532,20 @@ function handleLogout(){
 
 // Initialization
 function init(){
+  // ── Session / Portal auto-login ─────────────────────────────
+  // 1) Already logged in this session (restored from a previous save)? Keep it.
+  // 2) Otherwise, if launched inside Zeina portal, auto-login using the portal's user identity
+  //    (matched against local Users by email/name — or auto-created if new), same as PM_APP.
+  // 3) Otherwise, show the login screen and wait for handleLogin().
+  if(S.currentUser && getCurrentUser()){
+    _showAppAfterLogin();
+  } else {
+    const portalUser=window.PortalBridge && window.PortalBridge.user;
+    if(portalUser && portalUser.email){
+      _portalAutoLogin(portalUser);
+    }
+  }
+
   applyCompany();
   applyUser();
   applyPermissions();
@@ -1531,6 +1564,48 @@ function init(){
   migratePipelineQuotationIds();
 
   // Don't auto-open quotations on startup
+}
+
+function _showAppAfterLogin(){
+  const ls=document.getElementById('loginScreen');
+  const ac=document.getElementById('appContainer');
+  if(ls) ls.classList.remove('active');
+  if(ac) ac.classList.add('active');
+}
+
+// Find a local user matching the portal's identity (by email, case-insensitive; falls back to name)
+function _findPortalUser(email,name){
+  const e=(email||'').trim().toLowerCase();
+  const n=(name||'').trim().toLowerCase();
+  return S.users.find(function(u){
+    if(e && (u.email||'').trim().toLowerCase()===e) return true;
+    if(n && (u.name||'').trim().toLowerCase()===n) return true;
+    return false;
+  });
+}
+
+// Auto-login using the identity Zeina portal passed via window.PortalBridge.user
+// { email, name, role, password, pages } — pages[] is PM_APP-shaped in the current portal build,
+// so it isn't applied here; the matched (or newly created) local user's own Page Access
+// (configured in Settings ▸ Users & Access) is what actually governs permissions in this app.
+function _portalAutoLogin(portalUser){
+  let user=_findPortalUser(portalUser.email, portalUser.name);
+  if(!user){
+    const role=portalUser.role==='superadmin'?'Admin':(portalUser.role||'Viewer');
+    const presetKey=role.toLowerCase().replace(/[^a-z]/g,'');
+    user=blankUser({
+      name: portalUser.name || (portalUser.email||'').split('@')[0],
+      email: portalUser.email,
+      password: portalUser.password || '',
+      role: role,
+      permissions: Object.fromEntries(ALL_PAGES.map(pg=>[pg.id, (ACCESS_PRESETS[presetKey]||ACCESS_PRESETS.viewer).includes(pg.id)]))
+    });
+    S.users.push(user);
+  }
+  S.currentUser=user.id;
+  _showAppAfterLogin();
+  save();
+  console.log('✅ Auto-logged in via PortalBridge as', user.name);
 }
 
 function save(){
@@ -8470,6 +8545,8 @@ function toggleTheme(){
   const isLight=document.documentElement.classList.toggle('light');
   const label=document.getElementById('theme-label');
   if(label) label.textContent=isLight?'☀️ Day':'🌙 Night';
+  const labelLogin=document.getElementById('theme-label-login');
+  if(labelLogin) labelLogin.textContent=isLight?'☀️ Day':'🌙 Night';
   try{ localStorage.setItem('ftag_theme', isLight?'light':'dark'); }catch(e){}
 }
 // Apply saved theme preference (defaults to dark/night)
@@ -8479,6 +8556,8 @@ function toggleTheme(){
       document.documentElement.classList.add('light');
       const label=document.getElementById('theme-label');
       if(label) label.textContent='☀️ Day';
+      const labelLogin=document.getElementById('theme-label-login');
+      if(labelLogin) labelLogin.textContent='☀️ Day';
     }
   }catch(e){}
 })();
