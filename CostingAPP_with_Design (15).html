@@ -1489,6 +1489,7 @@ function handleLogin(e){
   if(user){
     console.log('Login successful:', user.name);
     S.currentUser=user.id;
+    setSessionUserId(user.id);
     document.getElementById('loginScreen').classList.remove('active');
     document.getElementById('appContainer').classList.add('active');
     applyUser();
@@ -1521,29 +1522,37 @@ function resetToDefaults(){
 }
 
 function handleLogout(){
-  if(confirm('Reset session?')){
+  if(confirm('Log out?')){
     S.currentUser=null;
-    const adminUser=S.users.find(u=>u.role==='Admin')||S.users[0];
-    if(adminUser) S.currentUser=adminUser.id;
+    clearSessionUserId();
     save();
     location.reload();
   }
 }
 
 // Initialization
+// NOTE: "logged in" must be tracked PER BROWSER, not inside S — S is the company's shared,
+// Supabase-synced state, so storing the session there would broadcast whoever last logged in
+// (e.g. Admin) to every other device that loads this app. A separate, local-only marker is used
+// instead (see getSessionUserId/setSessionUserId/clearSessionUserId below).
 function init(){
   // ── Session / Portal auto-login ─────────────────────────────
-  // 1) Already logged in this session (restored from a previous save)? Keep it.
-  // 2) Otherwise, if launched inside Zeina portal, auto-login using the portal's user identity
-  //    (matched against local Users by email/name — or auto-created if new), same as PM_APP.
+  // 1) This browser already has a local session for a user that still exists? Resume it.
+  // 2) Otherwise, if launched inside Zeina portal, auto-login by matching the portal's email
+  //    against this app's own Users (Settings ▸ Users & Access) — same idea as PM_APP.
   // 3) Otherwise, show the login screen and wait for handleLogin().
-  if(S.currentUser && getCurrentUser()){
+  const sessionUid=getSessionUserId();
+  const sessionUser=sessionUid?S.users.find(u=>String(u.id)===String(sessionUid)):null;
+  if(sessionUser){
+    S.currentUser=sessionUser.id;
     _showAppAfterLogin();
   } else {
+    S.currentUser=null;
     const portalUser=window.PortalBridge && window.PortalBridge.user;
     if(portalUser && portalUser.email){
       _portalAutoLogin(portalUser);
     }
+    // else: leave the login screen showing (its default state)
   }
 
   applyCompany();
@@ -1565,6 +1574,11 @@ function init(){
 
   // Don't auto-open quotations on startup
 }
+
+// This browser's own session marker — never part of S, never synced to Supabase.
+function getSessionUserId(){ try{ return _storage.getItem('ftag_session_user_id'); }catch(e){ return null; } }
+function setSessionUserId(id){ try{ _storage.setItem('ftag_session_user_id', String(id)); }catch(e){} }
+function clearSessionUserId(){ try{ _storage.removeItem('ftag_session_user_id'); }catch(e){} }
 
 function _showAppAfterLogin(){
   const ls=document.getElementById('loginScreen');
@@ -1626,6 +1640,7 @@ function _portalAutoLogin(portalUser){
     user.permissions=Object.fromEntries(ALL_PAGES.map(pg=>[pg.id,true]));
   }
   S.currentUser=user.id;
+  setSessionUserId(user.id);
   _showAppAfterLogin();
   save(true);
   console.log('✅ Auto-logged in via PortalBridge as', user.name);
@@ -1793,7 +1808,7 @@ async function autoBackupToSupabase(immediate) {
       try{ _storage.setItem('ftag_v5_state', JSON.stringify(S)); }catch(e){}
 
       // Strip activeQId before saving to cloud — it's per-user, not shared
-      const _dataToSave = Object.assign({}, S, {activeQId: null});
+      const _dataToSave = Object.assign({}, S, {activeQId: null, currentUser: null});
       await sbUpsert(getTableShared(), {
         company_id: S.currentCompanyId,
         data: _dataToSave,
@@ -1892,8 +1907,10 @@ async function restoreLatestFromSupabase(){
       const localTime=S.lastModified||0;
       // Only restore if remote is strictly newer — local edits win on tie
       if(remoteTime>localTime+500){ // 500ms grace period to avoid race conditions
+        const _myCurrentUser=S.currentUser; // never let another browser's login session overwrite this one
         Object.assign(S,sharedData.data);
         S.activeQId=null; // never restore another user's active quotation
+        S.currentUser=_myCurrentUser;
         S.lastModified=remoteTime;
         _storage.setItem('ftag_v5_state',JSON.stringify(S));
         console.log('✓ Restored from shared database (remote newer)');
