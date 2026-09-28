@@ -61,6 +61,9 @@ main{margin-left:230px;padding:28px 32px;min-height:100vh}
 
 .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px}
 .kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.proj-drag-wrap{cursor:grab}
+.proj-drag-wrap:active{cursor:grabbing}
+.proj-drag-wrap.proj-drag-over{box-shadow:0 0 0 3px var(--accent),0 2px 8px rgba(0,0,0,.06);transform:scale(1.02)}
 .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
 .kpi.gold::before{background:var(--accent)}.kpi.green::before{background:var(--accent2)}.kpi.red::before{background:var(--accent3)}.kpi.blue::before{background:var(--accent4)}
 .kpi-icon{position:absolute;top:14px;right:14px;font-size:20px;opacity:.12}
@@ -4524,13 +4527,22 @@ function renderProjects(){
   var f=filterEl?filterEl.value:'';
   var isLimited=projectDetailLevel()==='limited';
   var rows=DB.projects.filter(function(p){return (!f||p.status===f)&&canSeeProject(p);});
+  // Apply the saved drag-and-drop card order (falls back to natural order for any project not in it yet)
+  var savedOrder=getProjectOrder();
+  if(savedOrder.length){
+    rows.sort(function(a,b){
+      var ia=savedOrder.indexOf(String(a.id)); if(ia===-1) ia=savedOrder.length+a.id;
+      var ib=savedOrder.indexOf(String(b.id)); if(ib===-1) ib=savedOrder.length+b.id;
+      return ia-ib;
+    });
+  }
   var h=isLimited
     ? '<thead><tr><th>Ref</th><th>Project Name</th><th>Client</th><th>Status</th><th>Assigned To</th><th>Impl %</th><th></th></tr></thead><tbody>'
     : '<thead><tr><th>Ref</th><th>Project Name</th><th>Client</th><th>PO #</th><th>Budget</th><th>Amount</th><th>Cost</th><th>Net</th><th title="Implementation %: weighted average of approved PO commitment (50%) and BOQ material installed (50%)">Impl %</th><th>Status</th><th></th></tr></thead><tbody>';
   if(!rows.length){
     h='<div style="text-align:center;color:var(--muted);padding:48px;font-size:14px">No projects found</div>';
   } else {
-    h='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px">';
+    h='<div id="proj-cards-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px">';
     rows.forEach(function(p){
       var impl=getProjectImplementation(p.id, p.ref, p.budget);
       var assignedNames=(p.assignedUserIds||[]).map(function(uid){var u=DB.users.find(function(x){return x.id===uid;});return u?u.name:'?';}).join(', ')||p.assigned||'—';
@@ -4550,6 +4562,7 @@ function renderProjects(){
       };
       var sc=statusColors[p.status]||{bg:'#f3f4f6',border:'#d1d5db',hdr:'#f9fafb'};
       var logo=p.clientLogo||(DB.clients.find(function(c){return c.name===p.client;})||{}).logo||'';
+      h+='<div class="proj-drag-wrap" draggable="true" data-proj-id="'+p.id+'" ondragstart="projDragStart(event)" ondragover="projDragOver(event)" ondragleave="projDragLeave(event)" ondrop="projDrop(event)" ondragend="projDragEnd(event)" title="Drag to reorder">';
       h+='<div onclick="viewProject('+p.id+')" style="background:'+sc.bg+';border:1.5px solid '+sc.border+';border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);display:flex;flex-direction:column;cursor:pointer;transition:.15s" onmouseover="this.style.boxShadow=\'0 4px 16px rgba(0,0,0,.13)\'" onmouseout="this.style.boxShadow=\'0 2px 8px rgba(0,0,0,.06)\'">';
       h+='<div style="background:'+sc.hdr+';padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid '+sc.border+'44">';
       h+='<div style="display:flex;align-items:center;gap:8px">';
@@ -4581,6 +4594,7 @@ function renderProjects(){
         h+='<button class="btn btn-danger btn-xs" onclick="event.stopPropagation();deleteProject('+p.id+')">🗑</button>';
         h+='</div>';
       }
+      h+='</div>';
       h+='</div>';
     });
     h+='</div>';
@@ -10236,6 +10250,55 @@ function renderCostDetailModal(){
       '</tr>';
     }).join(''):'<tr><td colspan="4" style="padding:14px;text-align:center;color:var(--muted);font-size:13px">No petty cash expenses</td></tr>';
   }
+}
+
+// ── Projects page: drag-and-drop card reordering (order remembered per-browser) ──
+var _projDragSrc=null;
+function getProjectOrder(){
+  try{ var saved=JSON.parse(localStorage.getItem('pmapp_project_order')||'[]'); return Array.isArray(saved)?saved:[]; }
+  catch(e){ return []; }
+}
+function saveProjectOrder(){
+  var wrap=document.getElementById('proj-cards-grid');
+  if(!wrap) return;
+  var order=[].slice.call(wrap.children).map(function(c){return c.dataset.projId;});
+  try{ localStorage.setItem('pmapp_project_order', JSON.stringify(order)); }catch(e){}
+}
+function projDragStart(e){
+  _projDragSrc=e.currentTarget;
+  e.currentTarget.style.opacity='0.4';
+  e.dataTransfer.effectAllowed='move';
+  try{ e.dataTransfer.setData('text/plain', e.currentTarget.dataset.projId); }catch(err){}
+}
+function projDragOver(e){
+  e.preventDefault();
+  e.dataTransfer.dropEffect='move';
+  if(e.currentTarget!==_projDragSrc) e.currentTarget.classList.add('proj-drag-over');
+  return false;
+}
+function projDragLeave(e){
+  e.currentTarget.classList.remove('proj-drag-over');
+}
+function projDrop(e){
+  if(e.stopPropagation) e.stopPropagation();
+  e.preventDefault();
+  var target=e.currentTarget;
+  target.classList.remove('proj-drag-over');
+  if(_projDragSrc && target!==_projDragSrc){
+    var wrap=document.getElementById('proj-cards-grid');
+    var nodes=[].slice.call(wrap.children);
+    var srcIdx=nodes.indexOf(_projDragSrc);
+    var tgtIdx=nodes.indexOf(target);
+    if(srcIdx<tgtIdx) wrap.insertBefore(_projDragSrc, target.nextSibling);
+    else wrap.insertBefore(_projDragSrc, target);
+    saveProjectOrder();
+  }
+  return false;
+}
+function projDragEnd(e){
+  e.currentTarget.style.opacity='';
+  document.querySelectorAll('.proj-drag-over').forEach(function(el){el.classList.remove('proj-drag-over');});
+  _projDragSrc=null;
 }
 
 function openAmountDetailModal(){
