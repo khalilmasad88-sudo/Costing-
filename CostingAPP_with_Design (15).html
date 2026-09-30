@@ -129,6 +129,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:
 @keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 
 .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:var(--shadow)}
+.card[draggable="true"]:active{cursor:grabbing}
+.card.drag-over{box-shadow:0 0 0 3px var(--accent),var(--shadow);transform:scale(1.02);transition:box-shadow .15s,transform .15s}
 .card-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface2)}
 .card-title{font-size:12px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--text2)}
 .card-body{padding:16px}
@@ -779,16 +781,13 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
       <div class="page-title">📎 Assets</div>
     </div>
     <div style="display:flex;gap:8px">
-      <select id="assets-filter-cat" onchange="renderAssets()" style="font-size:12px">
-        <option value="">All Categories</option>
-        <option value="Certificate">Certificate</option>
-        <option value="Presentation">Presentation</option>
-        <option value="Template">Template</option>
-        <option value="Other">Other</option>
-      </select>
       <input id="assets-search" placeholder="🔍 Search..." style="width:200px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-size:12px" oninput="renderAssets()">
       <button class="btn btn-primary btn-sm" onclick="addAsset()">+ Add Asset</button>
     </div>
+  </div>
+  <div style="padding:16px 24px 0;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+    <div class="tabs" id="assets-tabs" style="margin-bottom:0;flex:1;flex-wrap:wrap"></div>
+    <button class="btn btn-ghost btn-sm" onclick="addAssetTab()">+ Tab</button>
   </div>
   <div style="padding:16px 24px">
     <div id="assets-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px"></div>
@@ -1245,6 +1244,7 @@ const S = {
   },
   bizDev: { lines: [], systems: [] },
   assets: [],
+  assetTabs: [],
   settings: {
     supabase: {url:'',key:'',tableShared:'',tableBackups:''},
     numbering: {
@@ -8233,47 +8233,148 @@ function selectBizSystem(id){
 // ══════════════════════════════════════════════════════════════
 // ASSETS — ready-made files library (certificates, presentations, templates)
 // ══════════════════════════════════════════════════════════════
-const ASSET_CAT_ICON={Certificate:'🎖️',Presentation:'📊',Template:'📝',Other:'📎'};
 let _assetFilePending=null; // {name, type, data} staged from the file input until Save
+let _activeAssetTab=null;
 
-function blankAsset(o={}){ return Object.assign({id:Date.now()+Math.random(),name:'',category:'Certificate',fileName:'',fileType:'',fileData:'',notes:'',expirationDate:'',dateAdded:new Date().toISOString().slice(0,10)},o); }
+function blankAsset(o={}){ return Object.assign({id:Date.now()+Math.random(),name:'',tabId:null,fileName:'',fileType:'',fileData:'',notes:'',expirationDate:'',dateAdded:new Date().toISOString().slice(0,10)},o); }
+function blankAssetTab(o={}){ return Object.assign({id:Date.now()+Math.random(),name:'New Tab'},o); }
+
+// ── Assets ▸ Tabs (user-defined, addable & renamable — replaces the old fixed Category field) ──
+function renderAssetTabs(){
+  const wrap=document.getElementById('assets-tabs');
+  if(!wrap) return;
+  const tabs=S.assetTabs||[];
+  if(!_activeAssetTab || !tabs.find(t=>t.id===_activeAssetTab)) _activeAssetTab=tabs.length?tabs[0].id:null;
+  wrap.innerHTML=tabs.map(t=>{
+    const active=t.id===_activeAssetTab;
+    return `<div class="tab ${active?'active':''}" style="display:flex;align-items:center;gap:6px" onclick="switchAssetTab(${t.id})">
+      <span>${esc(t.name)}</span>
+      ${active?`<span onclick="event.stopPropagation();renameAssetTab(${t.id})" style="cursor:pointer;font-size:11px" title="Rename tab">✏️</span>
+      ${tabs.length>1?`<span onclick="event.stopPropagation();deleteAssetTab(${t.id})" style="cursor:pointer;font-size:11px;color:var(--red)" title="Delete tab">✕</span>`:''}`:''}
+    </div>`;
+  }).join('');
+}
+
+function switchAssetTab(id){
+  _activeAssetTab=id;
+  renderAssetTabs();
+  renderAssets();
+}
+
+function addAssetTab(){
+  const name=(prompt('Tab name:')||'').trim();
+  if(!name) return;
+  S.assetTabs=S.assetTabs||[];
+  const tab=blankAssetTab({name});
+  S.assetTabs.push(tab);
+  _activeAssetTab=tab.id;
+  save();
+  renderAssetTabs();
+  renderAssets();
+}
+
+function renameAssetTab(id){
+  const tab=(S.assetTabs||[]).find(t=>t.id===id);
+  if(!tab) return;
+  const name=(prompt('Rename tab:',tab.name)||'').trim();
+  if(!name) return;
+  tab.name=name;
+  save();
+  renderAssetTabs();
+  renderAssets();
+}
+
+function deleteAssetTab(id){
+  if((S.assetTabs||[]).length<=1){ alert('Keep at least one tab.'); return; }
+  if(!confirm('Delete this tab? Assets in it will move to the first remaining tab.')) return;
+  S.assetTabs=(S.assetTabs||[]).filter(t=>t.id!==id);
+  const fallback=S.assetTabs[0].id;
+  (S.assets||[]).forEach(a=>{ if(a.tabId===id) a.tabId=fallback; });
+  if(_activeAssetTab===id) _activeAssetTab=fallback;
+  save();
+  renderAssetTabs();
+  renderAssets();
+}
 
 function renderAssets(){
   const grid=document.getElementById('assets-grid');
   if(!grid) return;
+  renderAssetTabs();
   const search=(document.getElementById('assets-search')||{}).value||'';
-  const filterCat=(document.getElementById('assets-filter-cat')||{}).value||'';
-  let items=S.assets||[];
-  if(filterCat) items=items.filter(a=>a.category===filterCat);
+  let items=(S.assets||[]).filter(a=>a.tabId===_activeAssetTab);
   if(search){
     const s=search.toLowerCase();
     items=items.filter(a=>(a.name||'').toLowerCase().includes(s)||(a.notes||'').toLowerCase().includes(s));
   }
   if(!items.length){
-    grid.innerHTML='<div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--muted)">No assets yet. Click "+ Add Asset" to upload a certificate, presentation, or template.</div>';
+    grid.innerHTML='<div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--muted)">No assets in this tab yet. Click "+ Add Asset" to upload one.</div>';
     return;
   }
   grid.innerHTML=items.map(a=>`
-    <div class="card">
+    <div class="card" draggable="true" data-asset-id="${a.id}" ondragstart="assetDragStart(event)" ondragover="assetDragOver(event)" ondragleave="assetDragLeave(event)" ondrop="assetDrop(event)" ondragend="assetDragEnd(event)" title="${a.fileData?'Click to download':'Drag to reorder'}" style="cursor:${a.fileData?'pointer':'grab'}" ${a.fileData?`onclick="downloadAsset(${a.id})"`:''}>
       <div class="card-body">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-          <div style="font-size:26px">${ASSET_CAT_ICON[a.category]||'📎'}</div>
+          <div style="font-size:26px">📎</div>
           <div style="display:flex;gap:4px">
-            <button class="btn btn-ghost btn-xs" onclick="editAsset(${a.id})">✏️</button>
-            <button class="del-btn" onclick="deleteAsset(${a.id})">✕</button>
+            <button class="btn btn-ghost btn-xs" onclick="event.stopPropagation();editAsset(${a.id})">✏️</button>
+            <button class="del-btn" onclick="event.stopPropagation();deleteAsset(${a.id})">✕</button>
           </div>
         </div>
         <div style="font-weight:700;color:var(--text);margin-top:8px">${esc(a.name)}</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">${esc(a.category)} · ${esc(a.dateAdded)}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">${esc(a.dateAdded)}</div>
         ${assetExpiryBadge(a.expirationDate)}
         ${a.notes?`<div style="font-size:12px;color:var(--text2);margin-top:8px;line-height:1.4">${esc(a.notes)}</div>`:''}
-        ${a.fileData?`<button class="btn btn-ghost btn-sm" style="margin-top:10px;width:100%" onclick="downloadAsset(${a.id})">⬇ Download${a.fileName?' '+esc(a.fileName):''}</button>`:'<div style="font-size:11px;color:var(--muted);margin-top:10px">No file attached</div>'}
+        ${a.fileData?`<button class="btn btn-ghost btn-sm" style="margin-top:10px;width:100%" onclick="event.stopPropagation();downloadAsset(${a.id})">⬇ Download${a.fileName?' '+esc(a.fileName):''}</button>`:'<div style="font-size:11px;color:var(--muted);margin-top:10px">No file attached</div>'}
       </div>
     </div>
   `).join('');
 }
 
 // Returns an inline badge for an asset's expiration status: overdue (red), expiring within 30 days (amber), or a plain date (muted)
+// ── Assets grid: drag-and-drop card reordering (persisted in S.assets, shared for everyone) ──
+var _assetDragSrc=null;
+function assetDragStart(e){
+  _assetDragSrc=e.currentTarget;
+  e.currentTarget.style.opacity='0.4';
+  e.dataTransfer.effectAllowed='move';
+  try{ e.dataTransfer.setData('text/plain', e.currentTarget.dataset.assetId); }catch(err){}
+}
+function assetDragOver(e){
+  e.preventDefault();
+  e.dataTransfer.dropEffect='move';
+  if(e.currentTarget!==_assetDragSrc) e.currentTarget.classList.add('drag-over');
+  return false;
+}
+function assetDragLeave(e){
+  e.currentTarget.classList.remove('drag-over');
+}
+function assetDrop(e){
+  if(e.stopPropagation) e.stopPropagation();
+  e.preventDefault();
+  const target=e.currentTarget;
+  target.classList.remove('drag-over');
+  if(_assetDragSrc && target!==_assetDragSrc){
+    const srcId=_assetDragSrc.dataset.assetId;
+    const tgtId=target.dataset.assetId;
+    const arr=S.assets||[];
+    const srcIdx=arr.findIndex(a=>String(a.id)===srcId);
+    const tgtIdx=arr.findIndex(a=>String(a.id)===tgtId);
+    if(srcIdx>-1 && tgtIdx>-1){
+      const [moved]=arr.splice(srcIdx,1);
+      const newTgtIdx=arr.findIndex(a=>String(a.id)===tgtId);
+      arr.splice(srcIdx<tgtIdx?newTgtIdx+1:newTgtIdx,0,moved);
+      save();
+      renderAssets();
+    }
+  }
+  return false;
+}
+function assetDragEnd(e){
+  e.currentTarget.style.opacity='';
+  document.querySelectorAll('#assets-grid .drag-over').forEach(el=>el.classList.remove('drag-over'));
+  _assetDragSrc=null;
+}
+
 function assetExpiryBadge(expDate){
   if(!expDate) return '';
   const today=new Date(); today.setHours(0,0,0,0);
@@ -8294,7 +8395,9 @@ function openAssetModal(id){
   _assetFilePending=null;
   document.getElementById('as-id').value=id||'';
   document.getElementById('as-name').value=asset.name||'';
-  document.getElementById('as-category').value=asset.category||'Certificate';
+  const tabSel=document.getElementById('as-tab');
+  tabSel.innerHTML=(S.assetTabs||[]).map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
+  tabSel.value=asset.tabId||_activeAssetTab||(S.assetTabs[0]&&S.assetTabs[0].id)||'';
   document.getElementById('as-notes').value=asset.notes||'';
   document.getElementById('as-expiry').value=asset.expirationDate||'';
   document.getElementById('as-file-input').value='';
@@ -8321,7 +8424,7 @@ function saveAsset(){
   S.assets=S.assets||[];
   let asset=id?S.assets.find(a=>a.id==id):blankAsset();
   asset.name=name;
-  asset.category=document.getElementById('as-category').value;
+  asset.tabId=parseFloat(document.getElementById('as-tab').value)||_activeAssetTab;
   asset.notes=document.getElementById('as-notes').value.trim();
   asset.expirationDate=document.getElementById('as-expiry').value;
   if(_assetFilePending){
@@ -8639,6 +8742,20 @@ if(saved)try{
   });
   // Ensure Assets module structure exists (added later — backward compatibility)
   if(!S.assets)S.assets=[];
+  // Assets tabs (replaces the old fixed Category field) — seed from whatever categories were
+  // already in use, then migrate each asset's old "category" string to a tabId.
+  if(!S.assetTabs)S.assetTabs=[];
+  if(!S.assetTabs.length){
+    const seedNames=[...new Set((S.assets||[]).map(a=>a.category).filter(Boolean))];
+    if(!seedNames.length) seedNames.push('General');
+    S.assetTabs=seedNames.map(name=>({id:Date.now()+Math.random(),name}));
+  }
+  (S.assets||[]).forEach(a=>{
+    if(!a.tabId){
+      const match=a.category?S.assetTabs.find(t=>t.name===a.category):null;
+      a.tabId=match?match.id:S.assetTabs[0].id;
+    }
+  });
   // Backward compatibility: existing users saved before the Design/Assets/VE/Business Development
   // pages existed default to having access to them (those pages were open to everyone before this
   // permission set existed), so nobody loses access they already had.
@@ -9842,13 +9959,8 @@ if (_portalBridgePending) {
     <div class="modal-body">
       <input type="hidden" id="as-id">
       <div class="field" style="margin-bottom:12px"><label>Name</label><input id="as-name" placeholder="e.g. ISO 9001 Certificate"></div>
-      <div class="field" style="margin-bottom:12px"><label>Category</label>
-        <select id="as-category">
-          <option>Certificate</option>
-          <option>Presentation</option>
-          <option>Template</option>
-          <option>Other</option>
-        </select>
+      <div class="field" style="margin-bottom:12px"><label>Tab</label>
+        <select id="as-tab"></select>
       </div>
       <div class="field" style="margin-bottom:12px">
         <label>File</label>
