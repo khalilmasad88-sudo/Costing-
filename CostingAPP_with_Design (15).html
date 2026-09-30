@@ -8311,11 +8311,12 @@ function renderAssets(){
     return;
   }
   grid.innerHTML=items.map(a=>`
-    <div class="card" draggable="true" data-asset-id="${a.id}" ondragstart="assetDragStart(event)" ondragover="assetDragOver(event)" ondragleave="assetDragLeave(event)" ondrop="assetDrop(event)" ondragend="assetDragEnd(event)" title="${a.fileData?'Click to download':'Drag to reorder'}" style="cursor:${a.fileData?'pointer':'grab'}" ${a.fileData?`onclick="downloadAsset(${a.id})"`:''}>
+    <div class="card" data-asset-id="${a.id}" ondragover="assetDragOver(event)" ondragleave="assetDragLeave(event)" ondrop="assetDrop(event)" title="${a.fileData?'Click to download':''}" style="cursor:${a.fileData?'pointer':'default'}" ${a.fileData?`onclick="downloadAsset(${a.id})"`:''}>
       <div class="card-body">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
           <div style="font-size:26px">📎</div>
-          <div style="display:flex;gap:4px">
+          <div style="display:flex;gap:4px;align-items:center">
+            <span draggable="true" ondragstart="assetDragStart(event)" ondragend="assetDragEnd(event)" onclick="event.stopPropagation()" title="Drag to reorder" style="cursor:grab;padding:2px 4px;color:var(--muted);font-size:13px">⠿</span>
             <button class="btn btn-ghost btn-xs" onclick="event.stopPropagation();editAsset(${a.id})">✏️</button>
             <button class="del-btn" onclick="event.stopPropagation();deleteAsset(${a.id})">✕</button>
           </div>
@@ -8334,10 +8335,11 @@ function renderAssets(){
 // ── Assets grid: drag-and-drop card reordering (persisted in S.assets, shared for everyone) ──
 var _assetDragSrc=null;
 function assetDragStart(e){
-  _assetDragSrc=e.currentTarget;
-  e.currentTarget.style.opacity='0.4';
+  _assetDragSrc=e.currentTarget.closest('[data-asset-id]');
+  if(!_assetDragSrc) return;
+  _assetDragSrc.style.opacity='0.4';
   e.dataTransfer.effectAllowed='move';
-  try{ e.dataTransfer.setData('text/plain', e.currentTarget.dataset.assetId); }catch(err){}
+  try{ e.dataTransfer.setData('text/plain', _assetDragSrc.dataset.assetId); }catch(err){}
 }
 function assetDragOver(e){
   e.preventDefault();
@@ -8370,7 +8372,7 @@ function assetDrop(e){
   return false;
 }
 function assetDragEnd(e){
-  e.currentTarget.style.opacity='';
+  if(_assetDragSrc) _assetDragSrc.style.opacity='';
   document.querySelectorAll('#assets-grid .drag-over').forEach(el=>el.classList.remove('drag-over'));
   _assetDragSrc=null;
 }
