@@ -318,27 +318,8 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
 </head>
 <body>
 
-<!-- LOGIN SCREEN -->
-<div class="login-screen active" id="loginScreen">
-  <div class="theme-toggle login-theme-toggle" onclick="toggleTheme()">
-    <span id="theme-label-login">🌙 Night</span>
-    <div class="toggle-track"><div class="toggle-thumb"></div></div>
-  </div>
-  <div class="login-box">
-    <div class="login-logo"><div>🏷️</div></div>
-    <div class="login-title">Future Tag</div>
-    <div class="login-subtitle">Sign in to continue</div>
-    <form onsubmit="return handleLogin(event)">
-      <div class="field" style="margin-bottom:14px"><label>Email</label><input id="login-email" type="email" autocomplete="username" required></div>
-      <div class="field" style="margin-bottom:14px"><label>Password</label><input id="login-password" type="password" autocomplete="current-password" required></div>
-      <div id="login-error" style="display:none;background:rgba(239,68,68,.1);color:var(--red);padding:8px 12px;border-radius:6px;margin-bottom:14px;font-size:12px"></div>
-      <button type="submit" class="btn btn-primary" style="width:100%">Sign In</button>
-    </form>
-  </div>
-</div>
-
 <!-- APP CONTAINER -->
-<div class="app-container" id="appContainer">
+<div class="app-container active" id="appContainer">
 
 <aside class="sidebar">
   <div class="logo-block">
@@ -363,7 +344,6 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
       <div class="nav-item" onclick="showPage('pipeline')" data-page="pipeline"><span class="icon">🔄</span> Pipeline</div>
       <div class="nav-item" onclick="showPage('quotation')" data-page="quotation"><span class="icon">📄</span> Quotations</div>
       <div class="nav-item" onclick="showPage('design')" data-page="design"><span class="icon">📐</span> Design</div>
-      <div class="nav-item" onclick="showPage('assets')" data-page="assets"><span class="icon">📎</span> Assets</div>
     </div>
     <div class="nav-group" style="--sec-color:#9c8fc4">
       <div class="nav-section">Value Engineering</div>
@@ -771,26 +751,6 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
       <button class="btn btn-primary btn-sm" onclick="newDesignDoc()">+ New Design</button>
     </div>
     <div id="design-docs-list"></div>
-  </div>
-</div>
-
-<!-- ══════════════ ASSETS PAGE ══════════════ -->
-<div class="page" id="page-assets">
-  <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px 0;flex-wrap:wrap;gap:8px">
-    <div>
-      <div class="page-title">📎 Assets</div>
-    </div>
-    <div style="display:flex;gap:8px">
-      <input id="assets-search" placeholder="🔍 Search..." style="width:200px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-size:12px" oninput="renderAssets()">
-      <button class="btn btn-primary btn-sm" onclick="addAsset()">+ Add Asset</button>
-    </div>
-  </div>
-  <div style="padding:16px 24px 0;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-    <div class="tabs" id="assets-tabs" style="margin-bottom:0;flex:1;flex-wrap:wrap"></div>
-    <button class="btn btn-ghost btn-sm" onclick="addAssetTab()">+ Tab</button>
-  </div>
-  <div style="padding:16px 24px">
-    <div id="assets-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px"></div>
   </div>
 </div>
 
@@ -1243,8 +1203,6 @@ const S = {
     }
   },
   bizDev: { lines: [], systems: [] },
-  assets: [],
-  assetTabs: [],
   settings: {
     supabase: {url:'',key:'',tableShared:'',tableBackups:''},
     numbering: {
@@ -1278,8 +1236,10 @@ const fmtN = n => (+n||0).toLocaleString('en-SA',{minimumFractionDigits:2,maximu
 const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
 
 function blankCompany(o={}){return{id:Date.now()+Math.random(),name:'New Company',tag:'Description',color:'#3b82f6',logo:'',users:['Admin'],...o};}
-function blankUser(o={}){return{id:Date.now()+Math.random(),name:'',email:'',password:'',role:'Pre-sales',companies:[],permissions:{dashboard:true,pipeline:true,quotation:true,boq:true,design:true,assets:true,ve:true,bizdev:true,users:false,settings:false},assignedProjects:[],...o};}
-function blankQ(o={}){return{id:Date.now()+Math.random(),num:'',date:new Date().toISOString().slice(0,10),project:'',client:'',addr:'',system:'CCTV',tenderref:'',duration:'',by:'',salesPerson:'',vat:15,status:'Draft',version:'v1',validity:'90 days',paymentTerms:'To Be Agreed On',scope:'',delivery:'270 days from site handover',impl:'30 days from site handover',notes:'',profitPct:25,showPricing:true,items:[],payments:[],documents:[],techEval:[],locked:false,teStatus:'Under Evaluation',teFailReason:'',feStatus:'Under Evaluation',feWinnerValue:'',feWinnerCompany:'',projectType:'Tender',contractStatus:'Pending Signature',contractNumber:'',contractDate:'',contractNotes:'',cover:{title:'',subtitle:'',image:''},spacers:[],...o};}
+function blankUser(o={}){return{id:Date.now()+Math.random(),name:'',email:'',password:'',role:'Pre-sales',companies:[],permissions:{dashboard:true,pipeline:true,quotation:true,boq:true,design:true,ve:true,bizdev:true,users:false,settings:false},assignedProjects:[],...o};}
+const DEFAULT_SPACER_TITLES=['العرض المالي','خطاب العرض المالي','جدول الأسعار','العرض الفني','خطاب العرض الفني','نطاق العمل','جدول الكميات','جدول المطابقة','الية تنفيذ الأعمال','الجدول الزمني','الفريق الفني','جدول المشاريع السابقة','النشرات الفنية','كراسة الشروط والمواصفات','التعاميد السابقة','سجلات الشركة','الملف التعريفي للشركة'];
+function defaultSpacers(){ return DEFAULT_SPACER_TITLES.map(t=>({id:Date.now()+Math.random(),title:t,subtitle:''})); }
+function blankQ(o={}){return{id:Date.now()+Math.random(),num:'',date:new Date().toISOString().slice(0,10),project:'',client:'',addr:'',system:'CCTV',tenderref:'',duration:'',by:'',salesPerson:'',vat:15,status:'Draft',version:'v1',validity:'90 days',paymentTerms:'To Be Agreed On',scope:'',delivery:'270 days from site handover',impl:'30 days from site handover',notes:'',profitPct:25,showPricing:true,items:[],payments:[],documents:[],techEval:[],locked:false,teStatus:'Under Evaluation',teFailReason:'',feStatus:'Under Evaluation',feWinnerValue:'',feWinnerCompany:'',projectType:'Tender',contractStatus:'Pending Signature',contractNumber:'',contractDate:'',contractNotes:'',cover:{title:'',subtitle:'',image:''},spacers:defaultSpacers(),...o};}
 
 // Technical Evaluation status (per-quotation, independent of the techEval scoring table above)
 // Quote Status colors (Draft/Submitted/Evaluation/In Pricing/Won/Lost/Canceled)
@@ -1536,23 +1496,21 @@ function handleLogout(){
 // (e.g. Admin) to every other device that loads this app. A separate, local-only marker is used
 // instead (see getSessionUserId/setSessionUserId/clearSessionUserId below).
 function init(){
-  // ── Session / Portal auto-login ─────────────────────────────
+  // ── Silent session / portal identification (no login screen — the app is always open) ──
   // 1) This browser already has a local session for a user that still exists? Resume it.
-  // 2) Otherwise, if launched inside Zeina portal, auto-login by matching the portal's email
-  //    against this app's own Users (Settings ▸ Users & Access) — same idea as PM_APP.
-  // 3) Otherwise, show the login screen and wait for handleLogin().
+  // 2) Otherwise, if launched inside Zeina portal, silently identify the user by matching the
+  //    portal's email against this app's own Users (Settings ▸ Users & Access). If nothing
+  //    matches, the app still opens normally — it just has no specific user's permissions applied.
   const sessionUid=getSessionUserId();
   const sessionUser=sessionUid?S.users.find(u=>String(u.id)===String(sessionUid)):null;
   if(sessionUser){
     S.currentUser=sessionUser.id;
-    _showAppAfterLogin();
   } else {
     S.currentUser=null;
     const portalUser=window.PortalBridge && window.PortalBridge.user;
     if(portalUser && portalUser.email){
       _portalAutoLogin(portalUser);
     }
-    // else: leave the login screen showing (its default state)
   }
 
   applyCompany();
@@ -1579,13 +1537,6 @@ function init(){
 function getSessionUserId(){ try{ return _storage.getItem('ftag_session_user_id'); }catch(e){ return null; } }
 function setSessionUserId(id){ try{ _storage.setItem('ftag_session_user_id', String(id)); }catch(e){} }
 function clearSessionUserId(){ try{ _storage.removeItem('ftag_session_user_id'); }catch(e){} }
-
-function _showAppAfterLogin(){
-  const ls=document.getElementById('loginScreen');
-  const ac=document.getElementById('appContainer');
-  if(ls) ls.classList.remove('active');
-  if(ac) ac.classList.add('active');
-}
 
 // Find a local user matching the portal's identity (by email, case-insensitive; falls back to name)
 function _findPortalUser(email,name){
@@ -1614,14 +1565,9 @@ function _portalAutoLogin(portalUser){
   const isSuperAdmin=portalUser.role==='superadmin';
   if(!user){
     if(!isSuperAdmin){
-      // No matching email among the app's own Users — do not auto-login or auto-create.
-      // Leave the manual login screen showing, with a clear explanation.
-      const err=document.getElementById('login-error');
-      if(err){
-        err.textContent='بريدك الإلكتروني ('+(portalUser.email||'')+') غير مسجَّل كمستخدم في هذا التطبيق. تواصل مع المسؤول لإضافتك، أو سجّل الدخول يدويًا إذا كان لديك حساب.';
-        err.style.display='block';
-      }
-      console.warn('Portal user has no matching app account, auto-login blocked:', portalUser.email);
+      // No matching email among the app's own Users — nothing to silently identify as.
+      // The app still opens normally; it just has no specific user's permissions applied.
+      console.warn('Portal user has no matching app account — opening without a specific identity:', portalUser.email);
       return;
     }
     // Portal Super Admin with no existing local record yet — auto-provision as Admin.
@@ -1641,9 +1587,8 @@ function _portalAutoLogin(portalUser){
   }
   S.currentUser=user.id;
   setSessionUserId(user.id);
-  _showAppAfterLogin();
   save(true);
-  console.log('✅ Auto-logged in via PortalBridge as', user.name);
+  console.log('✅ Silently identified via PortalBridge as', user.name);
 }
 
 function save(immediate){
@@ -1809,12 +1754,32 @@ async function autoBackupToSupabase(immediate) {
 
       // Strip activeQId before saving to cloud — it's per-user, not shared
       const _dataToSave = Object.assign({}, S, {activeQId: null, currentUser: null});
-      await sbUpsert(getTableShared(), {
+      const _payload = {
         company_id: S.currentCompanyId,
         data: _dataToSave,
         updated_by: user?.email || 'system',
         updated_at: now
-      });
+      };
+      const _payloadKB = Math.round(JSON.stringify(_payload).length/1024);
+      if(_payloadKB>2000) console.warn('[Sync] Large payload: '+_payloadKB+' KB — this can slow down or time out the save. Consider trimming attached files (logos, cover images).');
+
+      // Retry on a transient Postgres statement timeout (code 57014) — the query can simply
+      // take longer than the DB's timeout when the payload is large; a couple of retries with
+      // a short pause usually goes through once other queries have cleared.
+      let _lastErr=null;
+      for(let attempt=0; attempt<3; attempt++){
+        try{
+          await sbUpsert(getTableShared(), _payload);
+          _lastErr=null;
+          break;
+        }catch(err){
+          _lastErr=err;
+          const isTimeout = /57014|statement timeout/i.test(err.message||'');
+          if(!isTimeout || attempt===2) throw err;
+          console.warn('[Sync] Statement timeout, retrying ('+(attempt+1)+'/3)...');
+          await new Promise(res=>setTimeout(res, 1500*(attempt+1)));
+        }
+      }
       updateSupabaseStatus(true);
       console.log('✓ Synced to shared database (merged)');
     } catch(err) {
@@ -2330,7 +2295,6 @@ const ALL_PAGES=[
   {id:'quotation',label:'Quotations',icon:'📄'},
   {id:'boq',label:'BOQ',icon:'📐'},
   {id:'design',label:'Design',icon:'📐'},
-  {id:'assets',label:'Assets',icon:'📎'},
   {id:'ve',label:'Value Engineering',icon:'🏗️'},
   {id:'bizdev',label:'Business Development',icon:'📈'},
   {id:'users',label:'Users',icon:'👤'},
@@ -2338,10 +2302,10 @@ const ALL_PAGES=[
 ];
 const ACCESS_PRESETS={
   admin:    ALL_PAGES.map(p=>p.id),
-  manager:  ['dashboard','pipeline','quotation','boq','design','assets','ve','bizdev'],
-  presales: ['dashboard','pipeline','quotation','boq','design','assets','ve'],
+  manager:  ['dashboard','pipeline','quotation','boq','design','ve','bizdev'],
+  presales: ['dashboard','pipeline','quotation','boq','design','ve'],
   sales:    ['dashboard','pipeline','quotation'],
-  finance:  ['dashboard','quotation','assets'],
+  finance:  ['dashboard','quotation'],
   viewer:   ['dashboard'],
   none:     []
 };
@@ -2358,13 +2322,6 @@ function applyPermissions(){
     if(!allowed && teamRole==='Pre-sales' && (page==='pipeline'||page==='quotation'||page==='boq')) allowed=true;
     el.classList.toggle('hidden',!allowed);
   });
-  // HR team-role: restrict access to Assets only (view + edit there is unrestricted; everything else is hidden)
-  if(teamRole==='HR'){
-    document.querySelectorAll('.nav-item[data-page]').forEach(el=>{
-      el.classList.toggle('hidden', el.getAttribute('data-page')!=='assets');
-    });
-    if(typeof showPage==='function') showPage('assets');
-  }
 }
 
 function renderUserAccessGrid(checkedPages){
@@ -2530,7 +2487,7 @@ function changeMyPassword(){
 }
 
 // Navigation & Pages
-const PAGE_TITLES={dashboard:'Dashboard <span>Overview</span>',pipeline:'Pipeline <span>2026</span>',quotation:'Quotations <span>per Project</span>',boq:'Bill of <span>Quantity</span>',design:'Design <span>Quantity Takeoff</span>',assets:'Assets <span>Library</span>',ve:'Value Engineering <span>Won Projects</span>',bizdev:'Business Development <span>Business Lines</span>',settings:'Settings <span>& Config</span>'};
+const PAGE_TITLES={dashboard:'Dashboard <span>Overview</span>',pipeline:'Pipeline <span>2026</span>',quotation:'Quotations <span>per Project</span>',boq:'Bill of <span>Quantity</span>',design:'Design <span>Quantity Takeoff</span>',ve:'Value Engineering <span>Won Projects</span>',bizdev:'Business Development <span>Business Lines</span>',settings:'Settings <span>& Config</span>'};
 
 // ══════════════════════════════════════════════════════════
 // VALUE ENGINEERING
@@ -2919,13 +2876,10 @@ function switchToQuotation(qid){
 }
 
 function showPage(id){
-  // Hard enforcement: HR team-role can only ever land on Assets, regardless of how showPage was triggered
-  if(getTeamRole()==='HR' && id!=='assets') id='assets';
   if(typeof closeMobileSidebar==='function') closeMobileSidebar();
   if(id==='ve') renderVE();
   if(id==='design'){ renderDesignPriceList(); renderDesignDocsList(); }
   if(id==='bizdev'){ renderBizSystems(); }
-  if(id==='assets'){ renderAssets(); }
   if(id==='settings'){ renderUsersList(); }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -7075,7 +7029,12 @@ function exportCostSellPDF(){
     const v=si.vendor||'Unknown';
     byVendor[v]=(byVendor[v]||0)+subTotal(si);
   }));
-  
+
+  // Capture the live dashboard charts (Chart.js canvases already rendered on the Cost-Sell tab) as images
+  let chartByTypeImg='', chartByVendorImg='';
+  try{ const c1=document.getElementById('chart-by-type'); if(c1) chartByTypeImg=c1.toDataURL('image/png'); }catch(e){}
+  try{ const c2=document.getElementById('chart-by-vendor'); if(c2) chartByVendorImg=c2.toDataURL('image/png'); }catch(e){}
+
   const colors=co.pdfColors||{tableHeader:'#3B82F6',tableHeaderText:'#FFFFFF'};
   const branding=co.branding||{logo:'',footerAr:'',footerEn:''};
   const logoHtml=branding.logo?`<img src="${branding.logo}" style="max-height:60px">`:`<div class="logo-text">FUTURE TAG</div>`;
@@ -7089,100 +7048,105 @@ function exportCostSellPDF(){
     </div>
   </div>
   
-  <div class="section">
-    <div class="section-title">PROJECT INFORMATION</div>
+  <div class="section" style="margin-bottom:16px">
+    <div class="section-title">PROJECT DETAILS</div>
     <table class="info-table">
       <tr>
-        <td class="label">Quotation</td>
-        <td class="value">${esc(q.num)}</td>
         <td class="label">Project</td>
-        <td class="value">${esc(q.project)}</td>
+        <td class="value">${esc(q.project||'—')}</td>
+        <td class="label">Client</td>
+        <td class="value">${esc(q.client||'—')}</td>
+        <td class="label">Tender Reference</td>
+        <td class="value">${esc(q.tenderref||'—')}</td>
       </tr>
       <tr>
-        <td class="label">Gross Margin</td>
-        <td class="value"><strong>${gmPct.toFixed(1)}%</strong></td>
-        <td class="label">Gross Profit</td>
-        <td class="value"><strong>${fmtN(gp)}</strong></td>
+        <td class="label">Submission Date</td>
+        <td class="value">${esc(q.date||'—')}</td>
+        <td class="label">Sales Person</td>
+        <td class="value" colspan="3">${esc(q.salesPerson||'—')}</td>
       </tr>
     </table>
   </div>
-  
+
+  <div class="section">
+    <table class="split-layout"><tr>
+      <td class="split-half">
+        <div class="section-title">COST BY TYPE</div>
+        ${chartByTypeImg?`<div style="text-align:center;margin-bottom:12px"><img src="${chartByTypeImg}" style="max-width:100%;max-height:220px"></div>`:''}
+        <table class="price-table">
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th style="width:90px">Amount</th>
+              <th style="width:60px">%</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${Object.entries(byType).map(([t,v])=>`<tr>
+              <td class="desc-col">${t}</td>
+              <td class="total-col">${fmtN(v)}</td>
+              <td class="total-col">${tc?(v/tc*100).toFixed(1)+'%':'—'}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </td>
+      <td class="split-half">
+        <div class="section-title">COST BY VENDOR</div>
+        ${chartByVendorImg?`<div style="text-align:center;margin-bottom:12px"><img src="${chartByVendorImg}" style="max-width:100%;max-height:220px"></div>`:''}
+        <table class="price-table">
+          <thead>
+            <tr>
+              <th>Vendor</th>
+              <th style="width:90px">Amount</th>
+              <th style="width:60px">%</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${Object.entries(byVendor).map(([v,val])=>`<tr>
+              <td class="desc-col">${v}</td>
+              <td class="total-col">${fmtN(val)}</td>
+              <td class="total-col">${tc?(val/tc*100).toFixed(1)+'%':'—'}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </td>
+    </tr></table>
+  </div>
+
   <div class="section">
     <div class="section-title">COST VS SELL SUMMARY</div>
-    <table class="price-table">
-      <thead>
-        <tr>
-          <th>Item</th>
-          <th style="width:150px">Amount (SAR)</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td class="desc-col">Total Cost (excl. VAT)</td>
-          <td class="total-col">${fmtN(tc)}</td>
-        </tr>
-        <tr>
-          <td class="desc-col">Total Sell (excl. VAT)</td>
-          <td class="total-col">${fmtN(ts)}</td>
-        </tr>
-        <tr>
-          <td class="desc-col">VAT (${q.vat}%)</td>
-          <td class="total-col">${fmtN(vat)}</td>
-        </tr>
-        <tr>
-          <td class="desc-col">Grand Total</td>
-          <td class="total-col">${fmtN(ts+vat)}</td>
-        </tr>
-        <tr>
-          <td class="desc-col">Gross Profit</td>
-          <td class="total-col">${fmtN(gp)}</td>
-        </tr>
-        <tr>
-          <td class="desc-col">Gross Margin %</td>
-          <td class="total-col">${gmPct.toFixed(1)}%</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  
-  <div class="section">
-    <div class="section-title">COST BY TYPE</div>
-    <table class="price-table">
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th style="width:130px">Amount (SAR)</th>
-          <th style="width:100px">% of Cost</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${Object.entries(byType).map(([t,v])=>`<tr>
-          <td class="desc-col">${t}</td>
-          <td class="total-col">${fmtN(v)}</td>
-          <td class="total-col">${tc?(v/tc*100).toFixed(1)+'%':'—'}</td>
-        </tr>`).join('')}
-      </tbody>
-    </table>
-  </div>
-  
-  <div class="section">
-    <div class="section-title">COST BY VENDOR</div>
-    <table class="price-table">
-      <thead>
-        <tr>
-          <th>Vendor</th>
-          <th style="width:130px">Amount (SAR)</th>
-          <th style="width:100px">% of Cost</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${Object.entries(byVendor).map(([v,val])=>`<tr>
-          <td class="desc-col">${v}</td>
-          <td class="total-col">${fmtN(val)}</td>
-          <td class="total-col">${tc?(val/tc*100).toFixed(1)+'%':'—'}</td>
-        </tr>`).join('')}
-      </tbody>
-    </table>
+    <table class="split-layout"><tr>
+      <td class="split-third">
+        <table class="price-table">
+          <thead><tr><th colspan="2">COST</th></tr></thead>
+          <tbody>
+            <tr><td class="desc-col">Total Cost (excl. VAT)</td><td class="total-col">${fmtN(tc)}</td></tr>
+            <tr class="filler-row"><td class="desc-col">&nbsp;</td><td class="total-col"></td></tr>
+            <tr class="filler-row"><td class="desc-col">&nbsp;</td><td class="total-col"></td></tr>
+          </tbody>
+        </table>
+      </td>
+      <td class="split-third">
+        <table class="price-table">
+          <thead><tr><th colspan="2">SELL</th></tr></thead>
+          <tbody>
+            <tr><td class="desc-col">Total Sell (excl. VAT)</td><td class="total-col">${fmtN(ts)}</td></tr>
+            <tr><td class="desc-col">VAT (${q.vat}%)</td><td class="total-col">${fmtN(vat)}</td></tr>
+            <tr><td class="desc-col">Grand Total (incl. VAT)</td><td class="total-col">${fmtN(ts+vat)}</td></tr>
+          </tbody>
+        </table>
+      </td>
+      <td class="split-third">
+        <table class="price-table">
+          <thead><tr><th colspan="2">PROFIT</th></tr></thead>
+          <tbody>
+            <tr><td class="desc-col">Gross Profit</td><td class="total-col">${fmtN(gp)}</td></tr>
+            <tr><td class="desc-col">Gross Margin %</td><td class="total-col">${gmPct.toFixed(1)}%</td></tr>
+            <tr class="filler-row"><td class="desc-col">&nbsp;</td><td class="total-col"></td></tr>
+          </tbody>
+        </table>
+      </td>
+    </tr></table>
   </div>
   
   <div class="footer">
@@ -7209,9 +7173,18 @@ function exportCostSellPDF(){
   .section-title{font-size:12pt;font-weight:700;color:${colors.tableHeader};padding:8px 0;margin-bottom:12px;border-bottom:2px solid ${colors.tableHeader};text-transform:uppercase;letter-spacing:0.5px}
   
   .info-table{width:100%;border-collapse:collapse}
-  .info-table td{padding:8px;border:1px solid #ddd;font-size:10pt}
-  .info-table .label{background:#f5f5f5;font-weight:700;width:20%;color:#555}
-  .info-table .value{width:30%}
+  .info-table td{padding:7px 8px;border:1px solid #ddd;font-size:9.5pt}
+  .info-table .label{background:#f5f5f5;font-weight:700;width:13%;color:#555;white-space:nowrap}
+  .info-table .value{width:20%}
+
+  .split-layout{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed}
+  .split-layout>tr>td{vertical-align:top;padding:0}
+  .split-half{width:50%}
+  .split-half:first-child{padding-right:10px!important}
+  .split-half:last-child{padding-left:10px!important}
+  .split-third{width:33.33%}
+  .split-third:not(:first-child){padding-left:8px!important}
+  .split-third:not(:last-child){padding-right:8px!important}
   
   .price-table{width:100%;border-collapse:collapse}
   .price-table th{background:${colors.tableHeader};color:${colors.tableHeaderText};padding:10px 8px;text-align:center;font-weight:700;border:1px solid ${colors.tableHeader}}
@@ -8231,230 +8204,6 @@ function selectBizSystem(id){
 
 
 // ══════════════════════════════════════════════════════════════
-// ASSETS — ready-made files library (certificates, presentations, templates)
-// ══════════════════════════════════════════════════════════════
-let _assetFilePending=null; // {name, type, data} staged from the file input until Save
-let _activeAssetTab=null;
-
-function blankAsset(o={}){ return Object.assign({id:Date.now()+Math.random(),name:'',tabId:null,fileName:'',fileType:'',fileData:'',notes:'',expirationDate:'',dateAdded:new Date().toISOString().slice(0,10)},o); }
-function blankAssetTab(o={}){ return Object.assign({id:Date.now()+Math.random(),name:'New Tab'},o); }
-
-// ── Assets ▸ Tabs (user-defined, addable & renamable — replaces the old fixed Category field) ──
-function renderAssetTabs(){
-  const wrap=document.getElementById('assets-tabs');
-  if(!wrap) return;
-  const tabs=S.assetTabs||[];
-  if(!_activeAssetTab || !tabs.find(t=>t.id===_activeAssetTab)) _activeAssetTab=tabs.length?tabs[0].id:null;
-  wrap.innerHTML=tabs.map(t=>{
-    const active=t.id===_activeAssetTab;
-    return `<div class="tab ${active?'active':''}" style="display:flex;align-items:center;gap:6px" onclick="switchAssetTab(${t.id})">
-      <span>${esc(t.name)}</span>
-      ${active?`<span onclick="event.stopPropagation();renameAssetTab(${t.id})" style="cursor:pointer;font-size:11px" title="Rename tab">✏️</span>
-      ${tabs.length>1?`<span onclick="event.stopPropagation();deleteAssetTab(${t.id})" style="cursor:pointer;font-size:11px;color:var(--red)" title="Delete tab">✕</span>`:''}`:''}
-    </div>`;
-  }).join('');
-}
-
-function switchAssetTab(id){
-  _activeAssetTab=id;
-  renderAssetTabs();
-  renderAssets();
-}
-
-function addAssetTab(){
-  const name=(prompt('Tab name:')||'').trim();
-  if(!name) return;
-  S.assetTabs=S.assetTabs||[];
-  const tab=blankAssetTab({name});
-  S.assetTabs.push(tab);
-  _activeAssetTab=tab.id;
-  save();
-  renderAssetTabs();
-  renderAssets();
-}
-
-function renameAssetTab(id){
-  const tab=(S.assetTabs||[]).find(t=>t.id===id);
-  if(!tab) return;
-  const name=(prompt('Rename tab:',tab.name)||'').trim();
-  if(!name) return;
-  tab.name=name;
-  save();
-  renderAssetTabs();
-  renderAssets();
-}
-
-function deleteAssetTab(id){
-  if((S.assetTabs||[]).length<=1){ alert('Keep at least one tab.'); return; }
-  if(!confirm('Delete this tab? Assets in it will move to the first remaining tab.')) return;
-  S.assetTabs=(S.assetTabs||[]).filter(t=>t.id!==id);
-  const fallback=S.assetTabs[0].id;
-  (S.assets||[]).forEach(a=>{ if(a.tabId===id) a.tabId=fallback; });
-  if(_activeAssetTab===id) _activeAssetTab=fallback;
-  save();
-  renderAssetTabs();
-  renderAssets();
-}
-
-function renderAssets(){
-  const grid=document.getElementById('assets-grid');
-  if(!grid) return;
-  renderAssetTabs();
-  const search=(document.getElementById('assets-search')||{}).value||'';
-  let items=(S.assets||[]).filter(a=>a.tabId===_activeAssetTab);
-  if(search){
-    const s=search.toLowerCase();
-    items=items.filter(a=>(a.name||'').toLowerCase().includes(s)||(a.notes||'').toLowerCase().includes(s));
-  }
-  if(!items.length){
-    grid.innerHTML='<div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--muted)">No assets in this tab yet. Click "+ Add Asset" to upload one.</div>';
-    return;
-  }
-  grid.innerHTML=items.map(a=>`
-    <div class="card" data-asset-id="${a.id}" ondragover="assetDragOver(event)" ondragleave="assetDragLeave(event)" ondrop="assetDrop(event)" title="${a.fileData?'Click to download':''}" style="cursor:${a.fileData?'pointer':'default'}" ${a.fileData?`onclick="downloadAsset(${a.id})"`:''}>
-      <div class="card-body">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-          <div style="font-size:26px">📎</div>
-          <div style="display:flex;gap:4px;align-items:center">
-            <span draggable="true" ondragstart="assetDragStart(event)" ondragend="assetDragEnd(event)" onclick="event.stopPropagation()" title="Drag to reorder" style="cursor:grab;padding:2px 4px;color:var(--muted);font-size:13px">⠿</span>
-            <button class="btn btn-ghost btn-xs" onclick="event.stopPropagation();editAsset(${a.id})">✏️</button>
-            <button class="del-btn" onclick="event.stopPropagation();deleteAsset(${a.id})">✕</button>
-          </div>
-        </div>
-        <div style="font-weight:700;color:var(--text);margin-top:8px">${esc(a.name)}</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">${esc(a.dateAdded)}</div>
-        ${assetExpiryBadge(a.expirationDate)}
-        ${a.notes?`<div style="font-size:12px;color:var(--text2);margin-top:8px;line-height:1.4">${esc(a.notes)}</div>`:''}
-        ${a.fileData?`<button class="btn btn-ghost btn-sm" style="margin-top:10px;width:100%" onclick="event.stopPropagation();downloadAsset(${a.id})">⬇ Download${a.fileName?' '+esc(a.fileName):''}</button>`:'<div style="font-size:11px;color:var(--muted);margin-top:10px">No file attached</div>'}
-      </div>
-    </div>
-  `).join('');
-}
-
-// Returns an inline badge for an asset's expiration status: overdue (red), expiring within 30 days (amber), or a plain date (muted)
-// ── Assets grid: drag-and-drop card reordering (persisted in S.assets, shared for everyone) ──
-var _assetDragSrc=null;
-function assetDragStart(e){
-  _assetDragSrc=e.currentTarget.closest('[data-asset-id]');
-  if(!_assetDragSrc) return;
-  _assetDragSrc.style.opacity='0.4';
-  e.dataTransfer.effectAllowed='move';
-  try{ e.dataTransfer.setData('text/plain', _assetDragSrc.dataset.assetId); }catch(err){}
-}
-function assetDragOver(e){
-  e.preventDefault();
-  e.dataTransfer.dropEffect='move';
-  if(e.currentTarget!==_assetDragSrc) e.currentTarget.classList.add('drag-over');
-  return false;
-}
-function assetDragLeave(e){
-  e.currentTarget.classList.remove('drag-over');
-}
-function assetDrop(e){
-  if(e.stopPropagation) e.stopPropagation();
-  e.preventDefault();
-  const target=e.currentTarget;
-  target.classList.remove('drag-over');
-  if(_assetDragSrc && target!==_assetDragSrc){
-    const srcId=_assetDragSrc.dataset.assetId;
-    const tgtId=target.dataset.assetId;
-    const arr=S.assets||[];
-    const srcIdx=arr.findIndex(a=>String(a.id)===srcId);
-    const tgtIdx=arr.findIndex(a=>String(a.id)===tgtId);
-    if(srcIdx>-1 && tgtIdx>-1){
-      const [moved]=arr.splice(srcIdx,1);
-      const newTgtIdx=arr.findIndex(a=>String(a.id)===tgtId);
-      arr.splice(srcIdx<tgtIdx?newTgtIdx+1:newTgtIdx,0,moved);
-      save();
-      renderAssets();
-    }
-  }
-  return false;
-}
-function assetDragEnd(e){
-  if(_assetDragSrc) _assetDragSrc.style.opacity='';
-  document.querySelectorAll('#assets-grid .drag-over').forEach(el=>el.classList.remove('drag-over'));
-  _assetDragSrc=null;
-}
-
-function assetExpiryBadge(expDate){
-  if(!expDate) return '';
-  const today=new Date(); today.setHours(0,0,0,0);
-  const exp=new Date(expDate+'T00:00:00');
-  const daysLeft=Math.round((exp-today)/86400000);
-  let color='var(--muted)', label='Expires';
-  if(daysLeft<0){ color='var(--red)'; label='Expired'; }
-  else if(daysLeft<=30){ color='var(--amber)'; label='Expires soon'; }
-  return `<div style="font-size:11px;color:${color};font-weight:700;margin-top:4px">⏳ ${label}: ${esc(expDate)}</div>`;
-}
-
-function addAsset(){ openAssetModal(null); }
-function editAsset(id){ openAssetModal(id); }
-
-function openAssetModal(id){
-  const asset=id?(S.assets||[]).find(a=>a.id==id):blankAsset();
-  if(!asset) return;
-  _assetFilePending=null;
-  document.getElementById('as-id').value=id||'';
-  document.getElementById('as-name').value=asset.name||'';
-  const tabSel=document.getElementById('as-tab');
-  tabSel.innerHTML=(S.assetTabs||[]).map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
-  tabSel.value=asset.tabId||_activeAssetTab||(S.assetTabs[0]&&S.assetTabs[0].id)||'';
-  document.getElementById('as-notes').value=asset.notes||'';
-  document.getElementById('as-expiry').value=asset.expirationDate||'';
-  document.getElementById('as-file-input').value='';
-  document.getElementById('as-file-current').textContent=asset.fileName?('Current file: '+asset.fileName):'';
-  document.getElementById('modal-asset-title').textContent=id?'Edit Asset':'Add Asset';
-  openModal('modal-asset');
-}
-
-function handleAssetFileSelect(e){
-  const file=e.target.files[0];
-  if(!file) return;
-  const reader=new FileReader();
-  reader.onload=function(ev){
-    _assetFilePending={name:file.name,type:file.type,data:ev.target.result};
-    document.getElementById('as-file-current').textContent='Selected: '+file.name;
-  };
-  reader.readAsDataURL(file);
-}
-
-function saveAsset(){
-  const id=document.getElementById('as-id').value;
-  const name=document.getElementById('as-name').value.trim();
-  if(!name){ alert('Enter a name for the asset.'); return; }
-  S.assets=S.assets||[];
-  let asset=id?S.assets.find(a=>a.id==id):blankAsset();
-  asset.name=name;
-  asset.tabId=parseFloat(document.getElementById('as-tab').value)||_activeAssetTab;
-  asset.notes=document.getElementById('as-notes').value.trim();
-  asset.expirationDate=document.getElementById('as-expiry').value;
-  if(_assetFilePending){
-    asset.fileName=_assetFilePending.name;
-    asset.fileType=_assetFilePending.type;
-    asset.fileData=_assetFilePending.data;
-  }
-  if(!id) S.assets.push(asset);
-  _assetFilePending=null;
-  save(); closeModal('modal-asset'); renderAssets();
-}
-
-function deleteAsset(id){
-  if(!confirm('Delete this asset?')) return;
-  S.assets=(S.assets||[]).filter(a=>a.id!=id);
-  save(); renderAssets();
-}
-
-function downloadAsset(id){
-  const asset=(S.assets||[]).find(a=>a.id==id);
-  if(!asset||!asset.fileData) return;
-  const a=document.createElement('a');
-  a.href=asset.fileData;
-  a.download=asset.fileName||(asset.name+'.file');
-  a.click();
-}
-
-// ══════════════════════════════════════════════════════════════
 // QUOTATION — Cover & Spacers tab
 // ══════════════════════════════════════════════════════════════
 function renderCoverSpacers(){
@@ -8518,6 +8267,14 @@ function addSpacer(){
   const q=getQ(); if(!q) return;
   q.spacers=q.spacers||[];
   q.spacers.push(blankSpacer());
+  save();
+  renderSpacersList();
+}
+
+function addDefaultSpacers(){
+  const q=getQ(); if(!q) return;
+  q.spacers=q.spacers||[];
+  q.spacers.push(...defaultSpacers());
   save();
   renderSpacersList();
 }
@@ -8657,23 +8414,7 @@ function exportCoverPDF(){
   </style></head>
   <body>${coverPage}${tocPage}${spacerPages}</body></html>`;
 
-  const blob=new Blob([htmlContent],{type:'text/html;charset=utf-8'});
-  const blobUrl=URL.createObjectURL(blob);
-  let pf=document.getElementById('__print_frame');
-  if(pf) pf.remove();
-  pf=document.createElement('iframe');
-  pf.id='__print_frame';
-  pf.style.cssText='position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;';
-  pf.src=blobUrl;
-  document.body.appendChild(pf);
-  pf.onload=function(){
-    try{ pf.contentWindow.focus(); pf.contentWindow.print(); }
-    catch(e){
-      const a=document.createElement('a');
-      a.href=blobUrl; a.download='Cover_'+(q.num||'proposal').replace(/[^a-z0-9]/gi,'_')+'.html'; a.click();
-    }
-    setTimeout(()=>{ URL.revokeObjectURL(blobUrl); },10000);
-  };
+  __printViaBlob(htmlContent);
 }
 
 // Theme
@@ -8742,28 +8483,12 @@ if(saved)try{
     if(!q.cover)q.cover={title:'',subtitle:'',image:''};
     if(!q.spacers)q.spacers=[];
   });
-  // Ensure Assets module structure exists (added later — backward compatibility)
-  if(!S.assets)S.assets=[];
-  // Assets tabs (replaces the old fixed Category field) — seed from whatever categories were
-  // already in use, then migrate each asset's old "category" string to a tabId.
-  if(!S.assetTabs)S.assetTabs=[];
-  if(!S.assetTabs.length){
-    const seedNames=[...new Set((S.assets||[]).map(a=>a.category).filter(Boolean))];
-    if(!seedNames.length) seedNames.push('General');
-    S.assetTabs=seedNames.map(name=>({id:Date.now()+Math.random(),name}));
-  }
-  (S.assets||[]).forEach(a=>{
-    if(!a.tabId){
-      const match=a.category?S.assetTabs.find(t=>t.name===a.category):null;
-      a.tabId=match?match.id:S.assetTabs[0].id;
-    }
-  });
-  // Backward compatibility: existing users saved before the Design/Assets/VE/Business Development
+  // Backward compatibility: existing users saved before the Design/VE/Business Development
   // pages existed default to having access to them (those pages were open to everyone before this
   // permission set existed), so nobody loses access they already had.
   (S.users||[]).forEach(u=>{
     if(!u.permissions) u.permissions={};
-    ['design','assets','ve','bizdev'].forEach(k=>{ if(u.permissions[k]===undefined) u.permissions[k]=true; });
+    ['design','ve','bizdev'].forEach(k=>{ if(u.permissions[k]===undefined) u.permissions[k]=true; });
   });
   // Backfill: make sure every already-Won quotation has its Value Engineering record created
   // (covers quotations that were marked Won before this sync existed, or whose pipeline row's
@@ -9193,7 +8918,7 @@ if (_portalBridgePending) {
               <!-- COVER & SPACERS -->
               <div id="qtab-cover" style="display:none">
                 <div class="card" style="margin-bottom:18px">
-                  <div class="card-header"><div class="card-title">Cover Page</div><button class="btn btn-primary btn-sm" onclick="exportCoverPDF()">⬇ Export Cover, TOC &amp; Spacers PDF</button></div>
+                  <div class="card-header"><div class="card-title">Cover Page</div><button class="btn btn-primary btn-sm" onclick="exportCoverPDF()">🖨 Print</button></div>
                   <div class="card-body">
                     <div class="field" style="margin-bottom:12px"><label>Cover Title</label><input id="cov-title" placeholder="e.g. Technical &amp; Commercial Proposal" onchange="saveCoverSpacers()"></div>
                     <div class="field" style="margin-bottom:12px"><label>Cover Subtitle</label><input id="cov-subtitle" placeholder="e.g. CCTV System Supply &amp; Installation" onchange="saveCoverSpacers()"></div>
@@ -9207,7 +8932,10 @@ if (_portalBridgePending) {
                 <div class="card">
                   <div class="card-header">
                     <div class="card-title">Spacers / Section Divider Pages</div>
-                    <button class="btn btn-primary btn-sm" onclick="addSpacer()">+ Add Spacer</button>
+                    <div style="display:flex;gap:6px">
+                      <button class="btn btn-ghost btn-sm" onclick="addDefaultSpacers()">+ Add Default Spacers</button>
+                      <button class="btn btn-primary btn-sm" onclick="addSpacer()">+ Add Spacer</button>
+                    </div>
                   </div>
                   <div class="card-body">
                     <div id="spacers-list"></div>
@@ -9644,7 +9372,7 @@ if (_portalBridgePending) {
               <!-- COVER & SPACERS -->
               <div id="qtab-cover" style="display:none">
                 <div class="card" style="margin-bottom:18px">
-                  <div class="card-header"><div class="card-title">Cover Page</div><button class="btn btn-primary btn-sm" onclick="exportCoverPDF()">⬇ Export Cover, TOC &amp; Spacers PDF</button></div>
+                  <div class="card-header"><div class="card-title">Cover Page</div><button class="btn btn-primary btn-sm" onclick="exportCoverPDF()">🖨 Print</button></div>
                   <div class="card-body">
                     <div class="field" style="margin-bottom:12px"><label>Cover Title</label><input id="cov-title" placeholder="e.g. Technical &amp; Commercial Proposal" onchange="saveCoverSpacers()"></div>
                     <div class="field" style="margin-bottom:12px"><label>Cover Subtitle</label><input id="cov-subtitle" placeholder="e.g. CCTV System Supply &amp; Installation" onchange="saveCoverSpacers()"></div>
@@ -9658,7 +9386,10 @@ if (_portalBridgePending) {
                 <div class="card">
                   <div class="card-header">
                     <div class="card-title">Spacers / Section Divider Pages</div>
-                    <button class="btn btn-primary btn-sm" onclick="addSpacer()">+ Add Spacer</button>
+                    <div style="display:flex;gap:6px">
+                      <button class="btn btn-ghost btn-sm" onclick="addDefaultSpacers()">+ Add Default Spacers</button>
+                      <button class="btn btn-primary btn-sm" onclick="addSpacer()">+ Add Spacer</button>
+                    </div>
                   </div>
                   <div class="card-body">
                     <div id="spacers-list"></div>
@@ -9947,34 +9678,6 @@ if (_portalBridgePending) {
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('userModal')">Cancel</button>
       <button class="btn btn-primary" onclick="saveUser()">Save</button>
-    </div>
-  </div>
-</div>
-
-<!-- ASSET MODAL -->
-<div class="modal-overlay" id="modal-asset" style="z-index:800" onclick="if(event.target===this)closeModal('modal-asset')">
-  <div class="modal" style="max-width:440px">
-    <div class="modal-header">
-      <div class="modal-title" id="modal-asset-title">Add Asset</div>
-      <button class="modal-close" onclick="closeModal('modal-asset')">✕</button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="as-id">
-      <div class="field" style="margin-bottom:12px"><label>Name</label><input id="as-name" placeholder="e.g. ISO 9001 Certificate"></div>
-      <div class="field" style="margin-bottom:12px"><label>Tab</label>
-        <select id="as-tab"></select>
-      </div>
-      <div class="field" style="margin-bottom:12px">
-        <label>File</label>
-        <input type="file" id="as-file-input" onchange="handleAssetFileSelect(event)">
-        <div id="as-file-current" style="font-size:11px;color:var(--muted);margin-top:4px"></div>
-      </div>
-      <div class="field" style="margin-bottom:12px"><label>Expiration Date (optional)</label><input type="date" id="as-expiry"></div>
-      <div class="field" style="margin:0"><label>Notes (optional)</label><textarea id="as-notes" rows="2" style="resize:none"></textarea></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-asset')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveAsset()">Save</button>
     </div>
   </div>
 </div>
