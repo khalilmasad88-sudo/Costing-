@@ -1239,7 +1239,7 @@ function blankCompany(o={}){return{id:Date.now()+Math.random(),name:'New Company
 function blankUser(o={}){return{id:Date.now()+Math.random(),name:'',email:'',password:'',role:'Pre-sales',companies:[],permissions:{dashboard:true,pipeline:true,quotation:true,boq:true,design:true,ve:true,bizdev:true,users:false,settings:false},assignedProjects:[],...o};}
 const DEFAULT_SPACER_TITLES=['العرض المالي','خطاب العرض المالي','جدول الأسعار','العرض الفني','خطاب العرض الفني','نطاق العمل','جدول الكميات','جدول المطابقة','الية تنفيذ الأعمال','الجدول الزمني','الفريق الفني','جدول المشاريع السابقة','النشرات الفنية','كراسة الشروط والمواصفات','التعاميد السابقة','سجلات الشركة','الملف التعريفي للشركة'];
 function defaultSpacers(){ return DEFAULT_SPACER_TITLES.map(t=>({id:Date.now()+Math.random(),title:t,subtitle:''})); }
-function blankQ(o={}){return{id:Date.now()+Math.random(),num:'',date:new Date().toISOString().slice(0,10),project:'',client:'',addr:'',system:'CCTV',tenderref:'',duration:'',by:'',salesPerson:'',vat:15,status:'Draft',version:'v1',validity:'90 days',paymentTerms:'To Be Agreed On',scope:'',delivery:'270 days from site handover',impl:'30 days from site handover',notes:'',profitPct:25,showPricing:true,items:[],payments:[],documents:[],techEval:[],locked:false,teStatus:'Under Evaluation',teFailReason:'',feStatus:'Under Evaluation',feWinnerValue:'',feWinnerCompany:'',projectType:'Tender',contractStatus:'Pending Signature',contractNumber:'',contractDate:'',contractNotes:'',cover:{title:'',subtitle:'',image:''},spacers:defaultSpacers(),...o};}
+function blankQ(o={}){return{id:Date.now()+Math.random(),num:'',date:new Date().toISOString().slice(0,10),project:'',client:'',addr:'',system:'CCTV',tenderref:'',duration:'',by:'',salesPerson:'',vat:15,status:'Draft',version:'v1',validity:'90 days',paymentTerms:'To Be Agreed On',scope:'',delivery:'270 days from site handover',impl:'30 days from site handover',notes:'',profitPct:25,showPricing:true,items:[],payments:[],documents:[],techEval:[],locked:false,teStatus:'Under Evaluation',teFailReason:'',feStatus:'Under Evaluation',feWinnerValue:'',feWinnerCompany:'',projectType:'Tender',contractStatus:'Pending Signature',contractNumber:'',contractDate:'',contractNotes:'',cover:{title:'',subtitle:'',image:''},spacers:defaultSpacers(),extraInfo:[],...o};}
 
 // Technical Evaluation status (per-quotation, independent of the techEval scoring table above)
 // Quote Status colors (Draft/Submitted/Evaluation/In Pricing/Won/Lost/Canceled)
@@ -5151,6 +5151,7 @@ function syncQFields(q){
   s('q-tenderref',q.tenderref);s('q-duration',q.duration);s('q-vat',q.vat||15);
   s('q-validity',q.validity);s('q-payment-terms',q.paymentTerms);s('q-scope',q.scope);
   s('q-delivery',q.delivery);s('q-impl',q.impl);s('q-notes',q.notes);s('q-version',q.version||'v1');
+  renderExtraInfoList();
   
   // Display project value - use saved value or auto-calculate
   const pvEl=document.getElementById('q-project-value');
@@ -6751,6 +6752,7 @@ function exportPricingPDF(isArabic=false){
       ${q.impl?`<div><strong>${isArabic?'التنفيذ':'Implementation'}:</strong> ${esc(q.impl)}</div>`:''}
       ${q.paymentTerms?`<div><strong>${isArabic?'الدفع':'Payment'}:</strong> ${esc(q.paymentTerms)}</div>`:''}
       ${q.notes?`<div><strong>${isArabic?'ملاحظات':'Notes'}:</strong> ${esc(q.notes)}</div>`:''}
+      ${(q.extraInfo||[]).filter(it=>it.label||it.value).map(it=>`<div><strong>${esc(it.label||'—')}:</strong> ${esc(it.value||'')}</div>`).join('')}
     </div>
   </div>
   `;
@@ -8279,6 +8281,44 @@ function addDefaultSpacers(){
   renderSpacersList();
 }
 
+// ── Quotation Info ▸ Additional Information ▸ Extra Details (free-form label/value pairs) ──
+function renderExtraInfoList(){
+  const q=getQ();
+  const wrap=document.getElementById('extra-info-list');
+  if(!q||!wrap) return;
+  const items=q.extraInfo||[];
+  wrap.innerHTML=items.map(it=>`
+    <div style="display:flex;gap:8px;align-items:center">
+      <input value="${esc(it.label)}" placeholder="Label" style="flex:1" onchange="updateExtraInfo(${it.id},'label',this.value)">
+      <input value="${esc(it.value)}" placeholder="Value" style="flex:2" onchange="updateExtraInfo(${it.id},'value',this.value)">
+      <button class="del-btn" onclick="deleteExtraInfo(${it.id})">✕</button>
+    </div>
+  `).join('');
+}
+
+function addExtraInfo(){
+  const q=getQ(); if(!q) return;
+  q.extraInfo=q.extraInfo||[];
+  q.extraInfo.push({id:Date.now()+Math.random(),label:'',value:''});
+  save();
+  renderExtraInfoList();
+}
+
+function updateExtraInfo(id,field,val){
+  const q=getQ(); if(!q) return;
+  const it=(q.extraInfo||[]).find(x=>x.id==id);
+  if(!it) return;
+  it[field]=val;
+  save();
+}
+
+function deleteExtraInfo(id){
+  const q=getQ(); if(!q) return;
+  q.extraInfo=(q.extraInfo||[]).filter(x=>x.id!=id);
+  save();
+  renderExtraInfoList();
+}
+
 function updateSpacer(id,field,val){
   const q=getQ(); if(!q) return;
   const s=(q.spacers||[]).find(x=>x.id==id);
@@ -8794,6 +8834,11 @@ if (_portalBridgePending) {
                     <div class="field field-full"><label>Scope of Work</label><textarea id="q-scope" rows="3" placeholder="Describe the project scope..." onchange="saveQ()"></textarea></div>
                     <div class="field field-full"><label>Notes</label><textarea id="q-notes" rows="3" placeholder="Additional notes..." onchange="saveQ()"></textarea></div>
                   </div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;margin-bottom:8px">
+                    <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px">Extra Details</div>
+                    <button class="btn btn-ghost btn-sm" onclick="addExtraInfo()">+ Add Detail</button>
+                  </div>
+                  <div id="extra-info-list" style="display:flex;flex-direction:column;gap:8px"></div>
                 </div>
               </div>
 
@@ -9246,6 +9291,11 @@ if (_portalBridgePending) {
                     <div class="field field-full"><label>Scope of Work</label><textarea id="q-scope" rows="3" placeholder="Describe the project scope..." onchange="saveQ()"></textarea></div>
                     <div class="field field-full"><label>Notes</label><textarea id="q-notes" rows="3" placeholder="Additional notes..." onchange="saveQ()"></textarea></div>
                   </div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;margin-bottom:8px">
+                    <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px">Extra Details</div>
+                    <button class="btn btn-ghost btn-sm" onclick="addExtraInfo()">+ Add Detail</button>
+                  </div>
+                  <div id="extra-info-list" style="display:flex;flex-direction:column;gap:8px"></div>
                 </div>
               </div>
 
