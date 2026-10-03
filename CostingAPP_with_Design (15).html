@@ -5616,6 +5616,111 @@ function _processMainItemsRows(rows){
   alert('✅ Imported '+added+' main item(s).'+(skipped?' Skipped '+skipped+' empty rows.':''));
 }
 
+// ── Costing ▸ Main Item "+B": bulk-import sub-items for ONE main item from Excel ──
+// Columns (any order, header row auto-detected by name): Part Number, Description, Vendor, Unit, Qty, Unit Price
+let _subItemsImportTargetMid=null;
+function importSubItemsExcel(mid){
+  const q=getQ(); if(!q||!canEdit())return;
+  _subItemsImportTargetMid=mid;
+  var inp = document.getElementById('sub-items-import-input');
+  if(!inp){
+    inp = document.createElement('input');
+    inp.type = 'file'; inp.id = 'sub-items-import-input';
+    inp.accept = '.xlsx,.xls,.csv'; inp.style.display = 'none';
+    inp.addEventListener('change', handleSubItemsImport);
+    document.body.appendChild(inp);
+  }
+  inp.value = ''; inp.click();
+}
+
+async function handleSubItemsImport(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  e.target.value = '';
+
+  const buf = await file.arrayBuffer().catch(err=>{ alert('Cannot read file: '+err.message); return null; });
+  if(!buf) return;
+
+  if(typeof XLSX !== 'undefined'){
+    try{
+      const wb = XLSX.read(buf);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      _processSubItemsRows(rows);
+    }catch(err){ alert('Parse error: '+err.message); }
+  } else {
+    // Ask parent portal to parse
+    try{
+      window.parent.postMessage({__zeina_excel_parse:true, buf}, '*');
+    }catch(ex){ alert('Cannot parse in this context.'); return; }
+    const handler = ev => {
+      if(!ev.data||!ev.data.__zeina_excel_parsed) return;
+      window.removeEventListener('message', handler);
+      _processSubItemsRows(ev.data.rows);
+    };
+    window.addEventListener('message', handler);
+    setTimeout(()=>window.removeEventListener('message', handler), 8000);
+  }
+}
+
+function _processSubItemsRows(rows){
+  if(!rows||!rows.length){ alert('No data in file.'); return; }
+  const q = getQ();
+  const mid = _subItemsImportTargetMid;
+  if(!q||!mid){ alert('No target main item.'); return; }
+  const mi = q.items.find(m=>m.id===mid);
+  if(!mi){ alert('Main item not found.'); return; }
+
+  // Find header row (first row containing a recognizable column name) and map column indices
+  let headerIdx=-1, colMap={};
+  const norm = s => String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+  const aliases = {
+    partno:['partno','partnumber','part#','part','itemcode'],
+    desc:['description','desc','item','itemdescription'],
+    vendor:['vendor','supplier'],
+    unit:['unit','uom'],
+    qty:['qty','quantity'],
+    unitPrice:['unitprice','price','rate','unitrate']
+  };
+  for(let i=0;i<Math.min(rows.length,5);i++){
+    let hits=0, tmpMap={};
+    rows[i].forEach((cell,ci)=>{
+      const c=norm(cell);
+      Object.keys(aliases).forEach(key=>{
+        if(aliases[key].indexOf(c)!==-1){ tmpMap[key]=ci; hits++; }
+      });
+    });
+    if(hits>=2){ headerIdx=i; colMap=tmpMap; break; }
+  }
+  if(headerIdx===-1){
+    // No recognizable header — assume a fixed column order: Part#, Description, Vendor, Unit, Qty, Unit Price
+    colMap={partno:0,desc:1,vendor:2,unit:3,qty:4,unitPrice:5};
+    headerIdx=-1;
+  }
+
+  let added=0, skipped=0;
+  rows.slice(headerIdx+1).forEach(row=>{
+    if(!row || row.every(c=>!String(c||'').trim())) return;
+    const desc=colMap.desc!==undefined?String(row[colMap.desc]||'').trim():'';
+    const partno=colMap.partno!==undefined?String(row[colMap.partno]||'').trim():'';
+    if(!desc && !partno){ skipped++; return; }
+    const si=blankSubItem();
+    si.partno=partno;
+    si.desc=desc;
+    si.vendor=colMap.vendor!==undefined?String(row[colMap.vendor]||'').trim():'';
+    si.unit=colMap.unit!==undefined?(String(row[colMap.unit]||'').trim()||'Pcs'):'Pcs';
+    si.qty=colMap.qty!==undefined?(parseFloat(row[colMap.qty])||1):1;
+    si.unitPrice=colMap.unitPrice!==undefined?(parseFloat(row[colMap.unitPrice])||0):0;
+    mi.subItems=mi.subItems||[];
+    mi.subItems.push(si);
+    added++;
+  });
+
+  if(!added){ alert('No valid sub-items found in file.'); return; }
+  save(); renderCostingTab(); restoreExpandedSubItems();
+  alert('✅ Imported '+added+' sub-item(s).'+(skipped?' Skipped '+skipped+' empty rows.':''));
+}
+
 // ── Entry point: trigger file picker ────────────────────────────
 function importExcelItems(){
   document.getElementById('excel-import-input').click();
@@ -5763,6 +5868,7 @@ function renderCostingTab(){
         <div style="font-family:var(--mono);font-size:12px;text-align:right;min-width:100px"><div style="color:var(--muted);font-size:10px">Total Cost</div><div style="color:var(--green);font-weight:700">${fmtN(ct)}</div></div>
         <button class="btn btn-ghost btn-xs" onclick="openMainNoteModal(${mi.id})" title="${esc(mi.notes||'Add note')}">${hasNote?'📝':'➕'} Note${hasNote?'<span class="note-indicator"></span>':''}</button>
         <button class="btn btn-ghost btn-xs" onclick="addSubItem(${mi.id})" style="color:var(--accent)" ${locked?'disabled':''}>+ Sub-Item</button>
+        <button class="btn btn-ghost btn-xs" onclick="importSubItemsExcel(${mi.id})" title="Import sub-items from Excel: Part Number / Description / Vendor / Unit / Qty / Unit Price" style="color:var(--accent)" ${locked?'disabled':''}>+B</button>
         <button class="del-btn" onclick="deleteMainItem(${mi.id})" ${locked?'disabled':''}>✕</button>
       </div>
       <div class="sub-table-wrap" id="sub-${mi.id}">
