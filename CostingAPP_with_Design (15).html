@@ -1533,6 +1533,33 @@ function init(){
   // Don't auto-open quotations on startup
 }
 
+// Re-renders every view from the current S state (used after restoring a backup when a full
+// page reload isn't possible — see restoreBackup). Mirrors init()'s render calls, without
+// touching login/session state since the current user is already identified.
+function refreshAllViewsAfterRestore(){
+  applyCompany();
+  applyUser();
+  applyPermissions();
+  renderCompanyDropdown();
+  populateQNumDropdown();
+  renderPipeline();
+  renderQList();
+  renderBOQ();
+  updateDashboard();
+  (S.pipeline||[]).forEach(function(item){
+    if(item.status==='Approved') veOnApprove(item);
+  });
+  migratePipelineQuotationIds();
+  if(typeof renderDesignPriceList==='function') renderDesignPriceList();
+  if(typeof renderDesignDocsList==='function') renderDesignDocsList();
+  if(typeof renderBizSystems==='function') renderBizSystems();
+  if(typeof renderUsersList==='function') renderUsersList();
+  if(typeof renderQuotationEditors==='function') renderQuotationEditors();
+  // Re-show whichever page is currently active so its content reflects the restored data
+  const activeNav=document.querySelector('.nav-item.active');
+  if(activeNav && typeof showPage==='function') showPage(activeNav.getAttribute('data-page'));
+}
+
 // This browser's own session marker — never part of S, never synced to Supabase.
 function getSessionUserId(){ try{ return _storage.getItem('ftag_session_user_id'); }catch(e){ return null; } }
 function setSessionUserId(id){ try{ _storage.setItem('ftag_session_user_id', String(id)); }catch(e){} }
@@ -2149,9 +2176,18 @@ async function restoreBackup(backupId){
       if(confirm(preview)){
         // Apply backup data
         Object.assign(S,backupData);
-        save();
-        alert('✅ تم استعادة البيانات بنجاح!\n\nسيتم إعادة تحميل الصفحة...');
-        setTimeout(()=>location.reload(),1000);
+        save(true);
+        // location.reload() doesn't work when the app is served from a blob: URL (e.g. embedded
+        // in Zeina portal) — the browser blocks re-navigating to it ("Not allowed to load local
+        // resource"), so the page looked like nothing happened even though the restore succeeded.
+        // Re-render everything from the restored state instead of reloading the page.
+        if(location.href.startsWith('blob:')){
+          refreshAllViewsAfterRestore();
+          alert('✅ تم استعادة البيانات بنجاح!');
+        } else {
+          alert('✅ تم استعادة البيانات بنجاح!\n\nسيتم إعادة تحميل الصفحة...');
+          setTimeout(()=>location.reload(),1000);
+        }
       }
     }
   }catch(err){
