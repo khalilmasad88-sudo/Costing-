@@ -3869,7 +3869,7 @@ function onPmQtnLink(){
   var q=S.quotations.find(function(x){return x.id===qId;});
   if(!q){if(infoEl)infoEl.style.display='none';return;}
   // Auto-fill fields from quotation
-  var refEl=document.getElementById('pm-ref'); if(refEl) refEl.value=r&&r.ref||'';
+  
   var nameEl=document.getElementById('pm-name'); if(nameEl&&!nameEl.value) nameEl.value=q.project||'';
   var clientEl=document.getElementById('pm-client'); if(clientEl&&!clientEl.value) clientEl.value=q.client||'';
   if(!document.getElementById('pm-by').value&&q.by) populatePmByDropdown(q.by); else populatePmByDropdown(document.getElementById('pm-by').value);
@@ -3969,8 +3969,10 @@ function savePipelineItem(){
       // Explicit "Link to Quotation" choice: re-point the card to that quotation
       var _selLink=parseInt((document.getElementById('pm-qtn-link')||{}).value)||0;
       var _selQ=_selLink?S.quotations.find(function(x){return x.id===_selLink;}):null;
+      if(!_selQ && _selLink===0){ r.quotationLocked=false; }
       if(_selQ){
-        r.quotationId=_selQ.id;
+        r.quotationId=_selQ.id; r.quotationLocked=true;
+        _selQ.pipelineId=r.id;
         r.qtn=(_selQ.num||'').replace(/ v\d+$/i,'').trim()||r.qtn;
         if(!document.getElementById('pm-print-ref').value.trim()) r.printRef=r.qtn;
         if(_selQ.project) r.name=_selQ.project;
@@ -4051,7 +4053,13 @@ function deletePipeline(id){if(!confirm('Remove?'))return;S.pipeline=S.pipeline.
 // Priority: quotationId (direct link) → qtn name match → stored amount
 // Like getLatestSubmittedQ, but for display purposes only — never returns null
 // as long as a matching quotation exists, regardless of its status (Won/Lost/Draft included).
+function getExplicitLinkedQ(row){
+  if(!row||!row.quotationLocked||!row.quotationId) return null;
+  var q=S.quotations.find(function(x){return x.id==row.quotationId;});
+  return (q&&q.status!=='Value Engineering')?q:null;
+}
 function getLinkedQuotationForCard(row){
+  var _ex=getExplicitLinkedQ(row); if(_ex) return _ex;
   var baseQtn=(row.qtn||'').replace(/ v\d+$/i,'').trim();
   var qs=S.quotations.filter(function(q){
     if(q.status==='Value Engineering') return false; // VE versions never affect the project card
@@ -4066,6 +4074,7 @@ function getLinkedQuotationForCard(row){
 }
 
 function getLatestSubmittedQ(row){
+  var _ex=getExplicitLinkedQ(row); if(_ex) return _ex;
   // Find ALL quotations for this pipeline project
   // Match ALL versions with same QTN number (versions share the same num)
   // Strip version suffix from qtn for matching (e.g. "QTN-26038 v2" → "QTN-26038")
