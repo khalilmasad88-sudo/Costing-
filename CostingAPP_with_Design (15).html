@@ -531,7 +531,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
                 </select>
                 <select id="ql-status-filter" style="flex:1;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;color:var(--text)" onchange="renderQList()">
                   <option value="">All Status</option>
-                  <option>Lead</option><option>Draft</option><option>Submitted</option><option>Evaluation</option><option>In Pricing</option><option>Won</option><option>Lost</option><option>Canceled</option>
+                  <option>Lead</option><option>Draft</option><option>Submitted</option><option>Evaluation</option><option>In Pricing</option><option>Won</option><option>Value Engineering</option><option>Lost</option><option>Canceled</option>
                 </select>
                 <select id="ql-by-filter" style="flex:1;background:var(--input-bg);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;color:var(--text)" onchange="renderQList()">
                   <option value="">All Quoted By</option>
@@ -1251,6 +1251,7 @@ function qStatusStyle(s){
     'Evaluation': {bg:'#e5e7eb',border:'#9ca3af',text:'#6b7280'},
     'In Pricing': {bg:'#fef3c7',border:'#f59e0b',text:'#92400e'},
     'Won':        {bg:'#d1fae5',border:'#10b981',text:'#065f46'},
+    'Value Engineering': {bg:'#cffafe',border:'#06b6d4',text:'#0e7490'},
     'Lost':       {bg:'#fee2e2',border:'#ef4444',text:'#991b1b'},
     'Canceled':   {bg:'#e5e7eb',border:'#9ca3af',text:'#6b7280'}
   };
@@ -1420,7 +1421,7 @@ function getTeamRole(){
 
 function canEdit(){const q=getQ();if(!q)return true;if(!q.locked)return true;const u=getCurrentUser();if(u&&(u.role==='Admin'||u.role==='Manager'))return true;if(getTeamRole()==='Pre-sales')return true;return false;}
 
-function statusBadge(s){const m={Lead:'draft',Draft:'draft',Submitted:'submitted',Evaluation:'out','In Pricing':'pricing',Won:'approved',Lost:'canceled',Canceled:'out'};return`<span class="badge badge-${m[s]||'out'}">${s||'—'}</span>`;}
+function statusBadge(s){const m={Lead:'draft',Draft:'draft',Submitted:'submitted',Evaluation:'out','In Pricing':'pricing',Won:'approved','Value Engineering':'pricing',Lost:'canceled',Canceled:'out'};return`<span class="badge badge-${m[s]||'out'}">${s||'—'}</span>`;}
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 
@@ -2647,7 +2648,7 @@ function renderVE(){
   var pl = (S.pipeline||[]).filter(function(p){return !S.currentCompanyId||p.companyId===S.currentCompanyId;});
   var won = pl.filter(function(r){
     var q=getLinkedQuotationForCard(r);
-    return q ? q.status==='Won' : r.status==='Approved';
+    return q ? (q.status==='Won'||q.status==='Value Engineering') : r.status==='Approved';
   });
 
   // Update stats
@@ -2740,7 +2741,7 @@ function openVEDetail(pid){
     var qRows = quotations.length ? quotations.map(function(q){
     var qtot = typeof qSellWithVAT==='function' ? qSellWithVAT(q) : 0;
     var isLatest = quotations[0]&&q.id===quotations[0].id;
-    var statusColor={'Submitted':'#1a9e72','Evaluation':'#6b7280','Draft':'#888','Won':'#1a4fa0','In Pricing':'#a06800','Lost':'#d94040','Canceled':'#6b7280'}[q.status]||'#888';
+    var statusColor={'Submitted':'#1a9e72','Evaluation':'#6b7280','Draft':'#888','Won':'#1a4fa0','Value Engineering':'#0e7490','In Pricing':'#a06800','Lost':'#d94040','Canceled':'#6b7280'}[q.status]||'#888';
     return '<tr style="'+(isLatest?'background:rgba(59,130,246,.06)':'')+'">' +
       '<td style="padding:7px 10px;font-weight:700;color:var(--accent)">'+esc((q.num||'').replace(/ v\d+$/i,''))+' <span style="color:var(--muted);font-weight:400">'+esc(q.version||'v1')+'</span>'+(isLatest?' <span style="font-size:10px;background:var(--accent);color:#fff;padding:1px 6px;border-radius:8px;margin-left:4px">latest</span>':'')+' </td>'+
       '<td style="padding:7px 10px"><span style="background:'+statusColor+'22;color:'+statusColor+';padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">'+esc(q.status||'Draft')+'</span></td>'+
@@ -3348,7 +3349,7 @@ function updateDashboard(){
 
   // ── Pipeline KPIs ────────────────────────────────────────────
   const total   = pl.reduce((s,r)=>s+getPipelineAmount(r),0);
-  const appr    = pl.filter(r=>{ const q=getLinkedQuotationForCard(r); return q?q.status==='Won':r.status==='Approved'; });
+  const appr    = pl.filter(r=>{ const q=getLinkedQuotationForCard(r); return q?(q.status==='Won'||q.status==='Value Engineering'):r.status==='Approved'; });
   const sub     = pl.filter(r=>r.status==='Submitted');
   const inPrice = pl.filter(r=>r.status==='in pricing');
   const out     = pl.filter(r=>r.status==='out');
@@ -3965,10 +3966,22 @@ function savePipelineItem(){
       r.by=(document.getElementById('pm-by')||{}).value||'';
       r.salesPerson=(document.getElementById('pm-salesperson')||{}).value||'';
       r.note=(document.getElementById('pm-note')||{}).value||'';
+      // Explicit "Link to Quotation" choice: re-point the card to that quotation
+      var _selLink=parseInt((document.getElementById('pm-qtn-link')||{}).value)||0;
+      var _selQ=_selLink?S.quotations.find(function(x){return x.id===_selLink;}):null;
+      if(_selQ){
+        r.quotationId=_selQ.id;
+        r.qtn=(_selQ.num||'').replace(/ v\d+$/i,'').trim()||r.qtn;
+        if(!document.getElementById('pm-print-ref').value.trim()) r.printRef=r.qtn;
+        if(_selQ.project) r.name=_selQ.project;
+        if(_selQ.client) r.client=_selQ.client;
+        if(_selQ.date) r.date=_selQ.date;
+        r.amount=Math.round(getPipelineAmount(r));
+      }
       var _co2=getCurrentCompany();
       var qs=S.quotations.filter(function(q){return q.num===r.qtn&&(!q.companyId||q.companyId===_co2.id);});
-      if(qs.length){var pool=qs.filter(function(q){return q.status==='Draft'||q.status==='In Pricing';});r.quotationId=(pool.length?pool:qs).reduce(function(a,b){return a.id>b.id?a:b;}).id;r.amount=Math.round(getPipelineAmount(r));}
-      else{r.amount=+(document.getElementById('pm-amount')||{}).value||0;}
+      if(!_selQ && qs.length){var pool=qs.filter(function(q){return q.status==='Draft'||q.status==='In Pricing';});r.quotationId=(pool.length?pool:qs).reduce(function(a,b){return a.id>b.id?a:b;}).id;r.amount=Math.round(getPipelineAmount(r));}
+      else if(!_selQ){r.amount=+(document.getElementById('pm-amount')||{}).value||0;}
       if(r.status==='Approved') veOnApprove(r);
       if(window._teResult&&_plTechEval.length){r.techEval=_plTechEval.slice();r.teResult={score:window._teResult.score,pct:window._teResult.pct,pass:window._teResult.pass};}
       window._plEditId=null;
@@ -4041,6 +4054,7 @@ function deletePipeline(id){if(!confirm('Remove?'))return;S.pipeline=S.pipeline.
 function getLinkedQuotationForCard(row){
   var baseQtn=(row.qtn||'').replace(/ v\d+$/i,'').trim();
   var qs=S.quotations.filter(function(q){
+    if(q.status==='Value Engineering') return false; // VE versions never affect the project card
     if(q.companyId && q.companyId!==row.companyId) return false;
     var baseNum=(q.num||'').replace(/ v\d+$/i,'').trim();
     if(baseQtn && (q.num===row.qtn || baseNum===baseQtn)) return true;
@@ -4057,6 +4071,7 @@ function getLatestSubmittedQ(row){
   // Strip version suffix from qtn for matching (e.g. "QTN-26038 v2" → "QTN-26038")
   var baseQtn=(row.qtn||'').replace(/ v\d+$/i,'').trim();
   var qs=S.quotations.filter(function(q){
+    if(q.status==='Value Engineering') return false; // VE versions never affect the project card
     if(q.companyId && q.companyId!==row.companyId) return false;
     // Match by exact num OR base num (stripping version suffix)
     var baseNum=(q.num||'').replace(/ v\d+$/i,'').trim();
@@ -4495,7 +4510,7 @@ function renderQList(){
             <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
               <span style="font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)">Quote Status</span>
               <select style="font-size:12px;padding:5px 8px;border-radius:6px;border:1.5px solid ${qStatusStyle(q.status).border};background:${qStatusStyle(q.status).bg};color:${qStatusStyle(q.status).text};font-weight:600;cursor:pointer" onchange="updateQStatus(${q.id},this.value)" onclick="event.stopPropagation()">
-                ${['Lead','Draft','Submitted','Evaluation','In Pricing','Won','Lost','Canceled'].map(function(s){return '<option value="'+s+'"'+(q.status===s?' selected':'')+'>'+s+'</option>';}).join('')}
+                ${['Lead','Draft','Submitted','Evaluation','In Pricing','Won','Value Engineering','Lost','Canceled'].map(function(s){return '<option value="'+s+'"'+(q.status===s?' selected':'')+'>'+s+'</option>';}).join('')}
               </select>
             </div>
             ${(q.status==='Submitted'||q.status==='Won'||q.status==='Lost')?`
@@ -4792,18 +4807,30 @@ function newVersion(){
     return r.status==='Approved' && (r.qtn===q.num||r.qtn===baseQtn||
       (r.qtn||'').replace(/ v\d+$/i,'').trim()===baseQtn);
   });
-  copy.status = pipelineItem ? 'Submitted' : 'Draft';
+  const isVE = q.status==='Won' || q.status==='Value Engineering' || !!pipelineItem;
+  copy.status = isVE ? 'Value Engineering' : 'Draft';
+  if(isVE){ copy.version='Value Engineering'; copy.num=base; }
   copy.pipelineId = pipelineItem ? pipelineItem.id : (q.pipelineId||null);
   S.quotations.push(copy);
   // Link new version to pipeline
-  if(pipelineItem && !pipelineItem.quotationId) pipelineItem.quotationId=copy.id;
+  if(isVE) syncPipelineStatusFromQuotation(copy);
   save();renderQList();openQuotation(copy.id);
 }
 
 function duplicateQ(){
   const q=getQ();if(!q)return;
-  const copy=JSON.parse(JSON.stringify(q));copy.id=Date.now()+Math.random();copy.num=copy.num+' (Copy)';copy.status='Draft';copy.locked=false;
-  S.quotations.push(copy);save();renderQList();openQuotation(copy.id);
+  const copy=JSON.parse(JSON.stringify(q));copy.id=Date.now()+Math.random();copy.locked=false;
+  if(q.status==='Won'||q.status==='Value Engineering'){
+    // Copy of a Won quotation = its Value Engineering version (same number, version "Value Engineering")
+    copy.version='Value Engineering';copy.status='Value Engineering';
+    S.quotations.push(copy);
+    if(!copy.pipelineId && q.pipelineId) copy.pipelineId=q.pipelineId;
+    syncPipelineStatusFromQuotation(copy);
+  } else {
+    copy.num=copy.num+' (Copy)';copy.status='Draft';
+    S.quotations.push(copy);
+  }
+  save();renderQList();openQuotation(copy.id);
 }
 
 function toggleLock(){
@@ -5103,6 +5130,7 @@ function unlinkQtnFromProject(qId){
 function statusColors(){
   return {
     'Won':        {bg:'#d1fae5',c:'#065f46'},
+    'Value Engineering': {bg:'#cffafe',c:'#0e7490'},
     'Submitted':  {bg:'#dbeafe',c:'#1d4ed8'},
     'Evaluation': {bg:'#e5e7eb',c:'#6b7280'},
     'In Pricing': {bg:'#fef3c7',c:'#92400e'},
@@ -8917,7 +8945,7 @@ if (_portalBridgePending) {
                     <div class="field">
                       <label>Status</label>
                       <select id="q-status" onchange="saveQ()">
-                        <option>Lead</option><option>Draft</option><option>Submitted</option><option>Evaluation</option><option>In Pricing</option><option>Won</option><option>Lost</option><option>Canceled</option>
+                        <option>Lead</option><option>Draft</option><option>Submitted</option><option>Evaluation</option><option>In Pricing</option><option>Won</option><option>Value Engineering</option><option>Lost</option><option>Canceled</option>
                       </select>
                     </div>
                     <div class="field"><label>Quoted By</label><select id="q-by" onchange="saveQ()"></select></div>
@@ -9183,7 +9211,7 @@ if (_portalBridgePending) {
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
         <div class="field" style="margin:0"><label>Submission Date</label><input type="date" id="wiz-date" style="font-size:13px"></div>
-        <div class="field" style="margin:0"><label>Status</label><select id="wiz-status" style="font-size:13px"><option>Lead</option><option>Draft</option><option>Submitted</option><option>Evaluation</option><option>In Pricing</option><option>Won</option><option>Lost</option><option>Canceled</option></select></div>
+        <div class="field" style="margin:0"><label>Status</label><select id="wiz-status" style="font-size:13px"><option>Lead</option><option>Draft</option><option>Submitted</option><option>Evaluation</option><option>In Pricing</option><option>Won</option><option>Value Engineering</option><option>Lost</option><option>Canceled</option></select></div>
       </div>
       <div class="field" style="margin:0"><label>Quoted By</label><select id="wiz-by" style="font-size:13px"><option value="">— Select —</option></select></div>
     </div>
@@ -9374,7 +9402,7 @@ if (_portalBridgePending) {
                     <div class="field">
                       <label>Status</label>
                       <select id="q-status" onchange="saveQ()">
-                        <option>Lead</option><option>Draft</option><option>Submitted</option><option>Evaluation</option><option>In Pricing</option><option>Won</option><option>Lost</option><option>Canceled</option>
+                        <option>Lead</option><option>Draft</option><option>Submitted</option><option>Evaluation</option><option>In Pricing</option><option>Won</option><option>Value Engineering</option><option>Lost</option><option>Canceled</option>
                       </select>
                     </div>
                     <div class="field"><label>Quoted By</label><select id="q-by" onchange="saveQ()"></select></div>
@@ -9640,7 +9668,7 @@ if (_portalBridgePending) {
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
         <div class="field" style="margin:0"><label>Submission Date</label><input type="date" id="wiz-date" style="font-size:13px"></div>
-        <div class="field" style="margin:0"><label>Status</label><select id="wiz-status" style="font-size:13px"><option>Lead</option><option>Draft</option><option>Submitted</option><option>Evaluation</option><option>In Pricing</option><option>Won</option><option>Lost</option><option>Canceled</option></select></div>
+        <div class="field" style="margin:0"><label>Status</label><select id="wiz-status" style="font-size:13px"><option>Lead</option><option>Draft</option><option>Submitted</option><option>Evaluation</option><option>In Pricing</option><option>Won</option><option>Value Engineering</option><option>Lost</option><option>Canceled</option></select></div>
       </div>
       <div class="field" style="margin:0"><label>Quoted By</label><select id="wiz-by" style="font-size:13px"><option value="">— Select —</option></select></div>
     </div>
