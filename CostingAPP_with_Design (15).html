@@ -3863,10 +3863,10 @@ var _plWizStep=1;
 var _plTechEval=[];
 
 function onPmQtnLink(){
-  var qId=parseInt(document.getElementById('pm-qtn-link').value)||0;
+  var qId=parseFloat(document.getElementById('pm-qtn-link').value)||0;
   var infoEl=document.getElementById('pm-qtn-link-info');
   if(!qId){if(infoEl)infoEl.style.display='none';return;}
-  var q=S.quotations.find(function(x){return x.id===qId;});
+  var q=S.quotations.find(function(x){return x.id==qId;});
   if(!q){if(infoEl)infoEl.style.display='none';return;}
   // Auto-fill fields from quotation
   
@@ -3967,14 +3967,14 @@ function savePipelineItem(){
       r.salesPerson=(document.getElementById('pm-salesperson')||{}).value||'';
       r.note=(document.getElementById('pm-note')||{}).value||'';
       // Explicit "Link to Quotation" choice: re-point the card to that quotation
-      var _selLink=parseInt((document.getElementById('pm-qtn-link')||{}).value)||0;
-      var _selQ=_selLink?S.quotations.find(function(x){return x.id===_selLink;}):null;
+      var _selLink=parseFloat((document.getElementById('pm-qtn-link')||{}).value)||0;
+      var _selQ=_selLink?S.quotations.find(function(x){return x.id==_selLink;}):null;
       if(!_selQ && _selLink===0){ r.quotationLocked=false; }
       if(_selQ){
         r.quotationId=_selQ.id; r.quotationLocked=true;
         _selQ.pipelineId=r.id;
         r.qtn=(_selQ.num||'').replace(/ v\d+$/i,'').trim()||r.qtn;
-        if(!document.getElementById('pm-print-ref').value.trim()) r.printRef=r.qtn;
+        if(!((document.getElementById('pm-print-ref')||{}).value||'').trim()) r.printRef=r.qtn;
         if(_selQ.project) r.name=_selQ.project;
         if(_selQ.client) r.client=_selQ.client;
         if(_selQ.date) r.date=_selQ.date;
@@ -4040,7 +4040,7 @@ function savePipelineItem(){
   };
   if(_newItem.status==='Approved') veOnApprove(_newItem);
   S.pipeline.push(_newItem);
-  var _qLink=parseInt((document.getElementById('pm-qtn-link')||{}).value)||0;
+  var _qLink=parseFloat((document.getElementById('pm-qtn-link')||{}).value)||0;
   if(_qLink) _newItem.quotationId=_qLink;
   if(window._teResult&&_plTechEval.length){_newItem.techEval=_plTechEval.slice();_newItem.teResult={score:window._teResult.score,pct:window._teResult.pct,pass:window._teResult.pass};}
   populateQNumDropdown();save();renderPipeline();updateDashboard();renderVE();closeModal('plModal');
@@ -4495,7 +4495,7 @@ function renderQList(){
   list.sort((a,b)=>b.id-a.id);
 
   document.getElementById('q-list').innerHTML=list.length?list.map(q=>`
-    <div class="q-list-item ${q.id===S.activeQId?'active':''}" style="${(function(){var sc={'Won':'border-left:4px solid #10b981;background:#f0fdf4','Submitted':'border-left:4px solid #3b82f6;background:#eff6ff','Evaluation':'border-left:4px solid #9ca3af;background:#f9fafb','In Pricing':'border-left:4px solid #f59e0b;background:#fffbeb','Lost':'border-left:4px solid #ef4444;background:#fef2f2','Canceled':'border-left:4px solid #9ca3af;background:#f9fafb','Draft':'border-left:4px solid #d1d5db;background:var(--surface)'};return sc[q.status]||'border-left:4px solid var(--border)';})()}">
+    <div class="q-list-item ${q.id===S.activeQId?'active':''}" style="${(function(){var sc={'Won':'border-left:4px solid #10b981;background:#f0fdf4','Submitted':'border-left:4px solid #3b82f6;background:#eff6ff','Evaluation':'border-left:4px solid #9ca3af;background:#f9fafb','In Pricing':'border-left:4px solid #f59e0b;background:#fffbeb','Lost':'border-left:4px solid #ef4444;background:#fef2f2','Canceled':'border-left:4px solid #6b7280;background:#e5e7eb','Value Engineering':'border-left:4px solid #06b6d4;background:#cffafe','Lead':'border-left:4px solid #a855f7;background:#f3e8ff','Draft':'border-left:4px solid #d1d5db;background:var(--surface)'};return sc[q.status]||'border-left:4px solid var(--border)';})()}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
