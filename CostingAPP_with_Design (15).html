@@ -5592,8 +5592,11 @@ function _processMainItemsRows(rows){
     item.qty   = qty;
     item.unit  = unit;
     item.notes = notes;
-    // Leave subs empty — user fills in pricing manually
-    item.subs  = [];
+    // First sub-item mirrors the main item's description & qty
+    const firstSub = blankSubItem();
+    firstSub.desc = desc;
+    firstSub.qty  = qty;
+    item.subItems = [firstSub];
 
     newItems.push(item);
     added++;
@@ -6065,8 +6068,8 @@ function renderCostSell(){
   const vendorTbody = document.querySelector('#table-by-vendor tbody');
   vendorTbody.innerHTML=Object.entries(byVendor)
     .sort((a,b)=>b[1]-a[1])
-    .map(([v,val])=>`<tr>
-      <td style="font-weight:600">${esc(v)}</td>
+    .map(([v,val])=>{const pr=!!(q.vendorRequested&&q.vendorRequested[v]);return `<tr class="vendor-row" style="${pr?'background:#fef3c7;':''}">
+      <td class="no-print" style="width:28px;padding:4px 6px;text-align:left"><input type="checkbox" class="vendor-req-chk" ${pr?'checked':''} style="width:16px;height:16px;min-width:16px;margin:0;padding:0;cursor:pointer;display:block"></td><td style="font-weight:600;text-align:left;${pr?'color:#b45309;':''}"><label style="display:flex;align-items:center;gap:6px;"><span>${esc(v)}</span>${pr?'<span style="font-size:10px;font-weight:600;background:#f59e0b;color:#fff;border-radius:4px;padding:1px 6px;white-space:nowrap">Price Requested</span>':''}</label></td>
       <td class="num">${fmt(val)}</td>
       <td class="num">${tc?(val/tc*100).toFixed(1)+'%':'—'}</td>
       <td class="no-print" style="padding:4px 8px">
@@ -6075,7 +6078,15 @@ function renderCostSell(){
           📥 Excel
         </button>
       </td>
-    </tr>`).join('');
+    </tr>`;}).join('');
+  vendorTbody.querySelectorAll('.vendor-req-chk').forEach(function(chk, idx){
+    var vn = Object.keys(byVendor).sort(function(a,b){return byVendor[b]-byVendor[a];})[idx];
+    chk.addEventListener('change', function(){
+      if(!q.vendorRequested) q.vendorRequested = {};
+      if(chk.checked) q.vendorRequested[vn]=true; else delete q.vendorRequested[vn];
+      save(); renderCostSell();
+    });
+  });
   // Attach click handlers safely (no inline eval)
   vendorTbody.querySelectorAll('.export-vendor-btn').forEach(function(btn, idx){
     var vendorName = Object.keys(byVendor).sort(function(a,b){return byVendor[b]-byVendor[a];})[idx];
@@ -6085,10 +6096,10 @@ function renderCostSell(){
   document.getElementById('cs-summary-grid').innerHTML=`
     <div class="cs-group"><div class="cs-group-title">Cost</div><div class="cs-row"><label>Total Cost</label><span class="cs-val tv-red">${fmt(tc)}</span></div><div class="cs-row"><label>% of Sell</label><span class="cs-val">${ts?((tc/ts)*100).toFixed(1)+'%':'—'}</span></div></div>
     <div class="cs-group"><div class="cs-group-title">Sell</div><div class="cs-row"><label>Sell excl. VAT</label><span class="cs-val tv-green">${fmt(ts)}</span></div><div class="cs-row"><label>VAT (${q.vat||15}%)</label><span class="cs-val tv-amber">${fmt(vat)}</span></div><div class="cs-row"><label>Incl. VAT</label><span class="cs-val tv-green" style="font-size:15px">${fmt(ts+vat)}</span></div></div>
-    <div class="cs-group"><div class="cs-group-title">Profit</div><div class="cs-row"><label>Gross Profit</label><span class="cs-val tv-green">${fmt(gp)}</span></div><div class="cs-row"><label>Margin %</label><span class="cs-val" style="color:${gmPct>20?'var(--green)':gmPct>10?'var(--amber)':'var(--red)'}}">${gmPct.toFixed(1)}%</span></div></div>`;
+    <div class="cs-group"><div class="cs-group-title">Profit</div><div class="cs-row"><label>Gross Profit</label><span class="cs-val tv-green">${fmt(gp)}</span></div><div class="cs-row"><label>Margin % (on Sell)</label><span class="cs-val" style="color:${gmPct>20?'var(--green)':gmPct>10?'var(--amber)':'var(--red)'}">${gmPct.toFixed(1)}%</span></div><div class="cs-row"><label>Markup % (on Cost)</label><span class="cs-val">${tc?(gp/tc*100).toFixed(1)+'%':'—'}</span></div></div>`;
   const gmW=Math.min(100,Math.max(0,gmPct));
   document.getElementById('cs-profit-panel').innerHTML=`
-    <div><div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Gross Margin</div>
+    <div><div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Margin % (on Sell)</div>
     <div class="pbar-wrap"><div class="pbar-fill" style="width:${gmW}%;background:${gmPct>20?'var(--green)':gmPct>10?'var(--amber)':'var(--red)'}"></div></div>
     <div style="font-family:var(--mono);font-size:18px;font-weight:700;margin-top:5px;color:${gmPct>20?'var(--green)':gmPct>10?'var(--amber)':'var(--red)'}}">${gmPct.toFixed(1)}%</div></div>
     <hr>
@@ -7246,8 +7257,8 @@ function exportCostSellPDF(){
             </tr>
           </thead>
           <tbody>
-            ${Object.entries(byVendor).map(([v,val])=>`<tr>
-              <td class="desc-col">${v}</td>
+            ${Object.entries(byVendor).map(([v,val])=>`<tr${q.vendorRequested&&q.vendorRequested[v]?' style="background:#fef3c7"':''}>
+              <td class="desc-col">${v}${q.vendorRequested&&q.vendorRequested[v]?' <em style="font-size:9px;color:#b45309">(Price Requested)</em>':''}</td>
               <td class="total-col">${fmtN(val)}</td>
               <td class="total-col">${tc?(val/tc*100).toFixed(1)+'%':'—'}</td>
             </tr>`).join('')}
@@ -7285,8 +7296,8 @@ function exportCostSellPDF(){
           <thead><tr><th colspan="2">PROFIT</th></tr></thead>
           <tbody>
             <tr><td class="desc-col">Gross Profit</td><td class="total-col">${fmtN(gp)}</td></tr>
-            <tr><td class="desc-col">Gross Margin %</td><td class="total-col">${gmPct.toFixed(1)}%</td></tr>
-            <tr class="filler-row"><td class="desc-col">&nbsp;</td><td class="total-col"></td></tr>
+            <tr><td class="desc-col">Margin % (on Sell)</td><td class="total-col">${gmPct.toFixed(1)}%</td></tr>
+            <tr><td class="desc-col">Markup % (on Cost)</td><td class="total-col">${tc?(gp/tc*100).toFixed(1)+'%':'—'}</td></tr>
           </tbody>
         </table>
       </td>
@@ -7327,6 +7338,8 @@ function exportCostSellPDF(){
   .split-half:first-child{padding-right:10px!important}
   .split-half:last-child{padding-left:10px!important}
   .split-third{width:33.33%}
+  .split-layout,.split-layout tr,.split-third,.split-third table{page-break-inside:avoid;break-inside:avoid}
+  .split-third{overflow:visible}
   .split-third:not(:first-child){padding-left:8px!important}
   .split-third:not(:last-child){padding-right:8px!important}
   
@@ -9084,7 +9097,7 @@ if (_portalBridgePending) {
                       <div class="chart-container"><canvas id="chart-by-vendor"></canvas></div>
                       <div class="table-wrap" style="margin-top:12px">
                         <table id="table-by-vendor">
-                          <thead><tr><th>Vendor</th><th>Amount (SAR)</th><th>% of Total</th><th class="no-print">Export</th></tr></thead>
+                          <thead><tr><th class="no-print" style="width:28px"></th><th>Vendor</th><th>Amount (SAR)</th><th>% of Total</th><th class="no-print">Export</th></tr></thead>
                           <tbody></tbody>
                         </table>
                       </div>
@@ -9541,7 +9554,7 @@ if (_portalBridgePending) {
                       <div class="chart-container"><canvas id="chart-by-vendor"></canvas></div>
                       <div class="table-wrap" style="margin-top:12px">
                         <table id="table-by-vendor">
-                          <thead><tr><th>Vendor</th><th>Amount (SAR)</th><th>% of Total</th><th class="no-print">Export</th></tr></thead>
+                          <thead><tr><th class="no-print" style="width:28px"></th><th>Vendor</th><th>Amount (SAR)</th><th>% of Total</th><th class="no-print">Export</th></tr></thead>
                           <tbody></tbody>
                         </table>
                       </div>
