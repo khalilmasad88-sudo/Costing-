@@ -61,6 +61,9 @@ main{margin-left:230px;padding:28px 32px;min-height:100vh}
 
 .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px}
 .kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.proj-drag-wrap{cursor:grab}
+.proj-drag-wrap:active{cursor:grabbing}
+.proj-drag-wrap.proj-drag-over{box-shadow:0 0 0 3px var(--accent),0 2px 8px rgba(0,0,0,.06);transform:scale(1.02)}
 .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
 .kpi.gold::before{background:var(--accent)}.kpi.green::before{background:var(--accent2)}.kpi.red::before{background:var(--accent3)}.kpi.blue::before{background:var(--accent4)}
 .kpi-icon{position:absolute;top:14px;right:14px;font-size:20px;opacity:.12}
@@ -1308,6 +1311,108 @@ textarea{resize:vertical;min-height:68px}
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-cost-detail" style="z-index:500">
+  <div class="modal" style="max-width:800px">
+    <div class="modal-header">
+      <div class="modal-title">🔴 Cost Breakdown (Excl. VAT)</div>
+      <button class="modal-close" onclick="closeModal('modal-cost-detail')">✕</button>
+    </div>
+    <div style="padding:16px 20px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+        <div class="ss" style="padding:14px;text-align:center;margin:0">
+          <div class="kpi-label">🛒 Purchase Orders</div>
+          <div class="kpi-value" style="color:#2563eb" id="cd-po-total">SAR 0</div>
+        </div>
+        <div class="ss" style="padding:14px;text-align:center;margin:0">
+          <div class="kpi-label">💵 Petty Cash</div>
+          <div class="kpi-value" style="color:#d97706" id="cd-pc-total">SAR 0</div>
+        </div>
+        <div class="ss" style="padding:14px;text-align:center;margin:0;border:1.5px solid #ef4444">
+          <div class="kpi-label" style="color:#991b1b">Total Cost</div>
+          <div class="kpi-value" style="color:#ef4444" id="cd-grand-total">SAR 0</div>
+        </div>
+      </div>
+
+      <div class="card-title mb12">🛒 Purchase Orders (Approved, Ex-VAT)</div>
+      <div class="ss" style="padding:0;overflow:hidden;margin:0 0 16px">
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr style="background:var(--surface2)">
+              <th style="padding:9px 12px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">#</th>
+              <th style="padding:9px 12px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">PO #</th>
+              <th style="padding:9px 12px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Vendor</th>
+              <th style="padding:9px 12px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Date</th>
+              <th style="padding:9px 12px;text-align:right;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Amount Ex-VAT (SAR)</th>
+            </tr>
+          </thead>
+          <tbody id="cd-po-tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="card-title mb12">💵 Petty Cash Expenses (from Daily Reports)</div>
+      <div class="ss" style="padding:0;overflow:hidden;margin:0">
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr style="background:var(--surface2)">
+              <th style="padding:9px 12px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">#</th>
+              <th style="padding:9px 12px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Date</th>
+              <th style="padding:9px 12px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Supplier</th>
+              <th style="padding:9px 12px;text-align:right;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Amount (SAR)</th>
+            </tr>
+          </thead>
+          <tbody id="cd-pc-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-cost-detail')">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-amount-detail" style="z-index:500">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header">
+      <div class="modal-title">🟢 Contract Amount Breakdown (Excl. VAT)</div>
+      <button class="modal-close" onclick="closeModal('modal-amount-detail')">✕</button>
+    </div>
+    <div style="padding:16px 20px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div class="ss" style="padding:14px;text-align:center;margin:0;border:1.5px solid #1a9e72">
+          <div class="kpi-label" style="color:#1a9e72">Total Contract Amount (Ex-VAT)</div>
+          <div class="kpi-value" style="color:#1a9e72" id="ad-total">SAR 0</div>
+        </div>
+        <div class="ss" style="padding:14px;text-align:center;margin:0">
+          <div class="kpi-label">Total Incl. VAT</div>
+          <div class="kpi-value" style="color:#1a9e72" id="ad-total-vat">SAR 0</div>
+        </div>
+      </div>
+
+      <div class="card-title mb12">📋 BOQs</div>
+      <div class="ss" style="padding:0;overflow:hidden;margin:0" id="ad-boq-wrap">
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr style="background:var(--surface2)">
+              <th style="padding:9px 12px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">#</th>
+              <th style="padding:9px 12px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">BOQ #</th>
+              <th style="padding:9px 12px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Type / Site</th>
+              <th style="padding:9px 12px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Rev</th>
+              <th style="padding:9px 12px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Date</th>
+              <th style="padding:9px 12px;text-align:right;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Ex-VAT (SAR)</th>
+              <th style="padding:9px 12px;text-align:right;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Incl. VAT (SAR)</th>
+            </tr>
+          </thead>
+          <tbody id="ad-boq-tbody"></tbody>
+        </table>
+      </div>
+      <div id="ad-manual-note" style="display:none;margin-top:12px;padding:10px 14px;background:var(--panel);border-radius:8px;font-size:12px;color:var(--muted)"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-amount-detail')">Close</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-supplier">
 <div class="modal">
   <div class="modal-header"><div class="modal-title" id="supplier-modal-title">New Supplier</div><button class="modal-close" onclick="closeModal('modal-supplier')">&#x2715;</button></div>
@@ -1559,7 +1664,11 @@ textarea{resize:vertical;min-height:68px}
   <div class="section-sep"></div>
   <div style="display:flex;justify-content:space-between;align-items:center" class="mb12">
     <div class="card-title">Line Items</div>
-    <button class="btn btn-secondary btn-sm" onclick="addPOLine()">+ Add Line</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('po-excel-input').click()">📥 Import Excel</button>
+      <input type="file" id="po-excel-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="handlePOLinesExcelFile(event)">
+      <button class="btn btn-secondary btn-sm" onclick="addPOLine()">+ Add Line</button>
+    </div>
   </div>
   <div class="tbl-wrap line-items">
     <table>
@@ -3939,6 +4048,8 @@ var _lastAutoBackup = 0;
 var _changesSinceBackup = 0;
 function triggerSmartBackup(){
   if(!_sbReady()) return;
+  // Skip if backup table not configured or same as main table
+  if(!_sb_bkp_table||_sb_bkp_table===_sb_table){return;}
   _changesSinceBackup++;
   var now=Date.now();
   // Backup every 10 changes OR every 5 minutes, whichever comes first
@@ -4416,13 +4527,22 @@ function renderProjects(){
   var f=filterEl?filterEl.value:'';
   var isLimited=projectDetailLevel()==='limited';
   var rows=DB.projects.filter(function(p){return (!f||p.status===f)&&canSeeProject(p);});
+  // Apply the saved drag-and-drop card order (falls back to natural order for any project not in it yet)
+  var savedOrder=getProjectOrder();
+  if(savedOrder.length){
+    rows.sort(function(a,b){
+      var ia=savedOrder.indexOf(String(a.id)); if(ia===-1) ia=savedOrder.length+a.id;
+      var ib=savedOrder.indexOf(String(b.id)); if(ib===-1) ib=savedOrder.length+b.id;
+      return ia-ib;
+    });
+  }
   var h=isLimited
     ? '<thead><tr><th>Ref</th><th>Project Name</th><th>Client</th><th>Status</th><th>Assigned To</th><th>Impl %</th><th></th></tr></thead><tbody>'
     : '<thead><tr><th>Ref</th><th>Project Name</th><th>Client</th><th>PO #</th><th>Budget</th><th>Amount</th><th>Cost</th><th>Net</th><th title="Implementation %: weighted average of approved PO commitment (50%) and BOQ material installed (50%)">Impl %</th><th>Status</th><th></th></tr></thead><tbody>';
   if(!rows.length){
     h='<div style="text-align:center;color:var(--muted);padding:48px;font-size:14px">No projects found</div>';
   } else {
-    h='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px">';
+    h='<div id="proj-cards-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px">';
     rows.forEach(function(p){
       var impl=getProjectImplementation(p.id, p.ref, p.budget);
       var assignedNames=(p.assignedUserIds||[]).map(function(uid){var u=DB.users.find(function(x){return x.id===uid;});return u?u.name:'?';}).join(', ')||p.assigned||'—';
@@ -4442,6 +4562,7 @@ function renderProjects(){
       };
       var sc=statusColors[p.status]||{bg:'#f3f4f6',border:'#d1d5db',hdr:'#f9fafb'};
       var logo=p.clientLogo||(DB.clients.find(function(c){return c.name===p.client;})||{}).logo||'';
+      h+='<div class="proj-drag-wrap" draggable="true" data-proj-id="'+p.id+'" ondragstart="projDragStart(event)" ondragover="projDragOver(event)" ondragleave="projDragLeave(event)" ondrop="projDrop(event)" ondragend="projDragEnd(event)" title="Drag to reorder">';
       h+='<div onclick="viewProject('+p.id+')" style="background:'+sc.bg+';border:1.5px solid '+sc.border+';border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);display:flex;flex-direction:column;cursor:pointer;transition:.15s" onmouseover="this.style.boxShadow=\'0 4px 16px rgba(0,0,0,.13)\'" onmouseout="this.style.boxShadow=\'0 2px 8px rgba(0,0,0,.06)\'">';
       h+='<div style="background:'+sc.hdr+';padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid '+sc.border+'44">';
       h+='<div style="display:flex;align-items:center;gap:8px">';
@@ -4473,6 +4594,7 @@ function renderProjects(){
         h+='<button class="btn btn-danger btn-xs" onclick="event.stopPropagation();deleteProject('+p.id+')">🗑</button>';
         h+='</div>';
       }
+      h+='</div>';
       h+='</div>';
     });
     h+='</div>';
@@ -4633,7 +4755,17 @@ function saveProject(){
     sitesCount:document.getElementById('p-sites-count').value||'',
     docs:collectDocs()
   };
-  if(editProjId){Object.assign(DB.projects.find(function(p){return p.id===editProjId;}),proj);}
+  if(editProjId!=null){
+    var _existProj=DB.projects.find(function(p){return p.id==editProjId;});
+    if(_existProj){
+      Object.assign(_existProj,proj);
+      _existProj.id=editProjId; // preserve id
+      _existProj.sites=_existProj.sites||[];
+    } else {
+      showToast('⚠ Project not found for update: '+editProjId,'error');
+      return;
+    }
+  }
   else{proj.id=DB.nextProj++;DB.projects.push(proj);}
   closeModal('modal-proj'); renderProjects(); refreshDash(); saveToGitHub();
 }
@@ -4645,12 +4777,19 @@ function viewProject(id){
   var budgetVAT=(p.budget||0)*.15;
   // Contract Amount = Sum of Main SOW BOQs EXCLUDING VAT
   var computedAmount = (function(){
-    var boqTotal = DB.boqs.filter(function(b){return b.projId===p.id;})
-      .reduce(function(a,b){
+    var projBOQs = DB.boqs.filter(function(b){return b.projId===p.id;});
+    var boqTotal = projBOQs.reduce(function(a,b){
         // Use subtotal (ex-VAT) if available, else total/1.15
         var exVat = parseFloat(b.subtotal||0) || Math.round((parseFloat(b.total||0)/1.15)*100)/100;
         return a + exVat;
       }, 0);
+    // Store the exact breakdown so the Contract Amount detail modal always matches this KPI card
+    window.__currentAmountBOQRows = projBOQs.map(function(b){
+      var exVat = parseFloat(b.subtotal||0) || Math.round((parseFloat(b.total||0)/1.15)*100)/100;
+      return {num:b.num||'BOQ',type:b.boqType||'Main',siteName:b.siteName||'',rev:b.rev||'',date:b.date||'—',subtotal:exVat,total:exVat*1.15};
+    });
+    window.__currentAmountBOQTotal = boqTotal;
+    window.__currentAmountManual = parseFloat(p.amount) || 0;
     // Fallback to p.amount (already ex-VAT from form)
     return boqTotal || parseFloat(p.amount) || 0;
   })();
@@ -4662,10 +4801,11 @@ function viewProject(id){
   reportsHTML+='</div>';
   var computedCost = (function(){
     // PO cost ex-VAT (approved POs only)
-    var poCost = DB.pos.filter(function(po){
+    var approvedPOs = DB.pos.filter(function(po){
       return (po.approvalStatus==='Approved'||po.status==='Approved') &&
         (po.projRef===p.ref||(po.projRef&&po.projRef.indexOf(p.ref)!==-1));
-    }).reduce(function(a,po){ return a + getPOCostExVAT(po); }, 0);
+    });
+    var poCost = approvedPOs.reduce(function(a,po){ return a + getPOCostExVAT(po); }, 0);
 
     // Petty cash expenses from daily reports (ex-VAT — direct field, no VAT applied)
     var pcCost = 0;
@@ -4675,6 +4815,13 @@ function viewProject(id){
         pcCost += parseFloat(e.amount||0);
       });
     });
+
+    // Store the exact breakdown so the Cost detail modal always matches this KPI card
+    window.__currentCostPORows = approvedPOs.map(function(po){
+      return {num:po.num||'PO',vendor:po.vendor||'—',date:po.date||'—',amount:getPOCostExVAT(po)};
+    });
+    window.__currentCostPOTotal = poCost;
+    window.__currentCostPCTotal = pcCost;
 
     return poCost + pcCost;
   })();
@@ -4766,9 +4913,9 @@ function viewProject(id){
           '<div class="kpi-value" style="font-size:22px;color:'+clr+'">'+pct2+'%</div>'+
           '<div class="kpi-sub">'+impl.detail+'</div></div>';
       }())+
-      '<div class="kpi" style="background:#f0fff8;border:1.5px solid #1a9e72;border-top:4px solid #1a9e72"><div class="kpi-label" style="color:#1a9e72">CONTRACT AMOUNT<br><span style="font-size:9px;font-weight:400">(excl.VAT)</span></div><div class="kpi-value" style="font-size:17px;color:#1a9e72">'+SAR(computedAmount)+'</div><div class="kpi-sub">'+(DB.boqs.filter(function(b){return b.projId===p.id;}).length?'From '+DB.boqs.filter(function(b){return b.projId===p.id;}).length+' BOQ(s)':'Manual: '+SAR(p.amount))+'</div></div>'+
+      '<div class="kpi" style="background:#f0fff8;border:1.5px solid #1a9e72;border-top:4px solid #1a9e72;cursor:pointer" onclick="openAmountDetailModal()" title="View contract amount breakdown"><div class="kpi-label" style="color:#1a9e72">CONTRACT AMOUNT<br><span style="font-size:9px;font-weight:400">(excl.VAT)</span></div><div class="kpi-value" style="font-size:17px;color:#1a9e72">'+SAR(computedAmount)+'</div><div class="kpi-sub">'+(DB.boqs.filter(function(b){return b.projId===p.id;}).length?'From '+DB.boqs.filter(function(b){return b.projId===p.id;}).length+' BOQ(s) · click to view':'Manual: '+SAR(p.amount)+' · click to view')+'</div></div>'+
       '<div class="kpi" style="background:#faf5ff;border:1.5px solid #9333ea;border-top:4px solid #9333ea"><div class="kpi-label" style="color:#7e22ce">NET PROFIT</div><div class="kpi-value" style="font-size:17px;color:#9333ea">'+SAR(computedNet)+'</div><div class="kpi-sub">Margin '+(p.amount>0?pct(computedNet/p.amount):'—')+'</div></div>'+
-      '<div class="kpi" style="background:#fff5f5;border:1.5px solid #ef4444;border-top:4px solid #ef4444"><div class="kpi-label" style="color:#991b1b">COST EXCL. VAT</div><div class="kpi-value" style="font-size:17px;color:#ef4444">'+SAR(computedCost)+'</div><div class="kpi-sub">Manual: '+SAR(p.cost)+'</div></div>'
+      '<div class="kpi" style="background:#fff5f5;border:1.5px solid #ef4444;border-top:4px solid #ef4444;cursor:pointer" onclick="openCostDetailModal()" title="View cost breakdown"><div class="kpi-label" style="color:#991b1b">COST EXCL. VAT</div><div class="kpi-value" style="font-size:17px;color:#ef4444">'+SAR(computedCost)+'</div><div class="kpi-sub">Manual: '+SAR(p.cost)+' · click to view</div></div>'
     :
       '<div class="kpi blue"><div class="kpi-label">Project</div><div class="kpi-value" style="font-size:16px">'+p.ref+'</div><div class="kpi-sub">'+p.client+'</div></div>'+
       '<div class="kpi" style="background:var(--panel)"><div class="kpi-label">Status</div><div class="kpi-value" style="font-size:16px">'+p.status+'</div><div class="kpi-sub">'+p.duration+'</div></div>'
@@ -5619,18 +5766,84 @@ function renderPOTable(){
   document.getElementById('po-table').innerHTML=h;
 }
 var poCnt=0, editingPOId=null;
-function addPOLine(){
+function addPOLine(prefill){
+  prefill=prefill||{};
   poCnt++;var n=poCnt;var tr=document.createElement('tr');tr.id='pol-'+n;
   // Vendor per line uses supplier-datalist (shared)
   tr.innerHTML='<td style="color:var(--muted);font-size:12px">'+n+'</td>'+
-    '<td><input placeholder="Part #" class="po-part" style="min-width:80px"/></td>'+
-    '<td><input placeholder="Description" class="po-desc" style="min-width:160px"/></td>'+
-    '<td><input type="number" placeholder="0" class="po-qty" style="min-width:50px" oninput="calcPO()"/></td>'+
-    '<td class="no-print"><input class="po-line-vendor" list="supplier-datalist" placeholder="Vendor" style="min-width:110px;font-size:12px;padding:4px 6px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface)" autocomplete="off"/></td>'+
-    '<td><input type="number" placeholder="0.00" class="po-uprice" style="min-width:70px" oninput="calcPO()"/></td>'+
+    '<td><input placeholder="Part #" class="po-part" style="min-width:80px" value="'+esc(prefill.partNum||'')+'"/></td>'+
+    '<td><input placeholder="Description" class="po-desc" style="min-width:160px" value="'+esc(prefill.desc||'')+'"/></td>'+
+    '<td><input type="number" placeholder="0" class="po-qty" style="min-width:50px" oninput="calcPO()" value="'+(prefill.qty||'')+'"/></td>'+
+    '<td class="no-print"><input class="po-line-vendor" list="supplier-datalist" placeholder="Vendor" style="min-width:110px;font-size:12px;padding:4px 6px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface)" autocomplete="off" value="'+esc(prefill.vendor||'')+'"/></td>'+
+    '<td><input type="number" placeholder="0.00" class="po-uprice" style="min-width:70px" oninput="calcPO()" value="'+(prefill.unitPrice||'')+'"/></td>'+
     '<td class="po-ext fw7 color-gold" style="white-space:nowrap">0.00</td>'+
     '<td><button class="btn btn-danger btn-sm" onclick="document.getElementById(\'pol-'+n+'\').remove();calcPO()">✕</button></td>';
   document.getElementById('po-lines').appendChild(tr);
+}
+
+// Import PO line items in bulk from an Excel/CSV file. Expected columns (any order, header
+// row auto-detected by name): Part Number / Part No, Description, Vendor (optional), Qty, Unit Price.
+function handlePOLinesExcelFile(e){
+  var file=e.target.files[0];
+  if(!file) return;
+  e.target.value='';
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      var wb=XLSX.read(ev.target.result,{type:'array'});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      if(!rows.length){showToast('⚠ Empty file');return;}
+
+      // Find header row (first row containing a recognizable column name) and map column indices
+      var headerIdx=-1, colMap={};
+      var norm=function(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');};
+      var aliases={
+        partNum:['partno','partnumber','part#','part','itemcode'],
+        desc:['description','desc','item','itemdescription'],
+        vendor:['vendor','supplier'],
+        qty:['qty','quantity'],
+        unitPrice:['unitprice','price','rate','unitrate']
+      };
+      for(var i=0;i<Math.min(rows.length,5);i++){
+        var hits=0, tmpMap={};
+        rows[i].forEach(function(cell,ci){
+          var c=norm(cell);
+          Object.keys(aliases).forEach(function(key){
+            if(aliases[key].indexOf(c)!==-1){ tmpMap[key]=ci; hits++; }
+          });
+        });
+        if(hits>=2){ headerIdx=i; colMap=tmpMap; break; }
+      }
+      if(headerIdx===-1){
+        // No recognizable header — assume a fixed column order: Part#, Description, Qty, Unit Price
+        colMap={partNum:0,desc:1,qty:2,unitPrice:3};
+        headerIdx=0-1; // no header row to skip
+      }
+
+      var added=0;
+      rows.slice(headerIdx+1).forEach(function(row){
+        if(!row || row.every(function(c){return String(c||'').trim()==='';})) return;
+        var desc=colMap.desc!==undefined?String(row[colMap.desc]||'').trim():'';
+        var partNum=colMap.partNum!==undefined?String(row[colMap.partNum]||'').trim():'';
+        if(!desc && !partNum) return;
+        addPOLine({
+          partNum:partNum,
+          desc:desc,
+          vendor:colMap.vendor!==undefined?String(row[colMap.vendor]||'').trim():'',
+          qty:colMap.qty!==undefined?(parseFloat(row[colMap.qty])||0):0,
+          unitPrice:colMap.unitPrice!==undefined?(parseFloat(row[colMap.unitPrice])||0):0
+        });
+        added++;
+      });
+      calcPO();
+      showToast(added?('✅ Imported '+added+' line(s)'):'⚠ No valid rows found in file');
+    }catch(err){
+      console.error('PO Excel import error:',err);
+      showToast('⚠ Could not read file: '+err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
 }
 function calcPO(){
   var sub=0;
@@ -6092,6 +6305,14 @@ function getPOHTML(po){
     '</tr>';
   }
 
+  // Payment terms: schedule rows (description + %) when present, otherwise the free-text payment term
+  var payTermsHTML=esc(po.payment||'—');
+  if(po.paymentSchedule&&po.paymentSchedule.length){
+    payTermsHTML=po.paymentSchedule.map(function(sc){
+      return '<div style="display:flex;justify-content:space-between;gap:10px;padding:1px 0"><span>'+esc(sc.desc||'')+'</span><b>'+(parseFloat(sc.pct||0)||0)+'%</b></div>';
+    }).join('');
+  }
+
   var cellStyle = 'padding:4px 0;font-size:11.5px';
   var lblStyle  = 'color:#333;font-weight:600;width:72px;'+cellStyle;
 
@@ -6157,7 +6378,7 @@ function getPOHTML(po){
         '<div style="font-size:12px;font-weight:700;border-bottom:2px solid #111;padding-bottom:3px;margin-bottom:8px">Terms</div>'+
         '<table style="border:none"><tbody>'+
           '<tr><td style="'+lblStyle+'">Delivery:</td><td style="'+cellStyle+'">'+(po.delivery||'Immediate')+'</td></tr>'+
-          '<tr><td style="'+lblStyle+'">Payment:</td><td style="'+cellStyle+'">'+(po.payment||'—')+'</td></tr>'+
+          '<tr><td style="'+lblStyle+'">Payment:</td><td style="'+cellStyle+'">'+payTermsHTML+'</td></tr>'+
           (po.deliveryDate?'<tr><td style="'+lblStyle+'">Expected:</td><td style="'+cellStyle+'">'+po.deliveryDate+'</td></tr>':'')+
           (po.notes?'<tr><td style="'+lblStyle+'">Notes:</td><td style="'+cellStyle+'">'+esc(po.notes)+'</td></tr>':'')+
         '</tbody></table>'+
@@ -6296,7 +6517,19 @@ function rejectPOManual(id){
   showToast('🚫 PO '+po.num+' rejected');
 }
 
-function markPOPaid(id){var po=DB.pos.find(function(p){return p.id===id;});po.paymentStatus='Paid';renderPOTable();refreshProjDetail();saveToGitHub();}
+function markPOPaid(id){
+  var po=DB.pos.find(function(p){return p.id===id;});
+  if(!po) return;
+  po.paymentStatus='Paid';
+  po.paymentAck=true;
+  po.paidDate=today();
+  // Keep the Due Payments list in sync: mark every installment as paid too, if a schedule exists
+  if(po.paymentSchedule&&po.paymentSchedule.length){
+    po.paymentSchedule.forEach(function(s){ s.paid=true; s.paidDate=s.paidDate||today(); });
+  }
+  renderPOTable();refreshProjDetail();saveToCloud();
+  if(typeof renderDuePayments==='function') renderDuePayments();
+}
 function deletePO(id){if(!confirm('Delete this PO? This cannot be undone.'))return;if(!DB||!DB.pos){showToast('⚠ Database not loaded');return;}DB.pos=DB.pos.filter(function(p){return p.id!==id;});renderPOTable();refreshDash();saveToCloud();showToast('PO deleted');}
 function openPOModalForProject(projRef){openPOModal();setTimeout(function(){var el=document.getElementById('po-proj-ref');if(el)el.value=projRef;},50);}
 function previewPO(){
@@ -6305,7 +6538,7 @@ function previewPO(){
   var prevDiscVal=parseFloat(document.getElementById('po-discount-val')?document.getElementById('po-discount-val').value:0)||0;
   var prevSub=lines.reduce(function(a,l){return a+l.extPrice;},0);
   var prevDiscAmt=prevDiscVal>0?prevDiscVal:prevSub*(prevDiscPct/100);
-  document.getElementById('po-preview-content').innerHTML=getPOHTML({num:document.getElementById('po-num').value,projRef:document.getElementById('po-proj-ref').value,vendor:document.getElementById('po-vendor').value,date:document.getElementById('po-date').value,vendorContact:document.getElementById('po-vendor-contact').value,vendorMob:document.getElementById('po-vendor-mob').value,vendorEmail:document.getElementById('po-vendor-email').value,quoteRef:document.getElementById('po-quote').value,delivery:document.getElementById('po-delivery').value,lines:lines,amount:0,discountPct:prevDiscPct,discountAmt:prevDiscAmt});
+  document.getElementById('po-preview-content').innerHTML=getPOHTML({num:document.getElementById('po-num').value,projRef:document.getElementById('po-proj-ref').value,vendor:document.getElementById('po-vendor').value,date:document.getElementById('po-date').value,vendorContact:document.getElementById('po-vendor-contact').value,vendorMob:document.getElementById('po-vendor-mob').value,vendorEmail:document.getElementById('po-vendor-email').value,quoteRef:document.getElementById('po-quote').value,delivery:document.getElementById('po-delivery').value,paymentSchedule:getPaymentRows(),payment:(document.getElementById('po-payment')||{}).value||'',lines:lines,amount:0,discountPct:prevDiscPct,discountAmt:prevDiscAmt});
   openModal('modal-po-preview');
 }
 
@@ -6751,6 +6984,7 @@ function cancelInvoice(id){
   var inv=DB.invoices.find(function(i){return i.id===id;});
   if(!inv) return;
   inv.approvalStatus='Cancelled';
+  inv.paymentStatus='Cancelled';
   inv.cancelledBy=currentUser?currentUser.name:''; inv.cancelledAt=today();
   renderInvoiceTable(); saveToGitHub();
 }
@@ -6776,8 +7010,9 @@ function renderInvoiceTable(){
   }
   var fIP=ipf?ipf.value:'';
   var fIS=document.getElementById('inv-filter-payment')?document.getElementById('inv-filter-payment').value:'';
-  var filteredInv=DB.invoices.filter(function(inv){return (!fIP||inv.proj===fIP)&&(!fIS||inv.paymentStatus===fIS)&&inv.approvalStatus!=='Cancelled';});
-  var cancelledInv=DB.invoices.filter(function(inv){return inv.approvalStatus==='Cancelled'&&(!fIP||inv.proj===fIP);});
+  var _isCancelled=function(inv){return inv.approvalStatus==='Cancelled'||inv.approvalStatus==='Canceled';};
+  var filteredInv=DB.invoices.filter(function(inv){return (!fIP||inv.proj===fIP)&&(!fIS||inv.paymentStatus===fIS)&&!_isCancelled(inv);});
+  var cancelledInv=DB.invoices.filter(function(inv){return _isCancelled(inv)&&(!fIP||inv.proj===fIP);});
   if(!filteredInv.length&&!cancelledInv.length){document.getElementById('invoice-table').innerHTML='<tbody><tr><td colspan="10"><div class="no-data">No invoice requests match the filter.</div></td></tr></tbody>';return;}
   var h='<thead><tr><th>Invoice No.</th><th>Date</th><th>Due Date</th><th>Project</th><th>Client</th><th>Total</th><th>Approval</th><th>Collection</th><th>Collected Date</th><th></th></tr></thead><tbody>';
   filteredInv.forEach(function(inv){
@@ -6787,9 +7022,21 @@ function renderInvoiceTable(){
     var dueDateCell='<input type="date" value="'+(inv.dueDate||'')+'" onchange="updateInvDueDate('+inv.id+',this.value)" title="Click to change due date" style="border:none;background:transparent;font-size:12px;color:var(--muted);cursor:pointer;font-family:var(--font);width:110px"/>';
     h+='<tr><td class="color-gold fw7">'+inv.num+'</td><td style="color:var(--muted)">'+inv.date+'</td><td>'+dueDateCell+'</td><td style="font-size:12px">'+(inv.proj||'—')+'</td><td>'+inv.client+'</td><td class="color-green fw7">'+SAR(inv.total||0)+'</td><td>'+approvalStatusBadge(inv.approvalStatus||'Pending')+'</td><td>'+(inv.approvalStatus==='Approved'?invPaymentBadge(inv.paymentStatus):'<span class="color-muted">—</span>')+'</td><td style="color:var(--muted);font-size:12px">'+(inv.collectedDate||'—')+'</td><td style="white-space:nowrap;display:flex;gap:4px"><button class="btn btn-secondary btn-sm" onclick="viewInvoice('+inv.id+')">View</button><button class="btn btn-secondary btn-sm" onclick="editInvoice('+inv.id+')">Edit</button><button class="btn btn-warning btn-sm" onclick="cancelInvoice('+inv.id+')" style="background:#fff8e1;color:#e67e22;border-color:#e67e22">✕ Cancel</button>'+abtns+pbtn+'</td></tr>';
   });
-  // Show cancelled rows collapsed at bottom
+  // Show cancelled rows at bottom with grey style
   if(cancelledInv.length){
-    h+='<tr><td colspan="10" style="padding:6px 12px;background:var(--panel);color:var(--muted);font-size:11px;font-weight:600">'+cancelledInv.length+' cancelled request(s) hidden</td></tr>';
+    cancelledInv.forEach(function(inv){
+      h+='<tr style="opacity:.55;background:#f9fafb;border-bottom:1px solid var(--border)">'+
+        '<td class="fw7" style="color:#9ca3af;text-decoration:line-through">'+inv.num+'</td>'+
+        '<td style="color:var(--muted)">'+inv.date+'</td>'+
+        '<td style="color:var(--muted)">'+(inv.dueDate||'—')+'</td>'+
+        '<td style="font-size:12px;color:var(--muted)">'+(inv.proj||'—')+'</td>'+
+        '<td style="color:var(--muted)">'+inv.client+'</td>'+
+        '<td style="color:#9ca3af;text-decoration:line-through">'+SAR(inv.total||0)+'</td>'+
+        '<td><span class="badge" style="background:#fee2e2;color:#991b1b">Cancelled</span></td>'+
+        '<td>—</td><td>—</td>'+
+        '<td><button class="btn btn-secondary btn-sm" onclick="viewInvoice('+inv.id+')">View</button></td>'+
+      '</tr>';
+    });
   }
   h+='</tbody><tfoot><tr><td colspan="5" class="fw7" style="padding:11px 15px">Total ('+(filteredInv.length)+' active)</td><td class="color-green fw7">'+SAR(filteredInv.reduce(function(a,i){return a+i.total;},0))+'</td><td colspan="4"></td></tr></tfoot>';
   document.getElementById('invoice-table').innerHTML=h;
@@ -8690,11 +8937,17 @@ var DATA_KEY      = 'pm_app_main'; // key inside the table
 
 // ── Payload builders ─────────────────────────────────────────────
 function _buildPayload(){
-  // Safety: never save if critical arrays are missing/empty unexpectedly
-  if(!DB || !Array.isArray(DB.pos)){
-    console.error('[PM_APP] _buildPayload: DB not ready, aborting save');
-    return null;
-  }
+  // Ensure arrays exist
+  if(!DB) return null;
+  if(!Array.isArray(DB.pos))       DB.pos=[];
+  if(!Array.isArray(DB.projects))  DB.projects=[];
+  if(!Array.isArray(DB.petty))     DB.petty=[];
+  if(!Array.isArray(DB.invoices))  DB.invoices=[];
+  if(!Array.isArray(DB.boqs))      DB.boqs=[];
+  if(!Array.isArray(DB.reports))   DB.reports=[];
+  if(!Array.isArray(DB.clients))   DB.clients=[];
+  if(!Array.isArray(DB.suppliers)) DB.suppliers=[];
+  if(!Array.isArray(DB.users))     DB.users=[];
   return {
     savedAt: new Date().toISOString(),
     settings: JSON.parse(JSON.stringify(S)),
@@ -9263,7 +9516,9 @@ function exportProjPOExcel(){
 }
 
 function renderProjInvModal(){
-  var allInvs=window.__currentProjInvs||[];
+  var _allInvs=window.__currentProjInvs||[];
+  var _isCancelledInv=function(i){return i.approvalStatus==='Cancelled'||i.approvalStatus==='Canceled'||i.paymentStatus==='Cancelled'||i.paymentStatus==='Canceled';};
+  var allInvs=_allInvs.filter(function(i){return !_isCancelledInv(i);});
   var statusFilter=(document.getElementById('proj-inv-filter-status')||{}).value||'';
   var invs=statusFilter?allInvs.filter(function(i){return (i.paymentStatus||i.approvalStatus||'Pending')===statusFilter;}):allInvs;
   var total=invs.reduce(function(a,i){return a+(parseFloat(i.total)||0);},0);
@@ -9963,6 +10218,141 @@ function openProjPOModal(){
   openModal('modal-proj-po');
 }
 
+function openCostDetailModal(){
+  renderCostDetailModal();
+  openModal('modal-cost-detail');
+}
+
+function renderCostDetailModal(){
+  var poRows=window.__currentCostPORows||[];
+  var poTotal=window.__currentCostPOTotal||0;
+  var pcRows=window.__currentPettyRows||[];
+  var pcTotal=window.__currentCostPCTotal||0;
+
+  var setText=function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};
+  setText('cd-po-total','SAR '+fmt(poTotal));
+  setText('cd-pc-total','SAR '+fmt(pcTotal));
+  setText('cd-grand-total','SAR '+fmt(poTotal+pcTotal));
+
+  var poBody=document.getElementById('cd-po-tbody');
+  if(poBody){
+    poBody.innerHTML=poRows.length?poRows.map(function(r,i){
+      return '<tr style="border-bottom:1px solid var(--border)">'+
+        '<td style="padding:7px 10px;font-size:12px;color:var(--muted)">'+(i+1)+'</td>'+
+        '<td style="padding:7px 10px;font-size:12px">'+esc(r.num)+'</td>'+
+        '<td style="padding:7px 10px;font-size:12px">'+esc(r.vendor)+'</td>'+
+        '<td style="padding:7px 10px;font-size:12px;color:var(--muted)">'+esc(r.date)+'</td>'+
+        '<td style="padding:7px 10px;font-size:12px;font-family:monospace;text-align:right">SAR '+fmt(r.amount)+'</td>'+
+      '</tr>';
+    }).join(''):'<tr><td colspan="5" style="padding:14px;text-align:center;color:var(--muted);font-size:13px">No approved POs</td></tr>';
+  }
+
+  var pcBody=document.getElementById('cd-pc-tbody');
+  if(pcBody){
+    pcBody.innerHTML=pcRows.length?pcRows.map(function(r,i){
+      return '<tr style="border-bottom:1px solid var(--border)">'+
+        '<td style="padding:7px 10px;font-size:12px;color:var(--muted)">'+(i+1)+'</td>'+
+        '<td style="padding:7px 10px;font-size:12px">'+esc(r.date)+'</td>'+
+        '<td style="padding:7px 10px;font-size:12px">'+esc(r.supplier)+'</td>'+
+        '<td style="padding:7px 10px;font-size:12px;font-family:monospace;text-align:right">SAR '+fmt(r.amount)+'</td>'+
+      '</tr>';
+    }).join(''):'<tr><td colspan="4" style="padding:14px;text-align:center;color:var(--muted);font-size:13px">No petty cash expenses</td></tr>';
+  }
+}
+
+// ── Projects page: drag-and-drop card reordering (order remembered per-browser) ──
+var _projDragSrc=null;
+function getProjectOrder(){
+  try{ var saved=JSON.parse(localStorage.getItem('pmapp_project_order')||'[]'); return Array.isArray(saved)?saved:[]; }
+  catch(e){ return []; }
+}
+function saveProjectOrder(){
+  var wrap=document.getElementById('proj-cards-grid');
+  if(!wrap) return;
+  var order=[].slice.call(wrap.children).map(function(c){return c.dataset.projId;});
+  try{ localStorage.setItem('pmapp_project_order', JSON.stringify(order)); }catch(e){}
+}
+function projDragStart(e){
+  _projDragSrc=e.currentTarget;
+  e.currentTarget.style.opacity='0.4';
+  e.dataTransfer.effectAllowed='move';
+  try{ e.dataTransfer.setData('text/plain', e.currentTarget.dataset.projId); }catch(err){}
+}
+function projDragOver(e){
+  e.preventDefault();
+  e.dataTransfer.dropEffect='move';
+  if(e.currentTarget!==_projDragSrc) e.currentTarget.classList.add('proj-drag-over');
+  return false;
+}
+function projDragLeave(e){
+  e.currentTarget.classList.remove('proj-drag-over');
+}
+function projDrop(e){
+  if(e.stopPropagation) e.stopPropagation();
+  e.preventDefault();
+  var target=e.currentTarget;
+  target.classList.remove('proj-drag-over');
+  if(_projDragSrc && target!==_projDragSrc){
+    var wrap=document.getElementById('proj-cards-grid');
+    var nodes=[].slice.call(wrap.children);
+    var srcIdx=nodes.indexOf(_projDragSrc);
+    var tgtIdx=nodes.indexOf(target);
+    if(srcIdx<tgtIdx) wrap.insertBefore(_projDragSrc, target.nextSibling);
+    else wrap.insertBefore(_projDragSrc, target);
+    saveProjectOrder();
+  }
+  return false;
+}
+function projDragEnd(e){
+  e.currentTarget.style.opacity='';
+  document.querySelectorAll('.proj-drag-over').forEach(function(el){el.classList.remove('proj-drag-over');});
+  _projDragSrc=null;
+}
+
+function openAmountDetailModal(){
+  renderAmountDetailModal();
+  openModal('modal-amount-detail');
+}
+
+function renderAmountDetailModal(){
+  var rows=window.__currentAmountBOQRows||[];
+  var boqTotal=window.__currentAmountBOQTotal||0;
+  var manual=window.__currentAmountManual||0;
+  var total=boqTotal||manual;
+
+  var setText=function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};
+  setText('ad-total','SAR '+fmt(total));
+  setText('ad-total-vat','SAR '+fmt(total*1.15));
+
+  var wrap=document.getElementById('ad-boq-wrap');
+  var noteEl=document.getElementById('ad-manual-note');
+  if(rows.length){
+    if(wrap)wrap.style.display='';
+    if(noteEl)noteEl.style.display='none';
+    var tbody=document.getElementById('ad-boq-tbody');
+    if(tbody){
+      tbody.innerHTML=rows.map(function(r,i){
+        var typeLabel=r.type==='Main'?'Main SOW':('Site'+(r.siteName?': '+esc(r.siteName):''));
+        return '<tr style="border-bottom:1px solid var(--border)">'+
+          '<td style="padding:7px 10px;font-size:12px;color:var(--muted)">'+(i+1)+'</td>'+
+          '<td style="padding:7px 10px;font-size:12px">'+esc(r.num)+'</td>'+
+          '<td style="padding:7px 10px;font-size:12px">'+typeLabel+'</td>'+
+          '<td style="padding:7px 10px;font-size:12px;color:var(--muted)">'+esc(r.rev||'—')+'</td>'+
+          '<td style="padding:7px 10px;font-size:12px;color:var(--muted)">'+esc(r.date)+'</td>'+
+          '<td style="padding:7px 10px;font-size:12px;font-family:monospace;text-align:right">SAR '+fmt(r.subtotal)+'</td>'+
+          '<td style="padding:7px 10px;font-size:12px;font-family:monospace;text-align:right">SAR '+fmt(r.total)+'</td>'+
+        '</tr>';
+      }).join('');
+    }
+  } else {
+    if(wrap)wrap.style.display='none';
+    if(noteEl){
+      noteEl.style.display='block';
+      noteEl.textContent='No BOQs are linked to this project — the contract amount above (SAR '+fmt(manual)+') was entered manually on the project form.';
+    }
+  }
+}
+
 function openPettyCashExpModal(){
   var filt=document.getElementById('pce-type-filter');if(filt)filt.value='';
   renderPettyCashExpModal();
@@ -10398,16 +10788,36 @@ function _sbGet(table,key,cb){
   .catch(function(e){cb(e,null);});
 }
 function _sbSet(table,key,value,cb){
-  fetch(SUPABASE_URL+'/rest/v1/'+table+'?on_conflict=key',{
-    method:'POST',headers:_sbHeaders(),body:JSON.stringify({key:key,value:value})
-  }).then(function(r){cb&&cb(r.ok?null:new Error(r.status));})
-  .catch(function(e){cb&&cb(e);});
+  var hdrs={
+    'Content-Type':'application/json',
+    'apikey':SUPABASE_KEY,
+    'Authorization':'Bearer '+SUPABASE_KEY,
+    'Prefer':'return=minimal'
+  };
+  // First try INSERT, if conflict (23505) do UPDATE
+  fetch(SUPABASE_URL+'/rest/v1/'+table,{
+    method:'POST',
+    headers:Object.assign({},hdrs,{'Prefer':'resolution=merge-duplicates,return=minimal'}),
+    body:JSON.stringify({key:key,value:value})
+  }).then(function(r){
+    if(r.ok||r.status===201||r.status===204){cb&&cb(null);return;}
+    // Fallback: UPDATE
+    fetch(SUPABASE_URL+'/rest/v1/'+table+'?key=eq.'+encodeURIComponent(key),{
+      method:'PATCH',headers:hdrs,body:JSON.stringify({key:key,value:value})
+    }).then(function(r2){
+      if(r2.ok||r2.status===204){cb&&cb(null);}
+      else{r2.text().then(function(t){
+        console.error('[_sbSet] '+table+' '+r2.status+':',t.slice(0,150));
+        cb&&cb(new Error(r2.status));
+      });}
+    });
+  }).catch(function(e){cb&&cb(e);});
 }
 
 // ── Save ─────────────────────────────────────────────────────────
 function saveToCloud(){
   var payload=_buildPayload();
-  if(!payload){showToast('⚠ Save aborted: data not ready');return;}
+  if(!payload){console.error('_buildPayload returned null');return;}
   // Always cache locally
   try{localStorage.setItem('amalogy_data',JSON.stringify({version:1,savedAt:payload.savedAt,settings:S,db:payload.db}));}catch(e){}
   // Smart auto-backup
@@ -10416,9 +10826,20 @@ function saveToCloud(){
   // 1. PortalBridge.db (primary — from portal settings)
   if(window.PortalBridge&&window.PortalBridge.hasDB){
     showSyncStatus('saving','Saving...');
-    PortalBridge.db.set(DATA_KEY,payload)
-      .then(function(){showSyncStatus('ok','Saved ✓');setTimeout(function(){showSyncStatus('ok','Connected');},1500);})
-      .catch(function(e){console.warn('PortalBridge.db.set error:',e);showSyncStatus('error','Save error');});
+    try{
+      PortalBridge.db.set(DATA_KEY,payload)
+        .then(function(){showSyncStatus('ok','Saved ✓');setTimeout(function(){showSyncStatus('ok','Connected');},1500);})
+        .catch(function(e){
+          console.warn('PortalBridge.db.set error:',e);
+          showSyncStatus('error','Save error');
+          // Fallback: try Supabase directly
+          if(_sbReady()){_sbSet(_sb_table,DATA_KEY,payload,function(){});}
+        });
+    }catch(e){
+      console.warn('PortalBridge.db.set throw:',e);
+      showSyncStatus('error','Save error');
+      if(_sbReady()){_sbSet(_sb_table,DATA_KEY,payload,function(){});}
+    }
     return;
   }
   // 2. Manual Supabase fallback
