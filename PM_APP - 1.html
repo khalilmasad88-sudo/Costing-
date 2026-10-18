@@ -1738,7 +1738,7 @@ textarea{resize:vertical;min-height:68px}
 <!-- PO Preview -->
 <div class="modal-overlay" id="modal-po-preview" style="z-index:700">
 <div class="modal modal-lg">
-  <div class="modal-header"><div class="modal-title">Purchase Order</div><button class="modal-close" onclick="closeModal('modal-po-preview')">✕</button></div>
+  <div class="modal-header"><div class="modal-title">Purchase Order</div><div style="display:flex;align-items:center;gap:8px"><button class="btn btn-primary btn-sm" onclick="printDoc('po-preview-content')">🖨 Print</button><button class="modal-close" onclick="closeModal('modal-po-preview')">✕</button></div></div>
   <div id="po-preview-content"></div>
   <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-po-preview')">Close</button><button class="btn btn-secondary" id="po-view-quot-btn" style="display:none" onclick="viewCurrentPOQuotation()">📎 View Quotation</button><button class="btn btn-secondary" onclick="printDoc('po-preview-content')">🖨 Print</button><button class="btn btn-pdf" onclick="exportPDF('po-preview-content')">⬇ Export PDF</button></div>
 </div></div>
@@ -6419,7 +6419,7 @@ function viewPO(id){
     // Extract styles
     var styleMatch=fullHtml.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
     var styleContent=styleMatch?'<style>'+styleMatch[1]+'</style>':'';
-    el.innerHTML='<div class="po-preview-wrap" style="background:#fff;padding:0;border-radius:8px;overflow:auto;max-height:75vh">'+
+    el.innerHTML='<div class="po-preview-wrap" style="background:#fff;padding:0;border-radius:8px;overflow:auto;max-height:62vh">'+
       styleContent+'<div style="font-family:Calibri,Arial,sans-serif;font-size:12px;color:#1a1a2e">'+bodyContent+'</div></div>';
   }
   var qBtn=document.getElementById('po-view-quot-btn');
