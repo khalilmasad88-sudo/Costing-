@@ -6317,7 +6317,7 @@ function getPOHTML(po){
   var lblStyle  = 'color:#333;font-weight:600;width:72px;'+cellStyle;
 
   return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+po.num+'</title>'+
-    '<style>'+_printCSS(_pSec('po'),'po')+'</style></head><body>'+
+    '<style>'+_printCSS(_pSec('po'),'po')+'\nthead{display:table-header-group}tfoot{display:table-row-group}tr{page-break-inside:avoid;break-inside:avoid}</style></head><body>'+
 
     // ── HEADER ───────────────────────────────────────────────
     '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">'+
