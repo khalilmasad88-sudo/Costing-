@@ -8622,7 +8622,23 @@ function openSupplierModal(sp) {
   openModal('modal-supplier');
 }
 
+// Make sure every supplier has a unique numeric id (duplicate/missing ids made edit/delete hit other suppliers)
+function fixSupplierIds(){
+  if(!Array.isArray(DB.suppliers)) DB.suppliers=[];
+  var seen={}, maxId=0, changed=false;
+  DB.suppliers.forEach(function(x){ var n=parseInt(x.id,10); if(n>maxId) maxId=n; });
+  DB.suppliers.forEach(function(x){
+    var n=parseInt(x.id,10);
+    if(!n || seen[n]){ maxId++; x.id=maxId; changed=true; }
+    else { x.id=n; }
+    seen[x.id]=true;
+  });
+  if(!DB.nextSupplier || DB.nextSupplier<=maxId){ DB.nextSupplier=maxId+1; }
+  return changed;
+}
+
 function saveSupplier() {
+  fixSupplierIds();
   var sp = {
     name: document.getElementById('sp-name').value,
     type: document.getElementById('sp-type').value,
@@ -8652,6 +8668,7 @@ function saveSupplier() {
   } else {
     sp.id = DB.nextSupplier++;
     DB.suppliers.push(sp);
+    fixSupplierIds();
   }
   closeModal('modal-supplier');
   renderSuppliersTable();
@@ -8670,13 +8687,16 @@ function saveSupplier() {
 
 function deleteSupplier(id) {
   if (!confirm('Delete this supplier?')) return;
-  DB.suppliers = DB.suppliers.filter(function(x){ return x.id !== id; });
+  fixSupplierIds();
+  var _idx=DB.suppliers.findIndex(function(x){ return x.id === id; });
+  if(_idx!==-1) DB.suppliers.splice(_idx,1);
   renderSuppliersTable();
   saveToCloud();
   populateSupplierDropdowns();
 }
 
 function renderSuppliersTable() {
+  if(fixSupplierIds()){ try{saveToCloud();}catch(e){} }
   if (!DB.suppliers.length) {
     document.getElementById('suppliers-table').innerHTML = '<tbody><tr><td colspan="7"><div class="no-data">No suppliers yet. Click "+ New Supplier" to add one.</div></td></tr></tbody>';
     return;
@@ -10567,8 +10587,14 @@ function dpPrintSelected(){
       '</div>'+
     '</div></body></html>';
 
-  var w=window.open('','_blank');
-  if(w){w.document.open();w.document.write(html);w.document.close();setTimeout(function(){w.print();},500);}
+  // Print through the portal bridge / blob (a plain window.open gives a blank page inside the portal)
+  if(!_printViaParent(html)){
+    try{
+      var w=window.open('','_blank');
+      if(w){w.document.open();w.document.write(html);w.document.close();setTimeout(function(){w.focus();w.print();},500);}
+      else showToast('Pop-up blocked — allow pop-ups to print.','warning');
+    }catch(e){console.error('Print failed:',e);}
+  }
 }
 
 function renderDuePayments(){
