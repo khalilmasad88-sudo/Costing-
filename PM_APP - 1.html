@@ -61,7 +61,8 @@ main{margin-left:230px;padding:28px 32px;min-height:100vh}
 
 .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px}
 .kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
-.proj-drag-wrap{cursor:grab}
+.proj-drag-wrap{cursor:grab;display:flex;flex-direction:column;min-height:0}
+.proj-drag-wrap>div{flex:1}
 .proj-drag-wrap:active{cursor:grabbing}
 .proj-drag-wrap.proj-drag-over{box-shadow:0 0 0 3px var(--accent),0 2px 8px rgba(0,0,0,.06);transform:scale(1.02)}
 .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
@@ -1504,7 +1505,8 @@ textarea{resize:vertical;min-height:68px}
     <div class="form-group"><label>Cost (SAR)</label><input id="p-cost" type="number" placeholder="0"/></div>
     <div class="form-group"><label>Due Amount (SAR)</label><input id="p-due" type="number" placeholder="0"/></div>
     <div class="form-group"><label>Status</label><select id="p-status"><option>In Progress</option><option>Completed</option><option>Hold</option><option>Canceled</option></select></div>
-    <div class="form-group"><label>Duration</label><input id="p-duration" placeholder="e.g. 3 Months"/></div>
+    <div class="form-group"><label>Duration (Days)</label><input id="p-duration" type="number" min="0" step="1" placeholder="e.g. 90"/></div>
+    <div class="form-group"><label>Implementation Start Date</label><input id="p-impl-start" type="date"/></div>
     <div class="form-group"><label>Assigned To (Project Manager)</label><select id="p-assigned" style="font-size:12px"><option value="">— Select user —</option></select></div>
     <div class="form-group full">
       <label>Implementation % Weights <span style="font-size:10px;color:var(--muted);font-weight:400">(must total 100%)</span></label>
@@ -2072,6 +2074,7 @@ textarea{resize:vertical;min-height:68px}
   <div class="modal-header" id="proj-detail-header" style="display:flex;align-items:center;gap:12px;flex-wrap:nowrap;transition:.3s">
     <div id="proj-detail-client-logo" style="flex-shrink:0;display:none"><img id="proj-detail-client-logo-img" style="height:40px;max-width:100px;object-fit:contain;border-radius:6px;border:1px solid var(--border);background:#fff;padding:3px" src=""/></div>
     <div class="modal-title" id="proj-detail-title" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📁 Project Detail</div>
+    <span id="proj-detail-deadline-badge" style="font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;white-space:nowrap;display:none"></span>
     <span id="proj-detail-status-badge" style="font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;white-space:nowrap;display:none"></span>
     <button class="modal-close" onclick="closeModal('modal-proj-detail')">✕</button>
   </div>
@@ -4546,7 +4549,7 @@ function renderProjects(){
   if(!rows.length){
     h='<div style="text-align:center;color:var(--muted);padding:48px;font-size:14px">No projects found</div>';
   } else {
-    h='<div id="proj-cards-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px">';
+    h='<div id="proj-cards-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));grid-auto-rows:1fr;gap:14px">';
     rows.forEach(function(p){
       var impl=getProjectImplementation(p.id, p.ref, p.budget);
       var assignedNames=(p.assignedUserIds||[]).map(function(uid){var u=DB.users.find(function(x){return x.id===uid;});return u?u.name:'?';}).join(', ')||p.assigned||'—';
@@ -4592,10 +4595,15 @@ function renderProjects(){
       h+='<div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+impl+'%;background:'+(impl>=80?'#1a9e72':impl>=40?'#2176c7':'#e67e22')+';border-radius:3px"></div></div>';
       h+='</div>';
       h+='</div>';
-      if(!isLimited){
-        h+='<div style="padding:8px 14px;border-top:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap">';
-        h+='<button class="btn btn-secondary btn-xs" onclick="event.stopPropagation();editProject('+p.id+')">✏️ Edit</button>';
-        h+='<button class="btn btn-danger btn-xs" onclick="event.stopPropagation();deleteProject('+p.id+')">🗑</button>';
+      var _di=projDeadlineInfo(p);
+      var _dlBadge=_di?'<span title="'+esc(_di.txt)+'" style="margin-left:auto;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;white-space:nowrap;background:'+_di.bg+';color:'+_di.fg+';border:1px solid '+_di.fg+'55">'+_di.short+'</span>':'';
+      if(!isLimited||_dlBadge){
+        h+='<div style="padding:8px 14px;border-top:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;align-items:center">';
+        if(!isLimited){
+          h+='<button class="btn btn-secondary btn-xs" onclick="event.stopPropagation();editProject('+p.id+')">✏️ Edit</button>';
+          h+='<button class="btn btn-danger btn-xs" onclick="event.stopPropagation();deleteProject('+p.id+')">🗑</button>';
+        }
+        h+=_dlBadge;
         h+='</div>';
       }
       h+='</div>';
@@ -4690,7 +4698,8 @@ function openProjModal(p){
   document.getElementById('p-cost').value=p?p.cost:'';
   document.getElementById('p-due').value=p?p.due:'';
   document.getElementById('p-status').value=p?p.status:'In Progress';
-  document.getElementById('p-duration').value=p?p.duration:'';
+  (function(){var n=parseFloat(p?p.duration:'');document.getElementById('p-duration').value=isNaN(n)?'':n;})();
+  document.getElementById('p-impl-start').value=p&&p.implStart?p.implStart:'';
   // Populate Assigned To user dropdown
   var assignedSel=document.getElementById('p-assigned');
   if(assignedSel){
@@ -4750,6 +4759,7 @@ function saveProject(){
     net:amt-cost,
     status:document.getElementById('p-status').value,
     duration:document.getElementById('p-duration').value,
+    implStart:document.getElementById('p-impl-start').value,
     assigned:(function(){var u=DB.users.find(function(x){return x.id===parseInt(document.getElementById('p-assigned').value);});return u?u.name:'';})(),
     team:getProjTeam(),
     assignedUserIds:(function(){var v=parseInt(document.getElementById('p-assigned').value);return v?[v]:[];}()),
@@ -4922,7 +4932,7 @@ function viewProject(id){
       '<div class="kpi" style="background:#fff5f5;border:1.5px solid #ef4444;border-top:4px solid #ef4444;cursor:pointer" onclick="openCostDetailModal()" title="View cost breakdown"><div class="kpi-label" style="color:#991b1b">COST EXCL. VAT</div><div class="kpi-value" style="font-size:17px;color:#ef4444">'+SAR(computedCost)+'</div><div class="kpi-sub">Manual: '+SAR(p.cost)+' · click to view</div></div>'
     :
       '<div class="kpi blue"><div class="kpi-label">Project</div><div class="kpi-value" style="font-size:16px">'+p.ref+'</div><div class="kpi-sub">'+p.client+'</div></div>'+
-      '<div class="kpi" style="background:var(--panel)"><div class="kpi-label">Status</div><div class="kpi-value" style="font-size:16px">'+p.status+'</div><div class="kpi-sub">'+p.duration+'</div></div>'
+      '<div class="kpi" style="background:var(--panel)"><div class="kpi-label">Status</div><div class="kpi-value" style="font-size:16px">'+p.status+'</div><div class="kpi-sub">'+fmtProjDuration(p.duration)+'</div></div>'
     )+
     '<div class="kpi" style="background:#fefce8;border:1.5px solid #f59e0b;cursor:pointer" onclick="openPettyCashExpModal()" title="View all expenses">'+
       '<div class="kpi-label" style="color:#92400e">💵 Petty Cash Expenses</div>'+
@@ -5020,7 +5030,9 @@ function viewProject(id){
     '<div><span class="color-muted">Quotation Ref:</span> <span class="color-gold fw7">'+(p.quotRef||'—')+'</span></div>'+
     '<div><span class="color-muted">Client PO #:</span> <span class="color-blue fw7">'+(p.poNum||'—')+'</span></div>'+
     '<div><span class="color-muted">PO Date:</span> '+(p.poDate||'—')+'</div>'+
-    '<div><span class="color-muted">Duration:</span> '+(p.duration||'—')+'</div>'+
+    '<div><span class="color-muted">Duration:</span> '+fmtProjDuration(p.duration)+'</div>'+
+    '<div><span class="color-muted">Implementation Start:</span> '+(p.implStart||'—')+'</div>'+
+    '<div><span class="color-muted">Implementation End:</span> '+projImplEnd(p)+'</div>'+
     '<div><span class="color-muted">Site Type:</span> <span class="badge '+(p.siteType==='Multiple Sites'?'badge-blue':'badge-gray')+'">'+(p.siteType||'Single Site')+(p.siteType==='Multiple Sites'&&p.sitesCount?' ('+p.sitesCount+' sites)':'')+'</span></div>'+
     (p.assigned||p.assignedUserIds&&p.assignedUserIds.length?'<div><span class="color-muted">Assigned To:</span> '+((p.assignedUserIds||[]).map(function(uid){var u=DB.users.find(function(x){return x.id===uid;});return u?u.name:'?';}).join(', ')||p.assigned||'—')+'</div>':'')+
     (p.remarks?'<div style="grid-column:1/-1"><span class="color-muted">Remarks:</span> '+p.remarks+'</div>':'')+
@@ -5099,6 +5111,14 @@ function viewProject(id){
   var _sp=_statusPalette[p.status]||{bg:'var(--surface2)',border:'var(--border)',text:'var(--text)',badge:'#6b7280'};
   var _hdr=document.getElementById('proj-detail-header');
   if(_hdr){_hdr.style.background=_sp.bg;_hdr.style.borderBottom='2px solid '+_sp.border;}
+  // Deadline badge: end date + remaining days (green > 25% of duration left, yellow <= 25%, red overdue & not completed)
+  (function(){
+    var dl=document.getElementById('proj-detail-deadline-badge'); if(!dl) return;
+    var di=projDeadlineInfo(p); if(!di){dl.style.display='none';return;}
+    var bg=di.bg,fg=di.fg,txt=di.txt;
+    dl.style.cssText='font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;white-space:nowrap;display:inline-block;background:'+bg+';color:'+fg+';border:1px solid '+fg+'55';
+    dl.textContent=txt;
+  })();
   var _badge=document.getElementById('proj-detail-status-badge');
   if(_badge){_badge.textContent=p.status||'';_badge.style.display='inline-block';_badge.style.background=_sp.badge;_badge.style.color='#fff';}
   // Show client logo if available
@@ -7209,6 +7229,29 @@ function calcBOQ(){
   document.getElementById('boq-subtotal').textContent='SAR '+fmt(sub);
   document.getElementById('boq-vat').textContent='SAR '+fmt(sub*.15);
   document.getElementById('boq-total').textContent='SAR '+fmt(sub*1.15);
+}
+function projDeadlineInfo(p){
+  var dur=parseFloat(p&&p.duration), end=projImplEnd(p);
+  if(!p||!p.implStart||isNaN(dur)||end==='—'||p.status==='Canceled'||p.status==='Cancelled') return null;
+  var t0=new Date(); t0.setHours(0,0,0,0);
+  var rem=Math.round((new Date(end+'T00:00:00')-t0)/86400000);
+  var s=function(n){return n+' day'+(n===1?'':'s');};
+  if(p.status==='Completed') return {bg:'#d1fae5',fg:'#065f46',txt:'🏁 Ends '+end+' · Completed',short:'🏁 '+end};
+  if(rem<0) return {bg:'#fee2e2',fg:'#991b1b',txt:'⏰ Ends '+end+' · '+s(Math.abs(rem))+' overdue',short:'⏰ '+s(Math.abs(rem))+' overdue'};
+  if(rem>dur*0.25) return {bg:'#d1fae5',fg:'#065f46',txt:'⏳ Ends '+end+' · '+s(rem)+' left',short:'⏳ '+s(rem)+' left'};
+  return {bg:'#fef3c7',fg:'#92400e',txt:'⏳ Ends '+end+' · '+s(rem)+' left',short:'⏳ '+s(rem)+' left'};
+}
+function fmtProjDuration(d){
+  if(d===''||d==null) return '—';
+  var n=parseFloat(d);
+  return (!isNaN(n)&&String(d).trim()===String(n))?(n+' day'+(n===1?'':'s')):String(d);
+}
+function projImplEnd(p){
+  var n=parseFloat(p&&p.duration);
+  if(!p||!p.implStart||isNaN(n)) return '—';
+  var d=new Date(p.implStart+'T00:00:00'); if(isNaN(d)) return '—';
+  d.setDate(d.getDate()+Math.round(n));
+  return d.toISOString().slice(0,10);
 }
 function openBOQModal(projId, boqType, parentBOQId){
   editingBOQId=null;
@@ -9510,7 +9553,7 @@ function renderProjPOModal(){
   var allPOs=window.__currentProjPOs||[];
   var statusFilter=(document.getElementById('proj-po-filter-status')||{}).value||'';
   var pos=statusFilter?allPOs.filter(function(po){return (po.approvalStatus||po.status||'Pending')===statusFilter;}):allPOs;
-  var total=pos.reduce(function(a,po){return a+(parseFloat(po.amount)||0);},0);
+  var total=pos.reduce(function(a,po){return (po.approvalStatus||po.status)==='Rejected'?a:a+(parseFloat(po.amount)||0);},0); // rejected POs are not counted
   var approvedPOsList=allPOs.filter(function(po){return po.approvalStatus==='Approved'||po.status==='Approved';});
   var approvedTotal=approvedPOsList.reduce(function(a,po){return a+(parseFloat(po.amount)||0);},0);
   var SAR2=function(n){return 'SAR '+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});};
@@ -9531,7 +9574,7 @@ function renderProjPOModal(){
         '<td style="padding:8px 12px;font-size:12px">'+esc(po.vendor||po.supplier||'—')+'</td>'+
         '<td style="padding:8px 12px;font-size:12px;color:var(--muted)">'+esc(po.date||'—')+'</td>'+
         '<td style="padding:8px 12px"><span style="'+stStyle+';padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">'+esc(st)+'</span></td>'+
-        '<td style="padding:8px 12px;text-align:right;font-weight:700;font-family:monospace">'+SAR2(parseFloat(po.amount)||0)+'</td>'+
+        '<td style="padding:8px 12px;text-align:right;font-weight:700;font-family:monospace;'+(st==='Rejected'?'text-decoration:line-through;color:var(--muted);opacity:.7':'')+'">'+SAR2(parseFloat(po.amount)||0)+'</td>'+
       '</tr>';
     }).join(''):'<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--muted)">No purchase orders found</td></tr>';
   }
@@ -9541,7 +9584,7 @@ function exportProjPOExcel(){
   var allPOs=window.__currentProjPOs||[];
   var projRef=window.__currentProjRef||'Project';
   var projName=window.__currentProjName||'';
-  var total=allPOs.reduce(function(a,po){return a+(parseFloat(po.amount)||0);},0);
+  var total=allPOs.reduce(function(a,po){return (po.approvalStatus||po.status)==='Rejected'?a:a+(parseFloat(po.amount)||0);},0);
   var approvedTotal=allPOs.filter(function(po){return po.approvalStatus==='Approved'||po.status==='Approved';})
     .reduce(function(a,po){return a+(parseFloat(po.amount)||0);},0);
   var fmt2=function(n){return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});};
