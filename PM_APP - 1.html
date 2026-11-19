@@ -1814,7 +1814,11 @@ textarea{resize:vertical;min-height:68px}
   <div class="section-sep"></div>
   <div style="display:flex;justify-content:space-between;align-items:center" class="mb12">
     <div class="card-title">SOW BOQ</div>
-    <button class="btn btn-secondary btn-sm" onclick="addBOQLine()">+ Add Item</button>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('boq-excel-input').click()" title="Columns: Part Number | Item Description | Unit | Qty | Unit Price (SAR)">📥 Import Excel</button>
+      <button class="btn btn-secondary btn-sm" onclick="addBOQLine()">+ Add Item</button>
+    </div>
+    <input type="file" id="boq-excel-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleBOQExcelFile(event)"/>
   </div>
   <div class="tbl-wrap line-items">
     <table>
@@ -7136,6 +7140,63 @@ function addBOQLine(){
     '<td class="boq-ext fw7 color-gold" style="white-space:nowrap">0.00</td>'+
     '<td><button class="btn btn-danger btn-sm" onclick="document.getElementById(\'boql-'+n+'\').remove();calcBOQ()">✕</button></td>';
   document.getElementById('boq-lines').appendChild(tr);
+}
+function handleBOQExcelFile(e){
+  var file=e.target.files[0];
+  if(!file) return;
+  e.target.value='';
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      var wb=XLSX.read(ev.target.result,{type:'array'});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      if(!rows.length){showToast('⚠ Empty file');return;}
+      var norm=function(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');};
+      var aliases={
+        partNum:['partnumber','partno','part#','part','itemcode','partnum'],
+        desc:['itemdescription','description','desc','item'],
+        unit:['unit','uom'],
+        qty:['qty','quantity'],
+        uprice:['unitpricesar','unitprice','price','rate','unitrate','unitpricesr']
+      };
+      var headerIdx=-1,colMap={};
+      for(var i=0;i<Math.min(rows.length,8);i++){
+        var hits=0,tmp={};
+        rows[i].forEach(function(cell,ci){
+          var c=norm(cell);
+          Object.keys(aliases).forEach(function(k){ if(tmp[k]===undefined&&aliases[k].indexOf(c)!==-1){tmp[k]=ci;hits++;} });
+        });
+        if(hits>=2){headerIdx=i;colMap=tmp;break;}
+      }
+      if(headerIdx===-1){ colMap={partNum:0,desc:1,unit:2,qty:3,uprice:4}; headerIdx=-1; }
+      // Remove the empty placeholder rows before importing
+      document.querySelectorAll('#boq-lines tr').forEach(function(tr){
+        var vals=['.boq-partnum','.boq-desc','.boq-unit','.boq-qty','.boq-uprice'].map(function(q){var el=tr.querySelector(q);return el?el.value.trim():'';});
+        if(vals.every(function(v){return !v;})) tr.remove();
+      });
+      var cell=function(row,k){return colMap[k]!==undefined?row[colMap[k]]:'';};
+      var num=function(v){var n=parseFloat(String(v).replace(/[^0-9.\-]/g,''));return isNaN(n)?'':n;};
+      var added=0;
+      rows.slice(headerIdx+1).forEach(function(row){
+        if(!row||row.every(function(c){return String(c||'').trim()==='';})) return;
+        var desc=String(cell(row,'desc')||'').trim(), pn=String(cell(row,'partNum')||'').trim();
+        if(!desc&&!pn) return;
+        addBOQLine();
+        var tr=document.getElementById('boql-'+boqCnt);
+        tr.querySelector('.boq-partnum').value=pn;
+        tr.querySelector('.boq-desc').value=desc;
+        tr.querySelector('.boq-unit').value=String(cell(row,'unit')||'').trim();
+        tr.querySelector('.boq-qty').value=num(cell(row,'qty'));
+        tr.querySelector('.boq-uprice').value=num(cell(row,'uprice'));
+        added++;
+      });
+      calcBOQ();
+      if(!added){ addBOQLine(); showToast('⚠ No valid rows found in the file'); }
+      else showToast('✅ Imported '+added+' item'+(added!==1?'s':''));
+    }catch(err){ console.error(err); showToast('⚠ Could not read the Excel file'); }
+  };
+  reader.readAsArrayBuffer(file);
 }
 function calcBOQ(){
   var sub=0;
