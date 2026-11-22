@@ -343,6 +343,8 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
       <div class="nav-section">Pricing</div>
       <div class="nav-item" onclick="showPage('pipeline')" data-page="pipeline"><span class="icon">🔄</span> Pipeline</div>
       <div class="nav-item" onclick="showPage('quotation')" data-page="quotation"><span class="icon">📄</span> Quotations</div>
+      <div class="nav-item" onclick="showPage('mytasks')" data-page="mytasks"><span class="icon">✅</span> My Tasks</div>
+      <div class="nav-item hidden" onclick="showPage('teamtasks')" data-page="teamtasks" id="nav-teamtasks"><span class="icon">👥</span> Team Tasks</div>
       <div class="nav-item" onclick="showPage('design')" data-page="design"><span class="icon">📐</span> Design</div>
     </div>
     <div class="nav-group" style="--sec-color:#9c8fc4">
@@ -666,6 +668,17 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
     </div>
     <div style="padding:20px" id="ve-detail-body"></div>
   </div>
+</div>
+
+<!-- ══════════════ TASKS PAGES ══════════════ -->
+<div class="page" id="page-mytasks">
+  <div class="page-header" style="padding:20px 24px 0"><div class="page-title">✅ My Tasks</div><div class="page-subtitle" id="mytasks-sub">Tasks assigned to you across all quotations</div></div>
+  <div style="padding:16px 24px"><div id="mytasks-list"></div></div>
+</div>
+<div class="page" id="page-teamtasks">
+  <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px 0"><div><div class="page-title">👥 Team Tasks</div><div class="page-subtitle" id="teamtasks-sub">All tasks across quotations</div></div>
+    <select id="tt-filter" onchange="renderTasksPage('teamtasks')" style="padding:7px 12px"><option value="">All assignees</option></select></div>
+  <div style="padding:16px 24px"><div id="teamtasks-list"></div></div>
 </div>
 
 <!-- ══════════════ DESIGN PAGE ══════════════ -->
@@ -2321,7 +2334,14 @@ const ACCESS_PRESETS={
   none:     []
 };
 
+function isTasksAdmin(){
+  const u=getCurrentUser();
+  if(u&&String(u.role||'').toLowerCase().replace(/[\s_-]/g,'')==='admin')return true;
+  const pr=window.PortalBridge&&window.PortalBridge.user&&String(window.PortalBridge.user.role||'').toLowerCase().replace(/[\s_-]/g,'');
+  return pr==='admin'||pr==='superadmin';
+}
 function applyPermissions(){
+  const _tt=document.getElementById('nav-teamtasks');if(_tt)_tt.classList.toggle('hidden',!isTasksAdmin());
   const user=getCurrentUser();
   if(!user)return;
   const p=user.permissions||{};
@@ -2498,7 +2518,7 @@ function changeMyPassword(){
 }
 
 // Navigation & Pages
-const PAGE_TITLES={dashboard:'Dashboard <span>Overview</span>',pipeline:'Pipeline <span>2026</span>',quotation:'Quotations <span>per Project</span>',boq:'Bill of <span>Quantity</span>',design:'Design <span>Quantity Takeoff</span>',ve:'Value Engineering <span>Won Projects</span>',bizdev:'Business Development <span>Business Lines</span>',settings:'Settings <span>& Config</span>'};
+const PAGE_TITLES={mytasks:'My <span>Tasks</span>',teamtasks:'Team <span>Tasks</span>',dashboard:'Dashboard <span>Overview</span>',pipeline:'Pipeline <span>2026</span>',quotation:'Quotations <span>per Project</span>',boq:'Bill of <span>Quantity</span>',design:'Design <span>Quantity Takeoff</span>',ve:'Value Engineering <span>Won Projects</span>',bizdev:'Business Development <span>Business Lines</span>',settings:'Settings <span>& Config</span>'};
 
 // ══════════════════════════════════════════════════════════
 // VALUE ENGINEERING
@@ -2929,6 +2949,7 @@ function switchToQuotation(qid){
 function showPage(id){
   if(typeof closeMobileSidebar==='function') closeMobileSidebar();
   if(id==='ve') renderVE();
+  if(id==='mytasks'||id==='teamtasks') renderTasksPage(id);
   if(id==='design'){ renderDesignPriceList(); renderDesignDocsList(); }
   if(id==='bizdev'){ renderBizSystems(); }
   if(id==='settings'){ renderUsersList(); }
@@ -2994,6 +3015,94 @@ function applyVETabs(q){
   });
   const pp=document.getElementById('profit-pct');if(pp)pp.disabled=ve;
 }
+// ── My Tasks / Team Tasks pages ──
+function _taskPeople(){const u=getCurrentUser();return u?[u.name,u.email].filter(Boolean).map(x=>x.toLowerCase()):[];}
+function renderTasksPage(id){
+  const team=id==='teamtasks';
+  const user=getCurrentUser();
+  if(team&&!isTasksAdmin()){document.getElementById('teamtasks-list').innerHTML='<div style="color:var(--muted);padding:30px;text-align:center">Admins only</div>';return;}
+  const me=_taskPeople();
+  let rows=[];
+  (S.quotations||[]).forEach(q=>{
+    if(q.companyId&&q.companyId!==S.currentCompanyId)return;
+    (q.tasks||[]).forEach(t=>rows.push({q,t}));
+  });
+  if(team){
+    const sel=document.getElementById('tt-filter');const cur=sel.value;
+    const names=[...new Set(rows.map(r=>r.t.assignee||'').filter(Boolean))].sort();
+    sel.innerHTML='<option value="">All assignees</option>'+names.map(n=>`<option ${n===cur?'selected':''}>${esc(n)}</option>`).join('');
+    if(sel.value)rows=rows.filter(r=>r.t.assignee===sel.value);
+  }else rows=rows.filter(r=>me.includes((r.t.assignee||'').toLowerCase()));
+  const order={'To Do':0,'In Progress':1,'Done':2};
+  rows.sort((a,b)=>(order[a.t.status]-order[b.t.status])||String(a.t.due||'9999').localeCompare(String(b.t.due||'9999')));
+  const today=new Date().toISOString().slice(0,10);
+  const open=rows.filter(r=>r.t.status!=='Done').length;
+  document.getElementById(id+'-sub').textContent=open+' open · '+rows.length+' total';
+  const el=document.getElementById(id+'-list');
+  if(!rows.length){el.innerHTML='<div class="card" style="padding:40px;text-align:center;color:var(--muted)">No tasks'+(team?'':' assigned to you')+'.<br><span style="font-size:12px">Tasks are added from the Tasks tab inside a quotation.</span></div>';return;}
+  const pc={High:'var(--red)',Medium:'var(--amber)',Low:'var(--muted)'};
+  el.innerHTML='<div class="card"><table style="width:100%"><thead><tr><th></th><th>Task</th>'+(team?'<th>Assignee</th>':'')+'<th>Quotation</th><th>Due</th><th>Priority</th><th>Status</th><th>Completed</th></tr></thead><tbody>'+
+   rows.map(r=>{const t=r.t,q=r.q,done=t.status==='Done',od=!done&&t.due&&t.due<today;
+    return `<tr style="${done?'opacity:.6':''}"><td><input type="checkbox" ${done?'checked':''} onchange="setTaskFromPage(${q.id},${t.id},this.checked?'Done':'To Do','${id}')"></td>
+     <td style="${done?'text-decoration:line-through':''}">${esc(t.title)}</td>${team?`<td>${esc(t.assignee||'—')}</td>`:''}
+     <td><a style="cursor:pointer;color:var(--accent)" onclick="showPage('quotation');openQuotation(${q.id})">${esc(q.num||q.project||'Untitled')}</a>${q.status==='Value Engineering'?' <span style="font-size:10px;color:#0e7490">VE</span>':''}<div class="muted" style="font-size:11px">${esc(q.project||'')}</div></td>
+     <td style="white-space:nowrap;${od?'color:var(--red);font-weight:700':''}">${esc(t.due||'—')}</td>
+     <td style="color:${pc[t.priority]||'inherit'};font-weight:600">${esc(t.priority||'')}</td>
+     <td><select onchange="setTaskFromPage(${q.id},${t.id},this.value,'${id}')">${['To Do','In Progress','Done'].map(x=>`<option ${t.status===x?'selected':''}>${x}</option>`).join('')}</select></td>
+     <td class="muted" style="font-size:11px">${esc(t.doneAt||'')}</td></tr>`;}).join('')+'</tbody></table></div>';
+}
+function setTaskFromPage(qid,tid,status,page){
+  const q=(S.quotations||[]).find(x=>x.id==qid);if(!q)return;const t=(q.tasks||[]).find(x=>x.id==tid);if(!t)return;
+  t.status=status;t.doneAt=status==='Done'?new Date().toISOString().slice(0,10):'';
+  save();renderTasksPage(page);
+}
+
+// ── Quotation Tasks ──
+function renderQTasks(){
+  const q=getQ();if(!q)return;if(!q.tasks)q.tasks=[];
+  const locked=!canEdit();
+  const sel=document.getElementById('qt-assignee');
+  if(sel){
+    const names=[...new Set([...(S.users||[]).map(u=>u.name||u.email),...((S.settings&&S.settings.quotationEditors)||[]).map(e=>e.name)].filter(Boolean))];
+    const cur=sel.value;
+    sel.innerHTML='<option value="">— assignee —</option>'+names.map(n=>`<option ${n===cur?'selected':''}>${esc(n)}</option>`).join('');
+  }
+  const today=new Date().toISOString().slice(0,10);
+  const pc={High:'var(--red)',Medium:'var(--amber)',Low:'var(--muted)'};
+  const done=q.tasks.filter(t=>t.status==='Done').length;
+  const sm=document.getElementById('qt-summary');if(sm)sm.textContent=done+' / '+q.tasks.length+' done';
+  const el=document.getElementById('qt-list');if(!el)return;
+  if(!q.tasks.length){el.innerHTML='<div style="color:var(--muted);text-align:center;padding:18px;font-size:13px">No tasks yet</div>';return;}
+  el.innerHTML='<table style="width:100%"><thead><tr><th></th><th>Task</th><th>Assignee</th><th>Due</th><th>Priority</th><th>Status</th><th>Completed</th><th></th></tr></thead><tbody>'+
+    q.tasks.map(t=>{
+      const isDone=t.status==='Done';const od=!isDone&&t.due&&t.due<today;
+      return `<tr style="${isDone?'opacity:.6':''}">
+        <td><input type="checkbox" ${isDone?'checked':''} ${locked?'disabled':''} onchange="setQTask(${t.id},'status',this.checked?'Done':'To Do')"></td>
+        <td style="font-size:14px;${isDone?'text-decoration:line-through':''}"><input value="${esc(t.title)}" style="width:100%;min-width:160px" ${locked?'disabled':''} onchange="setQTask(${t.id},'title',this.value)"></td>
+        <td>${esc(t.assignee||'—')}</td>
+        <td style="${od?'color:var(--red);font-weight:700':''};white-space:nowrap"><input type="date" value="${esc(t.due||'')}" ${locked?'disabled':''} onchange="setQTask(${t.id},'due',this.value)"></td>
+        <td style="color:${pc[t.priority]||'inherit'};font-weight:600">${esc(t.priority||'')}</td>
+        <td><select ${locked?'disabled':''} onchange="setQTask(${t.id},'status',this.value)">${['To Do','In Progress','Done'].map(x=>`<option ${t.status===x?'selected':''}>${x}</option>`).join('')}</select></td>
+        <td class="muted" style="font-size:11px;white-space:nowrap">${esc(t.doneAt||'')}</td>
+        <td><button class="del-btn" ${locked?'disabled':''} onclick="deleteQTask(${t.id})">✕</button></td></tr>`;
+    }).join('')+'</tbody></table>';
+}
+function addQTask(){
+  const q=getQ();if(!q||!canEdit())return;if(!q.tasks)q.tasks=[];
+  const ti=document.getElementById('qt-title');const title=(ti.value||'').trim();if(!title){ti.focus();return;}
+  const u=getCurrentUser();
+  q.tasks.push({id:Date.now()+Math.floor(Math.random()*1000),title,assignee:document.getElementById('qt-assignee').value,due:document.getElementById('qt-due').value,priority:document.getElementById('qt-priority').value,status:'To Do',createdAt:new Date().toISOString().slice(0,10),createdBy:u?(u.name||u.email):''});
+  ti.value='';document.getElementById('qt-due').value='';
+  save();renderQTasks();
+}
+function setQTask(id,key,val){
+  const q=getQ();if(!q||!canEdit())return;const t=(q.tasks||[]).find(x=>x.id===id);if(!t)return;
+  t[key]=val;
+  if(key==='status')t.doneAt=val==='Done'?new Date().toISOString().slice(0,10):'';
+  save();renderQTasks();
+}
+function deleteQTask(id){const q=getQ();if(!q||!canEdit())return;q.tasks=(q.tasks||[]).filter(x=>x.id!==id);save();renderQTasks();}
+
 function switchQTab(el,tid){
   const q=getQ();
   if(!q)return;
@@ -3009,7 +3118,7 @@ function switchQTab(el,tid){
   }
   
   document.querySelectorAll('#q-tabs .tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');
-  ['qtab-info','qtab-documents','qtab-costing','qtab-pricing','qtab-terms','qtab-costsell','qtab-cover'].forEach(i=>{const e=document.getElementById(i);if(e)e.style.display='none';});
+  ['qtab-info','qtab-documents','qtab-costing','qtab-pricing','qtab-terms','qtab-costsell','qtab-cover','qtab-tasks'].forEach(i=>{const e=document.getElementById(i);if(e)e.style.display='none';});
   document.getElementById(tid).style.display='block';
   if(tid==='qtab-documents')renderDocuments();
   if(tid==='qtab-costing')renderCostingTab();
@@ -3017,6 +3126,7 @@ function switchQTab(el,tid){
   if(tid==='qtab-costsell')renderCostSell();
   if(tid==='qtab-terms')renderPayments();
   if(tid==='qtab-cover')renderCoverSpacers();
+  if(tid==='qtab-tasks')renderQTasks();
 
 }
 
@@ -5221,7 +5331,7 @@ function openQuotation(id){
     }
   });
   
-  ['qtab-documents','qtab-costing','qtab-pricing','qtab-terms','qtab-costsell','qtab-cover'].forEach(i=>{const e=document.getElementById(i);if(e)e.style.display='none';});
+  ['qtab-documents','qtab-costing','qtab-pricing','qtab-terms','qtab-costsell','qtab-cover','qtab-tasks'].forEach(i=>{const e=document.getElementById(i);if(e)e.style.display='none';});
   document.getElementById('qtab-info').style.display='block';
   applyVETabs(q);
   
@@ -5462,6 +5572,59 @@ function updateSubItem(mid,sid,key,val){
   }
   
   if(m.subItems.length>0)m.partno=m.subItems[0].partno;
+  save();renderCostingTab();restoreExpandedSubItems();
+}
+
+// ── Sub-item search window ──
+var _ssCtx=null,_ssRes=[];
+function openSubItemSearch(mid,sid){
+  _ssCtx={mid:mid,sid:sid};
+  var ov=document.getElementById('modal-subitem-search');
+  if(!ov){
+    ov=document.createElement('div');ov.className='modal-overlay';ov.id='modal-subitem-search';ov.style.zIndex='500';
+    ov.onclick=function(e){if(e.target===ov)closeModal('modal-subitem-search');};
+    ov.innerHTML='<div class="modal" style="max-width:820px"><div class="modal-header"><div class="modal-title">🔍 Search Sub-Items</div><button class="del-btn" onclick="closeModal(\'modal-subitem-search\')">✕</button></div>'+
+      '<div style="padding:14px 18px"><div style="display:flex;gap:8px"><input id="ss-pn" placeholder="Part number" style="flex:1;padding:8px 10px;font-size:14px" oninput="renderSubItemSearch()"><input id="ss-desc" placeholder="Description" style="flex:2;padding:8px 10px;font-size:14px" oninput="renderSubItemSearch()"><input id="ss-vendor" placeholder="Vendor" style="flex:1;padding:8px 10px;font-size:14px" oninput="renderSubItemSearch()"></div>'+
+      '<div id="ss-res" style="margin-top:10px;max-height:55vh;overflow:auto"></div></div></div>';
+    document.body.appendChild(ov);
+  }
+  ['ss-pn','ss-desc','ss-vendor'].forEach(function(i){document.getElementById(i).value='';});
+  renderSubItemSearch();
+  openModal('modal-subitem-search');
+  setTimeout(function(){document.getElementById('ss-pn').focus();},50);
+}
+function renderSubItemSearch(){
+  var g=function(i){return (document.getElementById(i).value||'').toLowerCase().trim();};
+  var fPn=g('ss-pn'),fDesc=g('ss-desc'),fVen=g('ss-vendor');
+  var has=function(h,t){return !t||t.split(/\s+/).every(function(w){return (h||'').toLowerCase().indexOf(w)>-1;});};
+  var seen={},out=[];
+  (S.quotations||[]).forEach(function(q){
+    if(q.companyId&&q.companyId!==S.currentCompanyId)return;
+    (q.items||[]).forEach(function(m){(m.subItems||[]).forEach(function(si){
+      if(!si.partno&&!si.desc)return;
+      if(!has(si.partno,fPn)||!has(si.desc,fDesc)||!has(si.vendor,fVen))return;
+      var k=[si.partno,si.desc,si.vendor,si.unitPrice].join('|');
+      if(seen[k])return;seen[k]=1;out.push({si:si,q:q});
+    });});
+  });
+  _ssRes=out.slice(0,100);
+  var el=document.getElementById('ss-res');
+  if(!_ssRes.length){el.innerHTML='<div style="color:var(--muted);padding:16px;text-align:center">No matching sub-items</div>';return;}
+  el.innerHTML='<table style="width:100%"><thead><tr><th>Part #</th><th>Description</th><th>Vendor</th><th>Unit</th><th style="text-align:right">Unit Price</th><th>Quotation</th><th>Date</th></tr></thead><tbody>'+
+    _ssRes.map(function(r,i){var x=r.si;return '<tr style="cursor:pointer" onclick="pickSubItemSearch('+i+')"><td style="font-family:var(--mono);font-size:11px">'+esc(x.partno||'')+'</td><td>'+esc(x.desc||'')+'</td><td>'+esc(x.vendor||'')+'</td><td>'+esc(x.unit||'')+'</td><td class="num">'+fmtN(x.unitPrice||0)+'</td><td class="muted" style="font-size:11px">'+esc(r.q.num||r.q.project||'')+'</td><td class="muted" style="font-size:11px;white-space:nowrap">'+esc(r.q.date||'')+'</td></tr>';}).join('')+
+    '</tbody></table>'+(out.length>100?'<div style="color:var(--muted);font-size:11px;padding:6px">Showing first 100 — refine your search</div>':'');
+}
+function pickSubItemSearch(i){
+  var r=_ssRes[i],c=_ssCtx;if(!r||!c)return;
+  var q=getQ();if(!q||!canEdit())return;
+  var m=q.items.find(function(m){return m.id===c.mid;});if(!m)return;
+  var t=m.subItems.find(function(x){return x.id===c.sid;});if(!t)return;
+  var x=r.si;
+  t.partno=x.partno||'';t.desc=x.desc||'';t.vendor=x.vendor||'';t.unit=x.unit||t.unit;
+  if(x.type)t.type=x.type;
+  t.unitPrice=+x.unitPrice||0;
+  if(m.subItems.length>0)m.partno=m.subItems[0].partno;
+  closeModal('modal-subitem-search');
   save();renderCostingTab();restoreExpandedSubItems();
 }
 
@@ -5943,7 +6106,7 @@ function renderCostingTab(){
         <button class="del-btn" onclick="deleteMainItem(${mi.id})" ${locked?'disabled':''}>✕</button>
       </div>
       <div class="sub-table-wrap" id="sub-${mi.id}">
-        <table><thead><tr><th>✓</th><th>Part #</th><th>Description</th><th>Vendor</th><th>Type</th><th>Unit</th><th>Qty</th><th>Unit Price</th><th>Total</th><th>Notes</th><th></th></tr></thead>
+        <table><thead><tr><th>✓</th><th>Part #</th><th>Description</th><th>Vendor</th><th>Type</th><th>Unit</th><th>Qty</th><th>Unit Price</th><th>Total</th><th>Notes</th><th></th><th></th></tr></thead>
         <tbody>${(mi.subItems||[]).map(si=>`<tr class="${si.priced?'priced':''}">
           <td><input type="checkbox" ${si.priced?'checked':''} ${locked?'disabled':''} onchange="updateSubItem(${mi.id},${si.id},'priced',this.checked)"></td>
           <td><input value="${esc(si.partno)}" placeholder="Part #" style="width:90px" onchange="updateSubItem(${mi.id},${si.id},'partno',this.value)" ${locked?'disabled':''}></td>
@@ -5955,9 +6118,10 @@ function renderCostingTab(){
           <td class="num"><input type="number" value="${si.unitPrice||0}" min="0" style="width:110px;text-align:right;font-family:var(--mono)" onchange="updateSubItem(${mi.id},${si.id},'unitPrice',this.value)" ${locked?'disabled':''}></td>
           <td class="num">${fmtN(subTotal(si))}</td>
           <td><button class="btn btn-ghost btn-xs" onclick="openNoteModal(${mi.id},${si.id})" title="${esc(si.notes||'Add note')}">${si.notes?'📝':'➕'}${si.notes?'<span class="note-indicator"></span>':''}</button></td>
+          <td><button class="btn btn-ghost btn-xs" onclick="openSubItemSearch(${mi.id},${si.id})" title="Search sub-items" style="color:var(--accent)" ${locked?'disabled':''}>🔍</button></td>
           <td><button class="del-btn" onclick="deleteSubItem(${mi.id},${si.id})" ${locked?'disabled':''}>✕</button></td>
         </tr>`).join('')}
-        ${!mi.subItems||!mi.subItems.length?`<tr><td colspan="11" style="color:var(--muted);font-size:12px;padding:10px 12px">No sub-items</td></tr>`:''}
+        ${!mi.subItems||!mi.subItems.length?`<tr><td colspan="12" style="color:var(--muted);font-size:12px;padding:10px 12px">No sub-items</td></tr>`:''}
         </tbody></table>
       </div>
     </div>`;
@@ -8962,6 +9126,7 @@ if (_portalBridgePending) {
                 <div class="tab" onclick="switchQTab(this,'qtab-terms')">Payments</div>
                 <div class="tab" onclick="switchQTab(this,'qtab-costsell')">Cost-Sell</div>
                 <div class="tab" onclick="switchQTab(this,'qtab-cover')">Cover &amp; Spacers</div>
+                <div class="tab" onclick="switchQTab(this,'qtab-tasks')">✅ Tasks</div>
                 <div style="margin-left:auto;padding:0 8px">
                   <button class="btn btn-primary btn-sm" onclick="saveQ();_showSaveToast();smartBackupCheck('saveQuotation')">💾 Save</button>
                 </div>
@@ -9184,6 +9349,22 @@ if (_portalBridgePending) {
               </div>
 
               <!-- COVER & SPACERS -->
+              <div id="qtab-tasks" style="display:none">
+                <div class="card" style="margin-bottom:18px">
+                  <div class="card-header"><div class="card-title">Tasks</div><div id="qt-summary" style="font-size:12px;color:var(--muted)"></div></div>
+                  <div class="card-body">
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+                      <input id="qt-title" placeholder="Task title…" style="flex:3;min-width:180px" onkeydown="if(event.key==='Enter')addQTask()">
+                      <select id="qt-assignee" style="flex:1;min-width:120px"></select>
+                      <input id="qt-due" type="date" style="flex:1;min-width:130px">
+                      <select id="qt-priority" style="width:100px"><option>Low</option><option selected>Medium</option><option>High</option></select>
+                      <button class="btn btn-primary btn-sm" onclick="addQTask()">+ Add Task</button>
+                    </div>
+                    <div id="qt-list"></div>
+                  </div>
+                </div>
+              </div>
+
               <div id="qtab-cover" style="display:none">
                 <div class="card" style="margin-bottom:18px">
                   <div class="card-header"><div class="card-title">Cover Page</div><button class="btn btn-primary btn-sm" onclick="exportCoverPDF()">🖨 Print</button></div>
@@ -9419,6 +9600,7 @@ if (_portalBridgePending) {
                 <div class="tab" onclick="switchQTab(this,'qtab-terms')">Payments</div>
                 <div class="tab" onclick="switchQTab(this,'qtab-costsell')">Cost-Sell</div>
                 <div class="tab" onclick="switchQTab(this,'qtab-cover')">Cover &amp; Spacers</div>
+                <div class="tab" onclick="switchQTab(this,'qtab-tasks')">✅ Tasks</div>
                 <div style="margin-left:auto;padding:0 8px">
                   <button class="btn btn-primary btn-sm" onclick="saveQ();_showSaveToast();smartBackupCheck('saveQuotation')">💾 Save</button>
                 </div>
@@ -9643,6 +9825,22 @@ if (_portalBridgePending) {
               <!-- TECHNICAL EVALUATION -->
 
               <!-- COVER & SPACERS -->
+              <div id="qtab-tasks" style="display:none">
+                <div class="card" style="margin-bottom:18px">
+                  <div class="card-header"><div class="card-title">Tasks</div><div id="qt-summary" style="font-size:12px;color:var(--muted)"></div></div>
+                  <div class="card-body">
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+                      <input id="qt-title" placeholder="Task title…" style="flex:3;min-width:180px" onkeydown="if(event.key==='Enter')addQTask()">
+                      <select id="qt-assignee" style="flex:1;min-width:120px"></select>
+                      <input id="qt-due" type="date" style="flex:1;min-width:130px">
+                      <select id="qt-priority" style="width:100px"><option>Low</option><option selected>Medium</option><option>High</option></select>
+                      <button class="btn btn-primary btn-sm" onclick="addQTask()">+ Add Task</button>
+                    </div>
+                    <div id="qt-list"></div>
+                  </div>
+                </div>
+              </div>
+
               <div id="qtab-cover" style="display:none">
                 <div class="card" style="margin-bottom:18px">
                   <div class="card-header"><div class="card-title">Cover Page</div><button class="btn btn-primary btn-sm" onclick="exportCoverPDF()">🖨 Print</button></div>
