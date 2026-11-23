@@ -1406,7 +1406,7 @@ function getTeamRole(){
   return entry?entry.role||'':'';
 }
 
-function canEdit(){const q=getQ();if(!q)return true;if(!q.locked)return true;if(q.status==='Value Engineering')return true;const u=getCurrentUser();if(u&&(u.role==='Admin'||u.role==='Manager'))return true;if(getTeamRole()==='Pre-sales')return true;return false;}
+function canEdit(){const q=getQ();if(!q)return true;if(!q.locked)return true;if(q.status==='Value Engineering')return true;if(canUnlock())return true;const u=getCurrentUser();if(getTeamRole()==='Pre-sales')return true;return false;}
 
 function statusBadge(s){const m={Lead:'draft',Draft:'draft',Submitted:'submitted',Evaluation:'out','In Pricing':'pricing',Won:'approved','Value Engineering':'pricing',Lost:'canceled',Canceled:'out'};return`<span class="badge badge-${m[s]||'out'}">${s||'—'}</span>`;}
 function openModal(id){document.getElementById(id).classList.add('open');}
@@ -3016,12 +3016,31 @@ function applyVETabs(q){
   const pp=document.getElementById('profit-pct');if(pp)pp.disabled=ve;
 }
 // ── My Tasks / Team Tasks pages ──
-function _taskPeople(){const u=getCurrentUser();return u?[u.name,u.email].filter(Boolean).map(x=>x.toLowerCase()):[];}
+function _taskPeople(){
+  const out=[];const add=x=>{if(x){x=String(x).trim().toLowerCase();if(x&&out.indexOf(x)<0)out.push(x);}};
+  const u=getCurrentUser();if(u){add(u.name);add(u.email);}
+  const pu=window.PortalBridge&&window.PortalBridge.user;if(pu){add(pu.name);add(pu.email);}
+  return out;
+}
+function _isMyTask(t){const me=_taskPeople();return !!t.assignee&&me.indexOf(String(t.assignee).trim().toLowerCase())>-1;}
+function _taskAckCell(q,t,mine){
+  if(t.ackAt)return '<span style="color:#065f46;font-weight:700;white-space:nowrap" title="Confirmed by '+esc(t.ackBy||t.assignee||'')+' at '+esc(String(t.ackAt).replace('T',' ').slice(0,16))+'">✔ '+esc(String(t.ackAt).slice(0,10))+'</span>';
+  if(mine)return '<button class="btn btn-primary btn-sm" onclick="confirmTaskReceipt('+q.id+','+t.id+')">✔ Confirm receipt</button>';
+  return '<span class="muted" style="font-size:11px">Pending</span>';
+}
+function confirmTaskReceipt(qid,tid){
+  const q=(S.quotations||[]).find(x=>x.id==qid);if(!q)return;const t=(q.tasks||[]).find(x=>x.id==tid);if(!t||t.ackAt)return;
+  const d=new Date(),pad=n=>String(n).padStart(2,'0');
+  t.ackAt=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
+  const u=getCurrentUser();t.ackBy=(u&&u.name)||t.assignee||'';
+  save();
+  renderTasksPage(document.getElementById('page-teamtasks').classList.contains('active')?'teamtasks':'mytasks');
+  if(document.getElementById('qt-list')&&getQ()&&getQ().id==qid)renderQTasks();
+}
 function renderTasksPage(id){
   const team=id==='teamtasks';
   const user=getCurrentUser();
   if(team&&!isTasksAdmin()){document.getElementById('teamtasks-list').innerHTML='<div style="color:var(--muted);padding:30px;text-align:center">Admins only</div>';return;}
-  const me=_taskPeople();
   let rows=[];
   (S.quotations||[]).forEach(q=>{
     if(q.companyId&&q.companyId!==S.currentCompanyId)return;
@@ -3032,7 +3051,7 @@ function renderTasksPage(id){
     const names=[...new Set(rows.map(r=>r.t.assignee||'').filter(Boolean))].sort();
     sel.innerHTML='<option value="">All assignees</option>'+names.map(n=>`<option ${n===cur?'selected':''}>${esc(n)}</option>`).join('');
     if(sel.value)rows=rows.filter(r=>r.t.assignee===sel.value);
-  }else rows=rows.filter(r=>me.includes((r.t.assignee||'').toLowerCase()));
+  }else rows=rows.filter(r=>_isMyTask(r.t));
   const order={'To Do':0,'In Progress':1,'Done':2};
   rows.sort((a,b)=>(order[a.t.status]-order[b.t.status])||String(a.t.due||'9999').localeCompare(String(b.t.due||'9999')));
   const today=new Date().toISOString().slice(0,10);
@@ -3041,7 +3060,7 @@ function renderTasksPage(id){
   const el=document.getElementById(id+'-list');
   if(!rows.length){el.innerHTML='<div class="card" style="padding:40px;text-align:center;color:var(--muted)">No tasks'+(team?'':' assigned to you')+'.<br><span style="font-size:12px">Tasks are added from the Tasks tab inside a quotation.</span></div>';return;}
   const pc={High:'var(--red)',Medium:'var(--amber)',Low:'var(--muted)'};
-  el.innerHTML='<div class="card"><table style="width:100%"><thead><tr><th></th><th>Task</th>'+(team?'<th>Assignee</th>':'')+'<th>Quotation</th><th>Due</th><th>Priority</th><th>Status</th><th>Completed</th></tr></thead><tbody>'+
+  el.innerHTML='<div class="card"><table style="width:100%"><thead><tr><th></th><th>Task</th>'+(team?'<th>Assignee</th>':'')+'<th>Quotation</th><th>Due</th><th>Priority</th><th>Status</th><th>Receipt</th><th>Completed</th></tr></thead><tbody>'+
    rows.map(r=>{const t=r.t,q=r.q,done=t.status==='Done',od=!done&&t.due&&t.due<today;
     return `<tr style="${done?'opacity:.6':''}"><td><input type="checkbox" ${done?'checked':''} onchange="setTaskFromPage(${q.id},${t.id},this.checked?'Done':'To Do','${id}')"></td>
      <td style="${done?'text-decoration:line-through':''}">${esc(t.title)}</td>${team?`<td>${esc(t.assignee||'—')}</td>`:''}
@@ -3049,7 +3068,7 @@ function renderTasksPage(id){
      <td style="white-space:nowrap;${od?'color:var(--red);font-weight:700':''}">${esc(t.due||'—')}</td>
      <td style="color:${pc[t.priority]||'inherit'};font-weight:600">${esc(t.priority||'')}</td>
      <td><select onchange="setTaskFromPage(${q.id},${t.id},this.value,'${id}')">${['To Do','In Progress','Done'].map(x=>`<option ${t.status===x?'selected':''}>${x}</option>`).join('')}</select></td>
-     <td class="muted" style="font-size:11px">${esc(t.doneAt||'')}</td></tr>`;}).join('')+'</tbody></table></div>';
+     <td>${_taskAckCell(q,t,!team&&_isMyTask(t)||team&&_isMyTask(t))}</td><td class="muted" style="font-size:11px">${esc(t.doneAt||'')}</td></tr>`;}).join('')+'</tbody></table></div>';
 }
 function setTaskFromPage(qid,tid,status,page){
   const q=(S.quotations||[]).find(x=>x.id==qid);if(!q)return;const t=(q.tasks||[]).find(x=>x.id==tid);if(!t)return;
@@ -3073,7 +3092,7 @@ function renderQTasks(){
   const sm=document.getElementById('qt-summary');if(sm)sm.textContent=done+' / '+q.tasks.length+' done';
   const el=document.getElementById('qt-list');if(!el)return;
   if(!q.tasks.length){el.innerHTML='<div style="color:var(--muted);text-align:center;padding:18px;font-size:13px">No tasks yet</div>';return;}
-  el.innerHTML='<table style="width:100%"><thead><tr><th></th><th>Task</th><th>Assignee</th><th>Due</th><th>Priority</th><th>Status</th><th>Completed</th><th></th></tr></thead><tbody>'+
+  el.innerHTML='<table style="width:100%"><thead><tr><th></th><th>Task</th><th>Assignee</th><th>Due</th><th>Priority</th><th>Status</th><th>Receipt</th><th>Completed</th><th></th></tr></thead><tbody>'+
     q.tasks.map(t=>{
       const isDone=t.status==='Done';const od=!isDone&&t.due&&t.due<today;
       return `<tr style="${isDone?'opacity:.6':''}">
@@ -3083,6 +3102,7 @@ function renderQTasks(){
         <td style="${od?'color:var(--red);font-weight:700':''};white-space:nowrap"><input type="date" value="${esc(t.due||'')}" ${locked?'disabled':''} onchange="setQTask(${t.id},'due',this.value)"></td>
         <td style="color:${pc[t.priority]||'inherit'};font-weight:600">${esc(t.priority||'')}</td>
         <td><select ${locked?'disabled':''} onchange="setQTask(${t.id},'status',this.value)">${['To Do','In Progress','Done'].map(x=>`<option ${t.status===x?'selected':''}>${x}</option>`).join('')}</select></td>
+        <td>${_taskAckCell(q,t,_isMyTask(t))}</td>
         <td class="muted" style="font-size:11px;white-space:nowrap">${esc(t.doneAt||'')}</td>
         <td><button class="del-btn" ${locked?'disabled':''} onclick="deleteQTask(${t.id})">✕</button></td></tr>`;
     }).join('')+'</tbody></table>';
@@ -4980,10 +5000,15 @@ function duplicateQ(){
   save();renderQList();openQuotation(copy.id);
 }
 
+function canUnlock(){
+  const u=getCurrentUser();
+  if(u&&(u.role==='Admin'||u.role==='Manager'))return true;
+  return typeof isTasksAdmin==='function'&&isTasksAdmin();
+}
 function toggleLock(){
   const q=getQ();if(!q)return;
   const user=getCurrentUser();
-  if(!user||!(user.role==='Admin'||user.role==='Manager')){alert('Only Admin/Manager can unlock');return;}
+  if(!canUnlock()){alert('Only Admin/Manager can unlock');return;}
   q.locked=!q.locked;
   save();
   openQuotation(q.id);
@@ -5340,7 +5365,7 @@ function openQuotation(id){
   const lockBtn=document.getElementById('lock-btn');
   if(q.locked){
     lockBadge.style.display='inline-flex';
-    if(user&&(user.role==='Admin'||user.role==='Manager')){
+    if(canUnlock()){
       lockBtn.style.display='inline-block';
       lockBtn.textContent='🔓 Unlock';
     }else{
@@ -5348,7 +5373,7 @@ function openQuotation(id){
     }
   }else{
     lockBadge.style.display='none';
-    if(user&&(user.role==='Admin'||user.role==='Manager')){
+    if(canUnlock()){
       lockBtn.style.display='inline-block';
       lockBtn.textContent='🔒 Lock';
     }else{
@@ -7565,7 +7590,7 @@ function exportCostSellPDF(){
   .info-table .value{width:20%}
 
   .split-layout{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed}
-  .split-layout>tr>td{vertical-align:top;padding:0}
+  .split-layout>tr>td,.split-layout>tbody>tr>td{vertical-align:top!important;padding:0}
   .split-half{width:50%}
   .split-half:first-child{padding-right:10px!important}
   .split-half:last-child{padding-left:10px!important}
