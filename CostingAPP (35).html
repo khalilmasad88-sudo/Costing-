@@ -3022,7 +3022,16 @@ function _taskPeople(){
   const pu=window.PortalBridge&&window.PortalBridge.user;if(pu){add(pu.name);add(pu.email);}
   return out;
 }
-function _isMyTask(t){const me=_taskPeople();return !!t.assignee&&me.indexOf(String(t.assignee).trim().toLowerCase())>-1;}
+function _isMyTask(t){
+  const me=_taskPeople();const a=String(t.assignee||'').trim().toLowerCase();
+  if(!a)return false;
+  if(me.indexOf(a)>-1)return true;
+  // resolve the Teams & Members entry for this assignee and compare its email / name with the current user
+  const m=((S.settings&&S.settings.quotationEditors)||[]).find(e=>String(e.name||'').trim().toLowerCase()===a);
+  if(m&&m.email&&me.indexOf(String(m.email).trim().toLowerCase())>-1)return true;
+  if(t.assigneeEmail&&me.indexOf(String(t.assigneeEmail).trim().toLowerCase())>-1)return true;
+  return false;
+}
 function _taskAckCell(q,t,mine){
   if(t.ackAt)return '<span style="color:#065f46;font-weight:700;white-space:nowrap" title="Confirmed by '+esc(t.ackBy||t.assignee||'')+' at '+esc(String(t.ackAt).replace('T',' ').slice(0,16))+'">✔ '+esc(String(t.ackAt).slice(0,10))+'</span>';
   if(mine)return '<button class="btn btn-primary btn-sm" onclick="confirmTaskReceipt('+q.id+','+t.id+')">✔ Confirm receipt</button>';
@@ -3062,8 +3071,8 @@ function renderTasksPage(id){
   const pc={High:'var(--red)',Medium:'var(--amber)',Low:'var(--muted)'};
   el.innerHTML='<div class="card"><table style="width:100%"><thead><tr><th></th><th>Task</th>'+(team?'<th>Assignee</th>':'')+'<th>Quotation</th><th>Due</th><th>Priority</th><th>Status</th><th>Receipt</th><th>Completed</th></tr></thead><tbody>'+
    rows.map(r=>{const t=r.t,q=r.q,done=t.status==='Done',od=!done&&t.due&&t.due<today;
-    return `<tr style="${done?'opacity:.6':''}"><td><input type="checkbox" ${done?'checked':''} onchange="setTaskFromPage(${q.id},${t.id},this.checked?'Done':'To Do','${id}')"></td>
-     <td style="${done?'text-decoration:line-through':''}">${esc(t.title)}</td>${team?`<td>${esc(t.assignee||'—')}</td>`:''}
+    return `<tr style="${done?'background:rgba(16,185,129,.10);border-left:3px solid #10b981':''}"><td><input type="checkbox" ${done?'checked':''} onchange="setTaskFromPage(${q.id},${t.id},this.checked?'Done':'To Do','${id}')"></td>
+     <td>${done?'<span style="display:inline-block;margin-right:6px;padding:1px 8px;border-radius:10px;background:#d1fae5;color:#065f46;font-size:10px;font-weight:700;white-space:nowrap">✔ Completed</span>':''}<span style="${done?'text-decoration:line-through':''}">${esc(t.title)}</span></td>${team?`<td>${esc(t.assignee||'—')}</td>`:''}
      <td><a style="cursor:pointer;color:var(--accent)" onclick="showPage('quotation');openQuotation(${q.id})">${esc(q.num||q.project||'Untitled')}</a>${q.status==='Value Engineering'?' <span style="font-size:10px;color:#0e7490">VE</span>':''}<div class="muted" style="font-size:11px">${esc(q.project||'')}</div></td>
      <td style="white-space:nowrap;${od?'color:var(--red);font-weight:700':''}">${esc(t.due||'—')}</td>
      <td style="color:${pc[t.priority]||'inherit'};font-weight:600">${esc(t.priority||'')}</td>
@@ -3082,7 +3091,7 @@ function renderQTasks(){
   const locked=!canEdit();
   const sel=document.getElementById('qt-assignee');
   if(sel){
-    const names=[...new Set([...(S.users||[]).map(u=>u.name||u.email),...((S.settings&&S.settings.quotationEditors)||[]).map(e=>e.name)].filter(Boolean))];
+    const names=[...new Set(((S.settings&&S.settings.quotationEditors)||[]).map(e=>(e.name||'').trim()).filter(Boolean))];
     const cur=sel.value;
     sel.innerHTML='<option value="">— assignee —</option>'+names.map(n=>`<option ${n===cur?'selected':''}>${esc(n)}</option>`).join('');
   }
@@ -3095,9 +3104,9 @@ function renderQTasks(){
   el.innerHTML='<table style="width:100%"><thead><tr><th></th><th>Task</th><th>Assignee</th><th>Due</th><th>Priority</th><th>Status</th><th>Receipt</th><th>Completed</th><th></th></tr></thead><tbody>'+
     q.tasks.map(t=>{
       const isDone=t.status==='Done';const od=!isDone&&t.due&&t.due<today;
-      return `<tr style="${isDone?'opacity:.6':''}">
+      return `<tr style="${isDone?'background:rgba(16,185,129,.10);border-left:3px solid #10b981':''}">
         <td><input type="checkbox" ${isDone?'checked':''} ${locked?'disabled':''} onchange="setQTask(${t.id},'status',this.checked?'Done':'To Do')"></td>
-        <td style="font-size:14px;${isDone?'text-decoration:line-through':''}"><input value="${esc(t.title)}" style="width:100%;min-width:160px" ${locked?'disabled':''} onchange="setQTask(${t.id},'title',this.value)"></td>
+        <td style="font-size:14px;${isDone?'text-decoration:line-through':''}">${isDone?'<span style="display:inline-block;margin-right:6px;padding:1px 8px;border-radius:10px;background:#d1fae5;color:#065f46;font-size:10px;font-weight:700;white-space:nowrap">✔ Completed</span>':''}<input value="${esc(t.title)}" style="width:100%;min-width:160px" ${locked?'disabled':''} onchange="setQTask(${t.id},'title',this.value)"></td>
         <td>${esc(t.assignee||'—')}</td>
         <td style="${od?'color:var(--red);font-weight:700':''};white-space:nowrap"><input type="date" value="${esc(t.due||'')}" ${locked?'disabled':''} onchange="setQTask(${t.id},'due',this.value)"></td>
         <td style="color:${pc[t.priority]||'inherit'};font-weight:600">${esc(t.priority||'')}</td>
@@ -3111,7 +3120,7 @@ function addQTask(){
   const q=getQ();if(!q||!canEdit())return;if(!q.tasks)q.tasks=[];
   const ti=document.getElementById('qt-title');const title=(ti.value||'').trim();if(!title){ti.focus();return;}
   const u=getCurrentUser();
-  q.tasks.push({id:Date.now()+Math.floor(Math.random()*1000),title,assignee:document.getElementById('qt-assignee').value,due:document.getElementById('qt-due').value,priority:document.getElementById('qt-priority').value,status:'To Do',createdAt:new Date().toISOString().slice(0,10),createdBy:u?(u.name||u.email):''});
+  q.tasks.push({id:Date.now()+Math.floor(Math.random()*1000),title,assignee:document.getElementById('qt-assignee').value,assigneeEmail:((((S.settings&&S.settings.quotationEditors)||[]).find(e=>(e.name||'').trim()===document.getElementById('qt-assignee').value)||{}).email||''),due:document.getElementById('qt-due').value,priority:document.getElementById('qt-priority').value,status:'To Do',createdAt:new Date().toISOString().slice(0,10),createdBy:u?(u.name||u.email):''});
   ti.value='';document.getElementById('qt-due').value='';
   save();renderQTasks();
 }
