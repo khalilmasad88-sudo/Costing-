@@ -338,6 +338,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
     <div class="nav-group" style="--sec-color:#5b7fb5">
       <div class="nav-section">Overview</div>
       <div class="nav-item active" onclick="showPage('dashboard')" data-page="dashboard"><span class="icon">📊</span> Dashboard</div>
+      <div class="nav-item" onclick="showPage('cashflow')" data-page="cashflow"><span class="icon">💵</span> Cashflow</div>
     </div>
     <div class="nav-group" style="--sec-color:#5fa87a">
       <div class="nav-section">Pricing</div>
@@ -345,7 +346,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
       <div class="nav-item" onclick="showPage('quotation')" data-page="quotation"><span class="icon">📄</span> Quotations</div>
       <div class="nav-item" onclick="showPage('mytasks')" data-page="mytasks"><span class="icon">✅</span> My Tasks</div>
       <div class="nav-item hidden" onclick="showPage('teamtasks')" data-page="teamtasks" id="nav-teamtasks"><span class="icon">👥</span> Team Tasks</div>
-      <div class="nav-item" onclick="showPage('design')" data-page="design"><span class="icon">📐</span> Design</div>
+      <div class="nav-item" onclick="showPage('design')" data-page="design"><span class="icon">📐</span> Price List</div>
     </div>
     <div class="nav-group" style="--sec-color:#9c8fc4">
       <div class="nav-section">Value Engineering</div>
@@ -384,7 +385,8 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
   <!-- DASHBOARD -->
   <div class="page active" id="page-dashboard">
 
-    <div style="display:flex;justify-content:flex-end;align-items:center;padding:0 0 12px">
+    <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:0 0 12px">
+      <button class="btn btn-primary btn-sm no-print" onclick="printDashboard()">🖨 Print</button>
       <select id="dash-year-filter" onchange="updateDashboard()" style="font-size:13px;padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text)">
         <option value="">All Years</option>
       </select>
@@ -670,6 +672,21 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
   </div>
 </div>
 
+<!-- ══════════════ CASHFLOW PAGE ══════════════ -->
+<div class="page" id="page-cashflow">
+  <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px 0"><div><div class="page-title">💵 Cashflow</div><div class="page-subtitle">PO payments and expected collections across all projects</div></div><button class="btn btn-primary btn-sm no-print" onclick="printCashflow()">🖨 Print</button></div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;padding:14px 24px 0;font-size:12px">
+    <label>From<br><input type="date" id="cfa-from" onchange="renderCashflowPage()"></label>
+    <label>To<br><input type="date" id="cfa-to" onchange="renderCashflowPage()"></label>
+    <label>Project<br><select id="cfa-project" onchange="renderCashflowPage()" style="min-width:160px"><option value="">All projects</option></select></label>
+    <label>Vendor<br><select id="cfa-vendor" onchange="renderCashflowPage()" style="min-width:140px"><option value="">All vendors</option></select></label>
+    <button class="btn btn-ghost btn-sm" onclick="['cfa-from','cfa-to','cfa-project','cfa-vendor'].forEach(i=>document.getElementById(i).value='');renderCashflowPage()">✕ Clear</button>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:16px 24px 0" id="cfa-stats"></div>
+  <div style="padding:16px 24px"><div class="card"><div class="card-header"><div class="card-title">Monthly Cash Flow</div></div><div class="card-body"><div class="chart-container" style="height:320px"><canvas id="chart-cashflow-all"></canvas></div></div></div></div>
+  <div style="padding:0 24px 24px"><div class="card"><div class="card-header"><div class="card-title">Details</div></div><div class="card-body"><div class="table-wrap"><table id="cfa-table"><thead><tr><th>Date</th><th>Project</th><th>Quotation</th><th>PO / Supplier</th><th style="text-align:right">Payment</th><th style="text-align:right">Collection</th><th style="text-align:right">Net Cumulative</th></tr></thead><tbody></tbody></table></div></div></div></div>
+</div>
+
 <!-- ══════════════ TASKS PAGES ══════════════ -->
 <div class="page" id="page-mytasks">
   <div class="page-header" style="padding:20px 24px 0"><div class="page-title">✅ My Tasks</div><div class="page-subtitle" id="mytasks-sub">Tasks assigned to you across all quotations</div></div>
@@ -685,51 +702,44 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
 <div class="page" id="page-design">
   <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px 0">
     <div>
-      <div class="page-title">📐 Design</div>
-      <div class="page-subtitle" style="font-size:12px;color:var(--muted);margin-top:2px">Quantity takeoff & BOQ builder for technical systems — independent of Pipeline/Quotations</div>
+      <div class="page-title">📐 Price List</div>
+      <div class="page-subtitle" style="font-size:12px;color:var(--muted);margin-top:2px">Item prices from quotations · Quick BOQ's</div>
     </div>
   </div>
 
   <div class="tabs" style="margin:16px 24px 0">
     <div class="tab active" id="design-tab-pricelist" onclick="switchDesignTab('pricelist')">📋 Price List</div>
-    <div class="tab" id="design-tab-docs" onclick="switchDesignTab('docs')">📐 Design Documents</div>
+    <div class="tab" id="design-tab-docs" onclick="switchDesignTab('docs')">📋 Quick BOQ's</div>
   </div>
 
   <!-- PRICE LIST SUB-TAB -->
   <div id="design-sub-pricelist" style="padding:16px 24px">
     <div class="card">
       <div class="card-header" style="flex-wrap:wrap;gap:8px">
-        <div class="card-title">Price List</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <select id="design-pricelist-filter-cat" style="font-size:12px" onchange="onPriceListFilterCatChange()">
-            <option value="">All Categories</option>
-          </select>
-          <select id="design-pricelist-filter-sub" style="font-size:12px" onchange="filterPriceList()">
-            <option value="">All Sub-systems</option>
-          </select>
-          <input id="design-pricelist-search" placeholder="🔍 Search part #, description, brand..." style="width:230px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-size:12px" oninput="filterPriceList()">
-          <button class="btn btn-ghost btn-sm" onclick="downloadPriceListTemplate()">⬇ Template</button>
-          <button class="btn btn-ghost btn-sm" onclick="importPriceListOnly()">⬆ Import</button>
-          <button class="btn btn-ghost btn-sm" onclick="exportPriceListExcel()">⬇ Export</button>
-          <button class="btn btn-primary btn-sm" onclick="addPriceItem()">+ Add Item</button>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input id="design-pricelist-search-pn" placeholder="🔍 Part #" style="width:130px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 10px;font-size:12px" oninput="renderDesignPriceList()">
+          <input id="design-pricelist-search-desc" placeholder="🔍 Description" style="width:220px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 10px;font-size:12px" oninput="renderDesignPriceList()">
+          <input id="design-pricelist-search-vendor" placeholder="🔍 Vendor" style="width:150px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 10px;font-size:12px" oninput="renderDesignPriceList()">
+          <button class="btn btn-ghost btn-sm" onclick="['design-pricelist-search-pn','design-pricelist-search-desc','design-pricelist-search-vendor'].forEach(i=>document.getElementById(i).value='');renderDesignPriceList()">✕ Clear</button>
+          <button class="btn btn-ghost btn-sm" onclick="openManualItem()">+ Item</button>
+          <button class="btn btn-primary btn-sm" id="design-qboq-btn" onclick="createQuickBOQ()">📋 Quick BOQ</button>
         </div>
       </div>
       <div class="card-body">
+        <div id="design-qboq-banner"></div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Part #</th><th>Description</th><th>Category</th><th>Sub-system</th><th>Type 2</th><th>Type</th><th>Unit</th><th>Unit Price</th><th>Brand</th><th>Distributor</th><th>Date Modified</th><th class="no-print"></th></tr></thead>
+            <thead><tr><th style="width:150px">Select / Qty</th><th>Part #</th><th>Description</th><th>Vendor</th><th>Unit</th><th style="text-align:right">Unit Price</th><th>Quotation</th><th>Date</th></tr></thead>
             <tbody id="design-pricelist-tbody"></tbody>
           </table>
         </div>
+        <div id="design-pricelist-count" style="font-size:11px;color:var(--muted);padding:8px 2px 0"></div>
       </div>
     </div>
   </div>
 
   <!-- DESIGN DOCUMENTS SUB-TAB -->
   <div id="design-sub-docs" style="padding:16px 24px;display:none">
-    <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
-      <button class="btn btn-primary btn-sm" onclick="newDesignDoc()">+ New Design</button>
-    </div>
     <div id="design-docs-list"></div>
   </div>
 </div>
@@ -2315,10 +2325,11 @@ function applyUser(){
 // ── Page Access control (mirrors PM_APP's per-user page permissions) ──
 const ALL_PAGES=[
   {id:'dashboard',label:'Dashboard',icon:'📊'},
+  {id:'cashflow',label:'Cashflow',icon:'💵'},
   {id:'pipeline',label:'Pipeline',icon:'🔄'},
   {id:'quotation',label:'Quotations',icon:'📄'},
   {id:'boq',label:'BOQ',icon:'📐'},
-  {id:'design',label:'Design',icon:'📐'},
+  {id:'design',label:'Price List',icon:'📐'},
   {id:'ve',label:'Value Engineering',icon:'🏗️'},
   {id:'bizdev',label:'Business Development',icon:'📈'},
   {id:'users',label:'Users',icon:'👤'},
@@ -2326,7 +2337,7 @@ const ALL_PAGES=[
 ];
 const ACCESS_PRESETS={
   admin:    ALL_PAGES.map(p=>p.id),
-  manager:  ['dashboard','pipeline','quotation','boq','design','ve','bizdev'],
+  manager:  ['dashboard','cashflow','pipeline','quotation','boq','design','ve','bizdev'],
   presales: ['dashboard','pipeline','quotation','boq','design','ve'],
   sales:    ['dashboard','pipeline','quotation'],
   finance:  ['dashboard','quotation'],
@@ -2518,7 +2529,7 @@ function changeMyPassword(){
 }
 
 // Navigation & Pages
-const PAGE_TITLES={mytasks:'My <span>Tasks</span>',teamtasks:'Team <span>Tasks</span>',dashboard:'Dashboard <span>Overview</span>',pipeline:'Pipeline <span>2026</span>',quotation:'Quotations <span>per Project</span>',boq:'Bill of <span>Quantity</span>',design:'Design <span>Quantity Takeoff</span>',ve:'Value Engineering <span>Won Projects</span>',bizdev:'Business Development <span>Business Lines</span>',settings:'Settings <span>& Config</span>'};
+const PAGE_TITLES={cashflow:'Cash<span>flow</span>',mytasks:'My <span>Tasks</span>',teamtasks:'Team <span>Tasks</span>',dashboard:'Dashboard <span>Overview</span>',pipeline:'Pipeline <span>2026</span>',quotation:'Quotations <span>per Project</span>',boq:'Bill of <span>Quantity</span>',design:'Price <span>List</span>',ve:'Value Engineering <span>Won Projects</span>',bizdev:'Business Development <span>Business Lines</span>',settings:'Settings <span>& Config</span>'};
 
 // ══════════════════════════════════════════════════════════
 // VALUE ENGINEERING
@@ -2950,6 +2961,7 @@ function showPage(id){
   if(typeof closeMobileSidebar==='function') closeMobileSidebar();
   if(id==='ve') renderVE();
   if(id==='mytasks'||id==='teamtasks') renderTasksPage(id);
+  if(id==='cashflow') renderCashflowPage();
   if(id==='design'){ renderDesignPriceList(); renderDesignDocsList(); }
   if(id==='bizdev'){ renderBizSystems(); }
   if(id==='settings'){ renderUsersList(); }
@@ -3015,6 +3027,80 @@ function applyVETabs(q){
   });
   const pp=document.getElementById('profit-pct');if(pp)pp.disabled=ve;
 }
+// ── Cashflow page (all projects) ──
+var _cfaChart=null;
+function renderCashflowPage(){
+  const g=i=>document.getElementById(i);if(!g('cfa-from'))return;
+  const f={from:g('cfa-from').value,to:g('cfa-to').value,project:g('cfa-project').value,vendor:g('cfa-vendor').value};
+  const all=[];
+  (S.quotations||[]).forEach(q=>{
+    if(q.companyId&&q.companyId!==S.currentCompanyId)return;
+    const proj=q.project||q.num||'Untitled';
+    Object.entries(q.vendorPO||{}).forEach(([v,po])=>(po.payments||[]).forEach(p=>{if(+p.amount)all.push({kind:'out',due:p.due||'',amount:+p.amount,project:proj,qnum:q.num||'',vendor:v,label:(po.poNumber||'')+' · '+(po.supplier||v)});}));
+    (q.collections||[]).forEach(c=>{if(+c.amount)all.push({kind:'in',due:c.date||'',amount:+c.amount,project:proj,qnum:q.num||'',vendor:'',label:'Collection'+(c.note?' · '+c.note:'')});});
+  });
+  // fill selects (keep selection)
+  const fill=(id,vals,first)=>{const el=g(id),cur=el.value;el.innerHTML='<option value="">'+first+'</option>'+vals.map(v=>'<option'+(v===cur?' selected':'')+'>'+esc(v)+'</option>').join('');el.value=cur;};
+  fill('cfa-project',[...new Set(all.map(r=>r.project))].sort(),'All projects');
+  fill('cfa-vendor',[...new Set(all.map(r=>r.vendor).filter(Boolean))].sort(),'All vendors');
+  f.project=g('cfa-project').value;f.vendor=g('cfa-vendor').value;
+  const rows=all.filter(r=>(!f.project||r.project===f.project)&&(!f.vendor||(r.kind==='out'&&r.vendor===f.vendor))&&(!f.from||(r.due&&r.due>=f.from))&&(!f.to||(r.due&&r.due<=f.to)));
+  rows.sort((a,b)=>String(a.due||'9999').localeCompare(String(b.due||'9999')));
+  let cum=0;rows.forEach(r=>{cum+=r.kind==='in'?r.amount:-r.amount;r.cum=cum;});
+  const totOut=rows.filter(r=>r.kind==='out').reduce((s,r)=>s+r.amount,0),totIn=rows.filter(r=>r.kind==='in').reduce((s,r)=>s+r.amount,0),net=totIn-totOut;
+  g('cfa-stats').innerHTML=[['Total Payments',totOut,'var(--red)'],['Total Collections',totIn,'var(--green)'],['Net',net,net<0?'var(--red)':'var(--green)']].map(x=>'<div class="card" style="padding:14px 16px"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600">'+x[0]+'</div><div style="font-size:20px;font-weight:700;font-family:var(--mono);color:'+x[2]+'">'+fmt(x[1])+'</div></div>').join('');
+  // monthly buckets (min 6 months)
+  const MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const dated=rows.filter(r=>/^\d{4}-\d{2}/.test(r.due)),now=new Date();
+  const y=dated.length?+dated[0].due.slice(0,4):now.getFullYear(),m=dated.length?+dated[0].due.slice(5,7)-1:now.getMonth();
+  const last=dated.length?dated[dated.length-1].due:'',ly=last?+last.slice(0,4):y,lm=last?+last.slice(5,7)-1:m;
+  const span=Math.max(12,(ly-y)*12+(lm-m)+1),keys=[],labels=[];
+  for(let i=0;i<span;i++){const yy=y+Math.floor((m+i)/12),mm=(m+i)%12;keys.push(yy+'-'+String(mm+1).padStart(2,'0'));labels.push(MN[mm]+' '+yy);}
+  const out=keys.map(()=>0),inn=keys.map(()=>0);
+  dated.forEach(r=>{const i=keys.indexOf(r.due.slice(0,7));if(i>-1)(r.kind==='in'?inn:out)[i]+=r.amount;});
+  const und=rows.filter(r=>!/^\d{4}-\d{2}/.test(r.due));
+  if(und.length){labels.push('No date');out.push(und.filter(r=>r.kind==='out').reduce((s,r)=>s+r.amount,0));inn.push(und.filter(r=>r.kind==='in').reduce((s,r)=>s+r.amount,0));}
+  let c=0;const cumd=out.map((v,i)=>c+=inn[i]-v);
+  if(_cfaChart){try{_cfaChart.destroy();}catch(e){}}
+  if(typeof Chart!=='undefined'){
+    _cfaChart=new Chart(g('chart-cashflow-all'),{data:{labels,datasets:[
+      {type:'bar',label:'Payments',data:out,backgroundColor:'#3b82f6',order:2},
+      {type:'bar',label:'Collections',data:inn,backgroundColor:'#22c55e',order:2},
+      {type:'line',label:'Net Cumulative',data:cumd,borderColor:'#f59e0b',backgroundColor:'#f59e0b',tension:.2,order:1}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'var(--text2)',font:{size:11}}}},scales:{y:{beginAtZero:false}}}});
+  }
+  window._cfaLast={rows,totOut,totIn,net,f};
+  g('cfa-table').querySelector('tbody').innerHTML=rows.length?rows.map(r=>`<tr style="${r.kind==='in'?'background:rgba(34,197,94,.08)':''}"><td style="white-space:nowrap">${esc(r.due||'—')}</td><td>${esc(r.project)}</td><td class="muted">${esc(r.qnum)}</td><td>${esc(r.label)}</td><td class="num" style="color:var(--red)">${r.kind==='out'?fmt(r.amount):''}</td><td class="num" style="color:var(--green)">${r.kind==='in'?fmt(r.amount):''}</td><td class="num" style="${r.cum<0?'color:var(--red)':''}">${fmt(r.cum)}</td></tr>`).join('')+`<tr style="font-weight:700"><td colspan="4">Total</td><td class="num">${fmt(totOut)}</td><td class="num">${fmt(totIn)}</td><td class="num">${fmt(net)}</td></tr>`:'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:18px">No payments or collections yet. Issue POs (Value Engineering ▸ Cost-Sell) and add collections to see the cash flow.</td></tr>';
+}
+
+function printCashflow(){
+  const d=window._cfaLast;if(!d){renderCashflowPage();}
+  const L=window._cfaLast;if(!L)return;
+  const co=getCurrentCompany()||{};
+  const colors=co.pdfColors||{tableHeader:'#3B82F6',tableHeaderText:'#FFFFFF'};
+  const branding=co.branding||{logo:''};
+  const logoHtml=branding.logo?`<img src="${branding.logo}" style="max-height:50px">`:`<div style="font-size:20pt;font-weight:700;color:${colors.tableHeader}">FUTURE TAG</div>`;
+  let img='';try{const c=document.getElementById('chart-cashflow-all');if(c)img=c.toDataURL('image/png');}catch(e){}
+  const f=L.f,fl=[f.project&&('Project: '+f.project),f.vendor&&('Vendor: '+f.vendor),f.from&&('From: '+f.from),f.to&&('To: '+f.to)].filter(Boolean).join(' · ')||'All projects';
+  const body=`<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid ${colors.tableHeader};padding-bottom:10px;margin-bottom:12px">${logoHtml}<div style="text-align:right"><div style="font-size:16pt;font-weight:700;color:${colors.tableHeader}">PROJECT CASHFLOW</div><div style="font-size:9pt;color:#555">${new Date().toISOString().slice(0,10)} · ${esc(fl)}</div></div></div>
+  <table class="t" style="margin-bottom:12px"><tr><th>Total Payments</th><th>Total Collections</th><th>Net</th></tr><tr><td>${fmtN(L.totOut)}</td><td>${fmtN(L.totIn)}</td><td><b>${fmtN(L.net)}</b></td></tr></table>
+  ${img?`<div style="text-align:center;margin-bottom:12px"><img src="${img}" style="max-width:100%;max-height:300px"></div>`:''}
+  <table class="t"><thead><tr><th style="width:80px">Date</th><th>Project</th><th>Quotation</th><th>PO / Supplier</th><th style="width:80px">Payment</th><th style="width:80px">Collection</th><th style="width:85px">Net Cum.</th></tr></thead><tbody>
+  ${L.rows.map(r=>`<tr${r.kind==='in'?' style="background:#ecfdf5"':''}><td style="white-space:nowrap">${esc(r.due||'—')}</td><td>${esc(r.project)}</td><td>${esc(r.qnum)}</td><td>${esc(r.label)}</td><td class="n">${r.kind==='out'?fmtN(r.amount):''}</td><td class="n">${r.kind==='in'?fmtN(r.amount):''}</td><td class="n">${fmtN(r.cum)}</td></tr>`).join('')||'<tr><td colspan="7">No data</td></tr>'}
+  <tr style="font-weight:700"><td colspan="4">Total</td><td class="n">${fmtN(L.totOut)}</td><td class="n">${fmtN(L.totIn)}</td><td class="n">${fmtN(L.net)}</td></tr></tbody></table>`;
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Cashflow</title><style>
+  @page{size:A4 landscape;margin:0}
+  *{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  body{font-family:'Calibri',Arial,sans-serif;font-size:10pt;color:#000;margin:0;padding:10mm;background:#fff}
+  .t{width:100%;border-collapse:collapse}
+  .t th{background:${colors.tableHeader};color:${colors.tableHeaderText};padding:2px 6px;border:1px solid ${colors.tableHeader};font-size:8.5pt;height:25px}
+  .t td{padding:2px 6px;border:1px solid #ddd;font-size:8.5pt;height:25px;text-align:left}
+  .t td.n{text-align:right;font-family:Consolas,monospace}
+  .t tr{page-break-inside:avoid}
+  </style></head><body>${body}</body></html>`;
+  __printViaBlob(html);
+}
+
 // ── My Tasks / Team Tasks pages ──
 function _taskPeople(){
   const out=[];const add=x=>{if(x){x=String(x).trim().toLowerCase();if(x&&out.indexOf(x)<0)out.push(x);}};
@@ -3022,14 +3108,28 @@ function _taskPeople(){
   const pu=window.PortalBridge&&window.PortalBridge.user;if(pu){add(pu.name);add(pu.email);}
   return out;
 }
+function _normName(x){return String(x||'').toLowerCase().replace(/[\u064B-\u0652\u0640]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/[^\p{L}\p{N}@.]+/gu,' ').trim();}
+function _sameName(a,b){
+  a=_normName(a);b=_normName(b);if(!a||!b)return false;if(a===b)return true;
+  const ta=a.split(' '),tb=b.split(' ');const sh=ta.length<=tb.length?ta:tb,lg=ta.length<=tb.length?tb:ta;
+  return sh.length>=2&&sh.every(w=>lg.indexOf(w)>-1);   // e.g. "Ahmed Ali" ⊂ "Ahmed Mohammed Ali"
+}
+function _myIdentity(){
+  const names=[],emails=[];const add=(n,e)=>{if(n&&names.indexOf(n)<0)names.push(n);if(e){e=String(e).trim().toLowerCase();if(emails.indexOf(e)<0)emails.push(e);}};
+  const u=getCurrentUser();if(u)add(u.name,u.email);
+  const pu=window.PortalBridge&&window.PortalBridge.user;if(pu)add(pu.name,pu.email);
+  return {names,emails};
+}
 function _isMyTask(t){
-  const me=_taskPeople();const a=String(t.assignee||'').trim().toLowerCase();
-  if(!a)return false;
-  if(me.indexOf(a)>-1)return true;
-  // resolve the Teams & Members entry for this assignee and compare its email / name with the current user
-  const m=((S.settings&&S.settings.quotationEditors)||[]).find(e=>String(e.name||'').trim().toLowerCase()===a);
-  if(m&&m.email&&me.indexOf(String(m.email).trim().toLowerCase())>-1)return true;
-  if(t.assigneeEmail&&me.indexOf(String(t.assigneeEmail).trim().toLowerCase())>-1)return true;
+  const a=String(t.assignee||'').trim();if(!a&&!t.assigneeEmail)return false;
+  const id=_myIdentity();
+  const em=x=>String(x||'').trim().toLowerCase();
+  if(t.assigneeEmail&&id.emails.indexOf(em(t.assigneeEmail))>-1)return true;
+  const m=((S.settings&&S.settings.quotationEditors)||[]).find(e=>_sameName(e.name,a));
+  if(m&&m.email&&id.emails.indexOf(em(m.email))>-1)return true;
+  // a member that is the same person as me (by name) - covers members saved without an email
+  if(id.names.some(n=>_sameName(n,a)))return true;
+  if(m&&id.names.some(n=>_sameName(n,m.name)))return true;
   return false;
 }
 function _taskAckCell(q,t,mine){
@@ -3066,6 +3166,7 @@ function renderTasksPage(id){
   const today=new Date().toISOString().slice(0,10);
   const open=rows.filter(r=>r.t.status!=='Done').length;
   document.getElementById(id+'-sub').textContent=open+' open · '+rows.length+' total';
+  if(!team){const idn=_myIdentity();document.getElementById(id+'-sub').textContent+=' · signed in as '+(idn.names[0]||idn.emails[0]||'unknown user')+(idn.emails[0]?' ('+idn.emails[0]+')':'');}
   const el=document.getElementById(id+'-list');
   if(!rows.length){el.innerHTML='<div class="card" style="padding:40px;text-align:center;color:var(--muted)">No tasks'+(team?'':' assigned to you')+'.<br><span style="font-size:12px">Tasks are added from the Tasks tab inside a quotation.</span></div>';return;}
   const pc={High:'var(--red)',Medium:'var(--amber)',Low:'var(--muted)'};
@@ -3306,6 +3407,7 @@ function exportWonProjectsPDF(){
   .qtn-date{font-size:10pt;color:#666}
   .section{margin-bottom:25px}
   .price-table{width:100%;border-collapse:collapse}
+  .price-table th,.price-table td{height:25px;padding-top:2px!important;padding-bottom:2px!important;line-height:1.25;vertical-align:middle}
   .price-table th{background:${colors.tableHeader};color:${colors.tableHeaderText};padding:10px 8px;text-align:center;font-weight:700;border:1px solid ${colors.tableHeader}}
   .price-table td{padding:8px;border:1px solid #ddd;text-align:center;font-size:10pt}
   .price-table tbody tr:nth-child(even){background:#f9f9f9}
@@ -3464,6 +3566,7 @@ function exportLostProjectsPDF(){
   .qtn-date{font-size:9pt;color:#666}
   .section{margin-bottom:25px}
   .price-table{width:100%;border-collapse:collapse}
+  .price-table th,.price-table td{height:25px;padding-top:2px!important;padding-bottom:2px!important;line-height:1.25;vertical-align:middle}
   .price-table th{background:${colors.tableHeader};color:${colors.tableHeaderText};padding:6px;text-align:center;font-weight:700;border:1px solid ${colors.tableHeader};font-size:8pt}
   .price-table td{padding:6px;border:1px solid #ddd;text-align:center;font-size:8pt}
   .price-table tbody tr:nth-child(even){background:#f9f9f9}
@@ -3497,6 +3600,34 @@ function populateDashboardYearFilter(){
     sel.dataset.built=optionsHtml;
     sel.value=sortedYears.map(String).includes(current)?current:'';
   }
+}
+
+function printDashboard(){
+  const page=document.getElementById('page-dashboard');if(!page)return;
+  const co=getCurrentCompany()||{};
+  const colors=co.pdfColors||{tableHeader:'#3B82F6'};
+  const branding=co.branding||{logo:''};
+  const logoHtml=branding.logo?`<img src="${branding.logo}" style="max-height:44px">`:`<div style="font-size:18pt;font-weight:700;color:${colors.tableHeader}">FUTURE TAG</div>`;
+  const clone=page.cloneNode(true);
+  // live canvases -> images
+  const src=page.querySelectorAll('canvas'),dst=clone.querySelectorAll('canvas');
+  dst.forEach((c,i)=>{try{const img=document.createElement('img');img.src=src[i].toDataURL('image/png');img.style.cssText='max-width:100%;height:auto;max-height:'+Math.max(120,src[i].clientHeight)+'px';c.parentNode.replaceChild(img,c);}catch(e){c.remove();}});
+  clone.querySelectorAll('.no-print,button,#dash-year-filter').forEach(e=>e.remove());
+  clone.querySelectorAll('[onclick]').forEach(e=>{e.removeAttribute('onclick');e.style.cursor='default';});
+  clone.querySelectorAll('[style*="overflow-y"],[style*="max-height"]').forEach(e=>{e.style.maxHeight='none';e.style.overflow='visible';});
+  clone.classList.add('active');clone.style.display='block';
+  const yr=(document.getElementById('dash-year-filter')||{}).value||'All Years';
+  const css=[...document.querySelectorAll('style')].map(x=>x.textContent).join('\n');
+  const html=`<!DOCTYPE html><html class="light"><head><meta charset="UTF-8"><title>Dashboard</title><style>${css}</style><style>
+  @page{size:A4 landscape;margin:0}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  html,body{background:#fff!important;color:#111;height:auto!important;overflow:visible!important}
+  body{display:block!important;padding:10mm!important;margin:0!important;font-family:'Calibri',Arial,sans-serif}
+  .page,.page *{animation:none!important;transition:none!important}
+  .page{display:block!important;opacity:1!important;padding:0!important;height:auto!important;overflow:visible!important}
+  .card,.stat-card{break-inside:avoid;page-break-inside:avoid}
+  </style></head><body><div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid ${colors.tableHeader};padding-bottom:8px;margin-bottom:12px">${logoHtml}<div style="text-align:right"><div style="font-size:15pt;font-weight:700;color:${colors.tableHeader}">DASHBOARD OVERVIEW</div><div style="font-size:9pt;color:#555">${new Date().toISOString().slice(0,10)} · ${esc(yr)}</div></div></div>${clone.outerHTML}</body></html>`;
+  __printViaBlob(html);
 }
 
 function updateDashboard(){
@@ -3561,7 +3692,7 @@ function updateDashboard(){
   // Lead KPI
   const leadItems=pl.filter(r=>r.status==='Lead');
   const leadAmt=leadItems.reduce((s,r)=>s+(r.amount||0),0);
-  (document.getElementById('dash-lead-val')||{}).textContent='SAR '+fmt(leadAmt);
+  (document.getElementById('dash-lead-val')||{}).textContent=fmt(leadAmt);
   (document.getElementById('dash-lead-count')||{}).textContent=leadItems.length+' leads';
 
   // Out pipeline projects KPI
@@ -6288,6 +6419,124 @@ function handleDragEnd(e){
 }
 
 // Cost-Sell Analysis
+// ── Value Engineering: PO issued per vendor ──
+var _poVendor=null,_poPays=[];
+function openVendorPO(vendor){
+  const q=getQ();if(!q)return;
+  _poVendor=vendor;
+  const ex=(q.vendorPO&&q.vendorPO[vendor])||null;
+  _poPays=ex&&ex.payments?JSON.parse(JSON.stringify(ex.payments)):[{amount:'',due:''}];
+  let ov=document.getElementById('modal-vendor-po');
+  if(!ov){
+    ov=document.createElement('div');ov.className='modal-overlay';ov.id='modal-vendor-po';ov.style.zIndex='500';
+    ov.innerHTML='<div class="modal" style="max-width:560px"><div class="modal-header"><div class="modal-title" id="vpo-title">Purchase Order</div><button class="del-btn" onclick="cancelVendorPO()">✕</button></div>'+
+      '<div style="padding:16px 20px">'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+
+      '<div class="field"><label>PO Number</label><input id="vpo-num" placeholder="PO-0001"></div>'+
+      '<div class="field"><label>PO Date</label><input id="vpo-date" type="date"></div>'+
+      '<div class="field" style="grid-column:1/3"><label>Supplier</label><input id="vpo-supplier"></div></div>'+
+      '<div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center"><b style="font-size:13px">Payments</b><button class="btn btn-ghost btn-sm" onclick="addVPOPay()">+ Add Payment</button></div>'+
+      '<div id="vpo-pays" style="margin-top:8px"></div>'+
+      '<div id="vpo-sum" style="margin-top:8px;font-size:12px;color:var(--muted)"></div>'+
+      '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px"><button class="btn btn-ghost" onclick="cancelVendorPO()">Cancel</button><button class="btn btn-primary" onclick="saveVendorPO()">💾 Save PO</button></div>'+
+      '</div></div>';
+    document.body.appendChild(ov);
+  }
+  document.getElementById('vpo-title').textContent='📦 PO Issued — '+vendor;
+  document.getElementById('vpo-num').value=ex?ex.poNumber||'':'';
+  document.getElementById('vpo-date').value=ex?ex.date||'':new Date().toISOString().slice(0,10);
+  document.getElementById('vpo-supplier').value=ex?ex.supplier||'':vendor;
+  renderVPOPays();
+  openModal('modal-vendor-po');
+}
+function renderVPOPays(){
+  document.getElementById('vpo-pays').innerHTML=_poPays.map((p,i)=>`<div style="display:flex;gap:8px;margin-bottom:6px;align-items:center"><input type="number" min="0" step="0.01" placeholder="Amount" value="${esc(String(p.amount??''))}" style="flex:1" oninput="_poPays[${i}].amount=this.value;updVPOSum()"><input type="date" value="${esc(p.due||'')}" style="flex:1" onchange="_poPays[${i}].due=this.value"><button class="del-btn" onclick="_poPays.splice(${i},1);renderVPOPays()">✕</button></div>`).join('')||'<div class="muted" style="font-size:12px">No payments</div>';
+  updVPOSum();
+}
+function updVPOSum(){const t=_poPays.reduce((s,p)=>s+(+p.amount||0),0);const el=document.getElementById('vpo-sum');if(el)el.textContent='Total payments: '+fmt(t);}
+function addVPOPay(){_poPays.push({amount:'',due:''});renderVPOPays();}
+function cancelVendorPO(){closeModal('modal-vendor-po');const q=getQ();if(q)renderCostSell();}
+function saveVendorPO(){
+  const q=getQ();if(!q||!_poVendor)return;
+  const num=document.getElementById('vpo-num').value.trim();
+  if(!num){alert('Enter the PO number');document.getElementById('vpo-num').focus();return;}
+  if(!q.vendorPO)q.vendorPO={};
+  q.vendorPO[_poVendor]={poNumber:num,date:document.getElementById('vpo-date').value,supplier:document.getElementById('vpo-supplier').value.trim()||_poVendor,
+    payments:_poPays.filter(p=>(+p.amount)||p.due).map(p=>({amount:+p.amount||0,due:p.due||''}))};
+  save();closeModal('modal-vendor-po');renderCostSell();
+}
+
+
+var _cfFilter={qid:null,from:'',to:'',vendor:''};
+function cashFlowData(q,useFilter){
+  const f=(useFilter!==false&&_cfFilter.qid==q.id)?_cfFilter:{from:'',to:'',vendor:''};
+  const inD=(d)=>{if(f.from&&(!d||d<f.from))return false;if(f.to&&(!d||d>f.to))return false;return true;};
+  const rows=[];
+  Object.entries(q.vendorPO||{}).forEach(([v,po])=>(po.payments||[]).forEach(p=>{if(f.vendor&&v!==f.vendor)return;if(!inD(p.due))return;if(+p.amount)rows.push({kind:'out',due:p.due||'',amount:+p.amount,vendor:v,po:po.poNumber||'',supplier:po.supplier||v});}));
+  if(!f.vendor)(q.collections||[]).forEach(c=>{if(!inD(c.date))return;if(+c.amount)rows.push({kind:'in',due:c.date||'',amount:+c.amount,vendor:'',po:'Collection',supplier:c.note||''});});
+  rows.sort((a,b)=>String(a.due||'9999').localeCompare(String(b.due||'9999')));
+  let cum=0;rows.forEach(r=>{cum+=r.kind==='in'?r.amount:-r.amount;r.cum=cum;});
+  // Monthly axis: at least 6 months, starting at the earliest due month (or the current month)
+  const MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const dated=rows.filter(r=>/^\d{4}-\d{2}/.test(r.due));
+  const now=new Date();
+  let y=dated.length?+dated[0].due.slice(0,4):now.getFullYear(),m=dated.length?+dated[0].due.slice(5,7)-1:now.getMonth();
+  const last=dated.length?dated[dated.length-1].due:'';
+  const ly=last?+last.slice(0,4):y,lm=last?+last.slice(5,7)-1:m;
+  const span=Math.max(6,(ly-y)*12+(lm-m)+1);
+  const keys=[],labels=[];
+  for(let i=0;i<span;i++){const yy=y+Math.floor((m+i)/12),mm=(m+i)%12;keys.push(yy+'-'+String(mm+1).padStart(2,'0'));labels.push(MN[mm]+' '+yy);}
+  const data=keys.map(()=>0),inData=keys.map(()=>0);
+  dated.forEach(r=>{const i=keys.indexOf(r.due.slice(0,7));if(i>-1)(r.kind==='in'?inData:data)[i]+=r.amount;});
+  const und=rows.filter(r=>!/^\d{4}-\d{2}/.test(r.due));
+  if(und.length){labels.push('No date');data.push(und.filter(r=>r.kind==='out').reduce((s,r)=>s+r.amount,0));inData.push(und.filter(r=>r.kind==='in').reduce((s,r)=>s+r.amount,0));}
+  let c=0;const cumd=data.map((v,i)=>c+=inData[i]-v);
+  const totOut=rows.filter(r=>r.kind==='out').reduce((s,r)=>s+r.amount,0),totIn=rows.filter(r=>r.kind==='in').reduce((s,r)=>s+r.amount,0);
+  return {rows,labels,data,inData,cum:cumd,totOut,totIn,total:totIn-totOut};
+}
+
+// ── Collections (expected customer receipts) ──
+function openCollections(){
+  const q=getQ();if(!q)return;
+  let ov=document.getElementById('modal-collections');
+  if(!ov){
+    ov=document.createElement('div');ov.className='modal-overlay';ov.id='modal-collections';ov.style.zIndex='500';
+    ov.onclick=function(e){if(e.target===ov)closeCollections();};
+    ov.innerHTML='<div class="modal" style="max-width:520px"><div class="modal-header"><div class="modal-title">💰 Collections</div><button class="del-btn" onclick="closeCollections()">✕</button></div><div style="padding:16px 20px">'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end"><div class="field" style="flex:1;min-width:120px;margin:0"><label>Amount</label><input id="col-amount" type="number" min="0" step="0.01" placeholder="0.00"></div>'+
+      '<div class="field" style="flex:1;min-width:140px;margin:0"><label>Expected Collection Date</label><input id="col-date" type="date"></div>'+
+      '<div class="field" style="flex:2;min-width:140px;margin:0"><label>Note (optional)</label><input id="col-note" placeholder="e.g. Advance payment"></div>'+
+      '<button class="btn btn-primary" onclick="addCollection()">+ Add</button></div>'+
+      '<div id="col-list" style="margin-top:14px"></div></div></div>';
+    document.body.appendChild(ov);
+  }
+  ['col-amount','col-date','col-note'].forEach(i=>document.getElementById(i).value='');
+  renderCollections();
+  openModal('modal-collections');
+  setTimeout(()=>document.getElementById('col-amount').focus(),50);
+}
+function closeCollections(){closeModal('modal-collections');renderCostSell();}
+function renderCollections(){
+  const q=getQ();const list=(q&&q.collections||[]).slice().sort((a,b)=>String(a.date||'9999').localeCompare(String(b.date||'9999')));
+  const el=document.getElementById('col-list');
+  if(!list.length){el.innerHTML='<div class="muted" style="font-size:12px;text-align:center">No collections yet</div>';return;}
+  const tot=list.reduce((s,c)=>s+(+c.amount||0),0);
+  el.innerHTML='<table style="width:100%"><thead><tr><th>Date</th><th>Note</th><th style="text-align:right">Amount</th><th></th></tr></thead><tbody>'+
+    list.map(c=>'<tr><td>'+esc(c.date||'—')+'</td><td>'+esc(c.note||'')+'</td><td class="num">'+fmt(+c.amount||0)+'</td><td><button class="del-btn" onclick="deleteCollection('+c.id+')">✕</button></td></tr>').join('')+
+    '<tr style="font-weight:700"><td colspan="2">Total</td><td class="num">'+fmt(tot)+'</td><td></td></tr></tbody></table>';
+}
+function addCollection(){
+  const q=getQ();if(!q||!canEdit())return;
+  const amt=+document.getElementById('col-amount').value,date=document.getElementById('col-date').value;
+  if(!(amt>0)){document.getElementById('col-amount').focus();return;}
+  if(!date){document.getElementById('col-date').focus();return;}
+  if(!q.collections)q.collections=[];
+  q.collections.push({id:Date.now()+Math.floor(Math.random()*1000),amount:amt,date:date,note:document.getElementById('col-note').value.trim()});
+  ['col-amount','col-date','col-note'].forEach(i=>document.getElementById(i).value='');
+  save();renderCollections();document.getElementById('col-amount').focus();
+}
+function deleteCollection(id){const q=getQ();if(!q||!canEdit())return;q.collections=(q.collections||[]).filter(c=>c.id!==id);save();renderCollections();}
+
 function renderCostSell(){
   const q=getQ();if(!q)return;
   const profit=(q.profitPct||25)/100;
@@ -6311,7 +6560,34 @@ function renderCostSell(){
   
   const colors=['#3b82f6','#22c55e','#f59e0b','#ef4444','#a78bfa','#06b6d4','#ec4899'];
   
-  chartByType=new Chart(document.getElementById('chart-by-type'),{
+  if(_cfFilter.qid!=q.id)_cfFilter={qid:q.id,from:'',to:'',vendor:''};
+  const _ve=isVEQ(q);
+  document.querySelectorAll('.cs-type-title').forEach(t=>{
+    const body=t.closest('.card').querySelector('.card-body');if(!body)return;
+    let bar=body.querySelector('.cs-cf-filter');
+    if(!bar){bar=document.createElement('div');bar.className='cs-cf-filter no-print';bar.style.cssText='display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;font-size:12px';body.insertBefore(bar,body.firstChild);}
+    bar.style.display=_ve?'flex':'none';
+    if(_ve){
+      const vs=Object.keys(q.vendorPO||{});
+      bar.innerHTML='<label>From <input type="date" class="cf-from" value="'+esc(_cfFilter.from)+'"></label><label>To <input type="date" class="cf-to" value="'+esc(_cfFilter.to)+'"></label>'+
+        '<label>Vendor <select class="cf-vendor"><option value="">All</option>'+vs.map(v=>'<option'+(v===_cfFilter.vendor?' selected':'')+'>'+esc(v)+'</option>').join('')+'</select></label>'+
+        '<button class="btn btn-ghost btn-sm cf-clear">✕ Clear</button>';
+      const upd=()=>{_cfFilter={qid:q.id,from:bar.querySelector('.cf-from').value,to:bar.querySelector('.cf-to').value,vendor:bar.querySelector('.cf-vendor').value};renderCostSell();};
+      bar.querySelector('.cf-from').onchange=upd;bar.querySelector('.cf-to').onchange=upd;bar.querySelector('.cf-vendor').onchange=upd;
+      bar.querySelector('.cf-clear').onclick=()=>{_cfFilter={qid:q.id,from:'',to:'',vendor:''};renderCostSell();};
+    }
+  });
+  const _cf=_ve?cashFlowData(q):null;
+  document.querySelectorAll('.cs-type-title').forEach(e=>e.textContent=_ve?'Project Cash Flow':'Cost by Type');
+  document.querySelectorAll('.cs-add-coll').forEach(e=>e.style.display=_ve?'inline-block':'none');
+  document.querySelectorAll('.cs-type-thead').forEach(e=>e.innerHTML=_ve?'<tr><th>Date</th><th>PO / Supplier</th><th>Amount (SAR)</th><th>Net Cumulative</th></tr>':'<tr><th>Type</th><th>Amount (SAR)</th><th>% of Total</th></tr>');
+  chartByType=new Chart(document.getElementById('chart-by-type'),_ve?{
+    data:{labels:_cf.labels,datasets:[
+      {type:'bar',label:'Payments',data:_cf.data,backgroundColor:'#3b82f6',order:2},
+      {type:'bar',label:'Collections',data:_cf.inData,backgroundColor:'#22c55e',order:2},
+      {type:'line',label:'Net Cumulative',data:_cf.cum,borderColor:'#f59e0b',backgroundColor:'#f59e0b',tension:.2,order:1}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'var(--text2)',font:{size:11}}}},scales:{y:{beginAtZero:true}}}
+  }:{
     type:'doughnut',
     data:{
       labels:typeLabels,
@@ -6330,12 +6606,15 @@ function renderCostSell(){
   });
   
   // Tables
+  if(_ve){
+    document.querySelector('#table-by-type tbody').innerHTML=_cf.rows.length?_cf.rows.map(r=>`<tr style="${r.kind==='in'?'background:#ecfdf5':''}"><td>${esc(r.due||'—')}</td><td>${r.kind==='in'?'<b style="color:#047857">Collection</b>'+(r.supplier?' · '+esc(r.supplier):''):esc(r.po)+' · '+esc(r.supplier)}</td><td class="num" style="color:${r.kind==='in'?'#047857':'inherit'}">${r.kind==='in'?'+':'−'}${fmt(r.amount)}</td><td class="num" style="color:${r.cum<0?'var(--red)':'inherit'}">${fmt(r.cum)}</td></tr>`).join('')+`<tr style="font-weight:700"><td colspan="2">Payments / Collections / Net</td><td class="num" colspan="2">−${fmt(_cf.totOut)} / +${fmt(_cf.totIn)} / ${fmt(_cf.total)}</td></tr>`:'<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:12px">No payments or collections yet — tick a vendor to issue a PO, or use "+ Add Collection"</td></tr>';
+  }else
   document.querySelector('#table-by-type tbody').innerHTML=Object.entries(byType).map(([t,v])=>`<tr><td>${t}</td><td class="num">${fmt(v)}</td><td class="num">${tc?(v/tc*100).toFixed(1)+'%':'—'}</td></tr>`).join('');
   const vendorTbody = document.querySelector('#table-by-vendor tbody');
   vendorTbody.innerHTML=Object.entries(byVendor)
     .sort((a,b)=>b[1]-a[1])
-    .map(([v,val])=>{const pr=!!(q.vendorRequested&&q.vendorRequested[v]);return `<tr class="vendor-row" style="${pr?'background:#fef3c7;':''}">
-      <td class="no-print" style="width:28px;padding:4px 6px;text-align:left"><input type="checkbox" class="vendor-req-chk" ${pr?'checked':''} style="width:16px;height:16px;min-width:16px;margin:0;padding:0;cursor:pointer;display:block"></td><td style="font-weight:600;text-align:left;${pr?'color:#b45309;':''}"><label style="display:flex;align-items:center;gap:6px;"><span>${esc(v)}</span>${pr?'<span style="font-size:10px;font-weight:600;background:#f59e0b;color:#fff;border-radius:4px;padding:1px 6px;white-space:nowrap">Price Requested</span>':''}</label></td>
+    .map(([v,val])=>{const ve=isVEQ(q);const po=ve&&q.vendorPO&&q.vendorPO[v];const pr=ve?!!po:!!(q.vendorRequested&&q.vendorRequested[v]);return `<tr class="vendor-row" style="${pr?(ve?'background:#d1fae5;':'background:#fef3c7;'):''}">
+      <td class="no-print" style="width:28px;padding:4px 6px;text-align:left"><input type="checkbox" class="vendor-req-chk" ${pr?'checked':''} style="width:16px;height:16px;min-width:16px;margin:0;padding:0;cursor:pointer;display:block"></td><td style="font-weight:600;text-align:left;${pr?(ve?'color:#065f46;':'color:#b45309;'):''}"><label style="display:flex;align-items:center;gap:6px;"><span>${esc(v)}</span>${pr?(ve?'<span style="font-size:10px;font-weight:600;background:#059669;color:#fff;border-radius:4px;padding:1px 6px;white-space:nowrap">PO Issued'+(po.poNumber?' · '+esc(po.poNumber):'')+'</span>':'<span style="font-size:10px;font-weight:600;background:#f59e0b;color:#fff;border-radius:4px;padding:1px 6px;white-space:nowrap">Price Requested</span>'):''}</label></td>
       <td class="num">${fmt(val)}</td>
       <td class="num">${tc?(val/tc*100).toFixed(1)+'%':'—'}</td>
       <td class="no-print" style="padding:4px 8px">
@@ -6343,15 +6622,29 @@ function renderCostSell(){
           style="background:#22c55e;color:#fff;border:none;border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer;font-weight:600;white-space:nowrap">
           📥 Excel
         </button>
+        ${ve&&pr?'<button class="edit-po-btn" style="background:#059669;color:#fff;border:none;border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer;font-weight:600;margin-left:4px">✏ PO</button>':''}
       </td>
     </tr>`;}).join('');
   vendorTbody.querySelectorAll('.vendor-req-chk').forEach(function(chk, idx){
     var vn = Object.keys(byVendor).sort(function(a,b){return byVendor[b]-byVendor[a];})[idx];
     chk.addEventListener('change', function(){
+      if(isVEQ(q)){
+        if(chk.checked){openVendorPO(vn);}
+        else{
+          if(!confirm('Remove the PO issued for '+vn+'?')){chk.checked=true;return;}
+          if(q.vendorPO)delete q.vendorPO[vn];
+          save();renderCostSell();
+        }
+        return;
+      }
       if(!q.vendorRequested) q.vendorRequested = {};
       if(chk.checked) q.vendorRequested[vn]=true; else delete q.vendorRequested[vn];
       save(); renderCostSell();
     });
+  });
+  vendorTbody.querySelectorAll('.edit-po-btn').forEach(function(btn){
+    var vn=btn.closest('tr').querySelector('.vendor-req-chk');
+    btn.addEventListener('click',function(){var idx=[].indexOf.call(vendorTbody.querySelectorAll('tr.vendor-row'),btn.closest('tr'));var name=Object.keys(byVendor).sort(function(a,b){return byVendor[b]-byVendor[a];})[idx];openVendorPO(name);});
   });
   // Attach click handlers safely (no inline eval)
   vendorTbody.querySelectorAll('.export-vendor-btn').forEach(function(btn, idx){
@@ -6364,7 +6657,7 @@ function renderCostSell(){
     <div class="cs-group"><div class="cs-group-title">Sell</div><div class="cs-row"><label>Sell excl. VAT</label><span class="cs-val tv-green">${fmt(ts)}</span></div><div class="cs-row"><label>VAT (${q.vat||15}%)</label><span class="cs-val tv-amber">${fmt(vat)}</span></div><div class="cs-row"><label>Incl. VAT</label><span class="cs-val tv-green" style="font-size:15px">${fmt(ts+vat)}</span></div></div>
     <div class="cs-group"><div class="cs-group-title">Profit</div><div class="cs-row"><label>Gross Profit</label><span class="cs-val tv-green">${fmt(gp)}</span></div><div class="cs-row"><label>Margin % (on Sell)</label><span class="cs-val" style="color:${gmPct>20?'var(--green)':gmPct>10?'var(--amber)':'var(--red)'}">${gmPct.toFixed(1)}%</span></div><div class="cs-row"><label>Markup % (on Cost)</label><span class="cs-val">${tc?(gp/tc*100).toFixed(1)+'%':'—'}</span></div></div>`;
   const gmW=Math.min(100,Math.max(0,gmPct));
-  document.getElementById('cs-profit-panel').innerHTML=`
+  const _cpp=document.getElementById('cs-profit-panel');if(_cpp)_cpp.innerHTML=`
     <div><div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Margin % (on Sell)</div>
     <div class="pbar-wrap"><div class="pbar-fill" style="width:${gmW}%;background:${gmPct>20?'var(--green)':gmPct>10?'var(--amber)':'var(--red)'}"></div></div>
     <div style="font-family:var(--mono);font-size:18px;font-weight:700;margin-top:5px;color:${gmPct>20?'var(--green)':gmPct>10?'var(--amber)':'var(--red)'}}">${gmPct.toFixed(1)}%</div></div>
@@ -6970,6 +7263,7 @@ function exportCostingPDF(){
   .info-table .value{width:30%}
   
   .price-table{width:100%;border-collapse:collapse}
+  .price-table th,.price-table td{height:25px;padding-top:2px!important;padding-bottom:2px!important;line-height:1.25;vertical-align:middle}
   .price-table th{background:${colors.tableHeader};color:${colors.tableHeaderText};padding:9px 7px;text-align:center;font-weight:700;border:1px solid ${colors.tableHeader}}
   .price-table td{padding:7px;border:1px solid #ddd;text-align:center}
   .price-table tbody tr.main-row{background:#e8f4ff;font-weight:600}
@@ -7422,6 +7716,7 @@ function exportPaymentPDF(){
   .info-table .value{width:30%}
   
   .price-table{width:100%;border-collapse:collapse}
+  .price-table th,.price-table td{height:25px;padding-top:2px!important;padding-bottom:2px!important;line-height:1.25;vertical-align:middle}
   .price-table th{background:${colors.tableHeader};color:${colors.tableHeaderText};padding:10px 8px;text-align:center;font-weight:700;border:1px solid ${colors.tableHeader}}
   .price-table td{padding:8px;border:1px solid #ddd;text-align:center}
   .price-table tbody tr:nth-child(even){background:#f9f9f9}
@@ -7492,7 +7787,11 @@ function exportCostSellPDF(){
   <div class="section">
     <table class="split-layout"><tr>
       <td class="split-half">
-        <div class="section-title">COST BY TYPE</div>
+        ${isVEQ(q)?(()=>{const cf=cashFlowData(q);return `<div class="section-title">PROJECT CASH FLOW</div>
+        ${chartByTypeImg?`<div style="text-align:center;margin-bottom:12px"><img src="${chartByTypeImg}" style="max-width:100%;max-height:220px"></div>`:''}
+        <table class="price-table cf-table"><thead><tr><th style="width:84px">Due</th><th>PO / Supplier</th><th style="width:66px">Amount</th><th style="width:66px">Net Cum.</th></tr></thead><tbody>
+        ${cf.rows.length?cf.rows.map(r=>`<tr${r.kind==='in'?' style="background:#ecfdf5"':''}><td class="desc-col">${r.due||'—'}</td><td class="desc-col">${r.kind==='in'?'Collection'+(r.supplier?' · '+r.supplier:''):r.po+' · '+r.supplier}</td><td class="total-col">${r.kind==='in'?'+':'−'}${fmtN(r.amount)}</td><td class="total-col">${fmtN(r.cum)}</td></tr>`).join('')+`<tr><td class="desc-col" colspan="2"><b>Net (collections − payments)</b></td><td class="total-col" colspan="2"><b>${fmtN(cf.total)}</b></td></tr>`:'<tr><td colspan="4" class="desc-col">No payments or collections</td></tr>'}
+        </tbody></table>`;})():`        <div class="section-title">COST BY TYPE</div>
         ${chartByTypeImg?`<div style="text-align:center;margin-bottom:12px"><img src="${chartByTypeImg}" style="max-width:100%;max-height:220px"></div>`:''}
         <table class="price-table">
           <thead>
@@ -7509,7 +7808,7 @@ function exportCostSellPDF(){
               <td class="total-col">${tc?(v/tc*100).toFixed(1)+'%':'—'}</td>
             </tr>`).join('')}
           </tbody>
-        </table>
+        </table>`}
       </td>
       <td class="split-half">
         <div class="section-title">COST BY VENDOR</div>
@@ -7523,8 +7822,8 @@ function exportCostSellPDF(){
             </tr>
           </thead>
           <tbody>
-            ${Object.entries(byVendor).map(([v,val])=>`<tr${q.vendorRequested&&q.vendorRequested[v]?' style="background:#fef3c7"':''}>
-              <td class="desc-col">${v}${q.vendorRequested&&q.vendorRequested[v]?' <em style="font-size:9px;color:#b45309">(Price Requested)</em>':''}</td>
+            ${Object.entries(byVendor).map(([v,val])=>`<tr${isVEQ(q)?(q.vendorPO&&q.vendorPO[v]?' style="background:#d1fae5"':''):(q.vendorRequested&&q.vendorRequested[v]?' style="background:#fef3c7"':'')}>
+              <td class="desc-col">${v}${isVEQ(q)?(q.vendorPO&&q.vendorPO[v]?' <em style="font-size:9px;color:#065f46">(PO Issued'+(q.vendorPO[v].poNumber?' #'+q.vendorPO[v].poNumber:'')+')</em>':''):(q.vendorRequested&&q.vendorRequested[v]?' <em style="font-size:9px;color:#b45309">(Price Requested)</em>':'')}</td>
               <td class="total-col">${fmtN(val)}</td>
               <td class="total-col">${tc?(val/tc*100).toFixed(1)+'%':'—'}</td>
             </tr>`).join('')}
@@ -7582,7 +7881,7 @@ function exportCostSellPDF(){
   <style>
   @page{size:A4;margin:0}
   *{margin:0;padding:0;box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-  body{font-family:'Calibri','Traditional Arabic',sans-serif;font-size:11pt;color:#000;padding:20mm 15mm;background:#fff;line-height:1.5}
+  body{font-family:'Calibri','Traditional Arabic',sans-serif;font-size:11pt;color:#000;padding:10mm;background:#fff;line-height:1.5}
   
   .header{display:flex;justify-content:space-between;align-items:center;padding-bottom:15px;margin-bottom:20px;border-bottom:2px solid ${colors.tableHeader}}
   .logo-text{font-size:24pt;font-weight:700;color:${colors.tableHeader}}
@@ -7610,16 +7909,19 @@ function exportCostSellPDF(){
   .split-third:not(:last-child){padding-right:8px!important}
   
   .price-table{width:100%;border-collapse:collapse}
+  .price-table th,.price-table td{height:25px;padding-top:2px!important;padding-bottom:2px!important;line-height:1.25;vertical-align:middle}
+  .cf-table th,.cf-table td{padding:2px 4px!important;font-size:7.5pt!important;line-height:1.2;height:25px}
+  .cf-table td:first-child{white-space:nowrap}
   .price-table th{background:${colors.tableHeader};color:${colors.tableHeaderText};padding:10px 8px;text-align:center;font-weight:700;border:1px solid ${colors.tableHeader}}
   .price-table td{padding:8px;border:1px solid #ddd;text-align:center}
   .price-table tbody tr:nth-child(even){background:#f9f9f9}
   .desc-col{text-align:left;font-weight:500}
   .total-col{text-align:right;font-family:'Calibri',monospace;font-weight:600}
   
-  .footer{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #ddd;padding:8px 15mm;text-align:center;font-size:8pt;color:#666}
+  .footer{position:fixed;bottom:10mm;left:0;right:0;background:#fff;border-top:1px solid #ddd;padding:6px 10mm;text-align:center;font-size:8pt;color:#666}
   .footer div{margin:2px 0}
   
-  @media print{body{padding:20mm 15mm 25mm}.footer{position:fixed}}
+  @media print{body{padding:10mm 10mm 18mm}.footer{position:fixed}}
   </style></head><body>${html}</body></html>`;
   __printViaBlob(__html);
 }
@@ -7819,42 +8121,188 @@ function switchDesignTab(tab){
 function renderDesignPriceList(){
   const tbody=document.getElementById('design-pricelist-tbody');
   if(!tbody) return;
-  const filterCatSel=document.getElementById('design-pricelist-filter-cat');
-  if(filterCatSel && filterCatSel.options.length<=1){
-    filterCatSel.innerHTML='<option value="">All Categories</option>'+DESIGN_GROUPS.map(g=>`<option value="${g.key}">${g.icon} ${esc(g.label)}</option>`).join('');
-    populateSubsystemFilterSelect(document.getElementById('design-pricelist-filter-sub'), '');
-  }
-  const search=(document.getElementById('design-pricelist-search')||{}).value||'';
-  const filterCat=(document.getElementById('design-pricelist-filter-cat')||{}).value||'';
-  const filterSub=(document.getElementById('design-pricelist-filter-sub')||{}).value||'';
-  let items=S.design.priceList||[];
-  if(filterCat) items=items.filter(i=>i.category===filterCat);
-  if(filterSub) items=items.filter(i=>i.subsystem===filterSub);
-  if(search){
-    const s=search.toLowerCase();
-    items=items.filter(i=>(i.pn||'').toLowerCase().includes(s)||(i.desc||'').toLowerCase().includes(s)||(i.brand||'').toLowerCase().includes(s)||(i.dist||'').toLowerCase().includes(s)||(i.type||'').toLowerCase().includes(s)||(i.type2||'').toLowerCase().includes(s));
-  }
+  // Build rows from every quotation's sub-items (unique by part#/description/vendor/unit/price, newest quotation kept)
+  const seen={},all=[];
+  (S.quotations||[]).filter(q=>!q.companyId||q.companyId===S.currentCompanyId)
+    .slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))
+    .forEach(q=>(q.items||[]).forEach(mi=>(mi.subItems||[]).forEach(si=>{
+      if((si.type||'Item')!=='Item')return;   // price list = line items of type "Item" only
+      if(!si.partno&&!si.desc)return;
+      const price=+si.unitPrice||0;
+      const k=[si.partno,si.desc,si.vendor,si.unit,price].map(x=>String(x||'').trim().toLowerCase()).join('|');
+      if(seen[k])return;seen[k]=1;
+      all.push({pn:si.partno||'',desc:si.desc||'',vendor:si.vendor||'',unit:si.unit||'',price:price,qnum:q.num||q.project||'',date:q.date||''});
+    })));
+  ((S.design&&S.design.manualItems)||[]).forEach(m=>all.push({pn:m.pn||'',desc:m.desc||'',vendor:m.vendor||'',unit:m.unit||'',price:+m.price||0,qnum:'Manual',date:m.date||'',manualId:m.id}));
+  all.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+  const gv=id=>((document.getElementById(id)||{}).value||'').toLowerCase().trim();
+  const fp=gv('design-pricelist-search-pn'),fd=gv('design-pricelist-search-desc'),fv=gv('design-pricelist-search-vendor');
+  const has=(h,t)=>!t||t.split(/\s+/).every(w=>String(h||'').toLowerCase().indexOf(w)>-1);
+  const items=all.filter(r=>has(r.pn,fp)&&has(r.desc,fd)&&has(r.vendor,fv));
+  const cnt=document.getElementById('design-pricelist-count');
+  if(cnt)cnt.textContent=items.length+' of '+all.length+' items';
   if(!items.length){
-    tbody.innerHTML='<tr><td colspan="12" style="text-align:center;padding:24px;color:var(--muted)">No items — add manually or import an Excel/CSV file.</td></tr>';
-    return;
+    tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--muted)">No items — the list fills automatically from quotation sub-items.</td></tr>';
+    _updateQboqBtn();return;
   }
-  tbody.innerHTML=items.map(i=>`<tr>
-    <td>${esc(i.pn)}</td>
-    <td>${esc(i.desc)}</td>
-    <td>${i.category?esc(designGroupLabel(i.category)):'<span style="color:var(--muted)">—</span>'}</td>
-    <td>${i.subsystem?esc(designSubsystemLabel(i.subsystem)):'<span style="color:var(--muted)">—</span>'}</td>
-    <td>${esc(i.type)||'<span style="color:var(--muted)">—</span>'}</td>
-    <td>${esc(i.type2)||'<span style="color:var(--muted)">—</span>'}</td>
-    <td>${esc(i.unit)}</td>
-    <td class="num">${fmt(i.price)}</td>
-    <td>${esc(i.brand)}</td>
-    <td>${esc(i.dist)}</td>
-    <td style="font-size:11px;color:var(--muted)">${esc(i.dateModified)||'—'}</td>
-    <td class="no-print">
-      <button class="btn btn-ghost btn-xs" onclick="editPriceItem(${i.id})">✏️</button>
-      <button class="del-btn" onclick="deletePriceItem(${i.id})">✕</button>
-    </td>
-  </tr>`).join('');
+  window._plRows=items.slice(0,1000);
+  tbody.innerHTML=window._plRows.map((r,i)=>{const k=_plKey(r),sel=window._qbSel&&window._qbSel[k]!=null;return `<tr style="${sel?'background:rgba(59,130,246,.10)':''}">
+    <td style="width:150px"><div style="display:flex;align-items:center;gap:8px;height:30px"><input type="checkbox" ${sel?'checked':''} onchange="plToggle(${i},this.checked)" style="width:16px;height:16px;margin:0;flex:none;cursor:pointer">${sel?`<input type="number" min="1" step="1" value="${window._qbSel[k]}" onchange="plQty(${i},this.value)" oninput="plQty(${i},this.value)" onclick="event.stopPropagation()" placeholder="Qty" title="Quantity" style="width:80px;height:28px;margin:0;padding:2px 8px;text-align:center;font-size:13px;font-weight:600;border:1.5px solid var(--accent);border-radius:6px;background:var(--input-bg);color:var(--text);box-sizing:border-box">`:''}</div></td>
+    <td style="font-family:var(--mono);font-size:12px">${esc(r.pn)}</td>
+    <td>${esc(r.desc)}</td>
+    <td>${esc(r.vendor)}</td>
+    <td>${esc(r.unit)}</td>
+    <td class="num">${fmt(r.price)}</td>
+    <td>${esc(r.qnum)}</td>
+    <td style="white-space:nowrap;font-size:12px;color:var(--muted)">${esc(r.date)||'—'}${r.manualId?` <button class="btn btn-ghost btn-xs" onclick="openManualItem(${r.manualId})" title="Edit">✏️</button><button class="del-btn" onclick="deleteManualItem(${r.manualId})" title="Delete">✕</button>`:''}</td>
+  </tr>`;}).join('')+(items.length>1000?'<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:8px">Showing first 1000 — refine your search</td></tr>':'');
+  _updateQboqBtn();
+}
+
+// ── Quick BOQ from the Price List ──
+window._qbSel=window._qbSel||{};window._qbItems=window._qbItems||{};
+function _plKey(r){return [r.pn,r.desc,r.vendor,r.unit,r.price].map(x=>String(x==null?'':x).trim().toLowerCase()).join('|');}
+function plToggle(i,on){
+  const r=(window._plRows||[])[i];if(!r)return;const k=_plKey(r);
+  if(on){window._qbSel[k]=window._qbSel[k]||1;window._qbItems[k]=r;}else{delete window._qbSel[k];delete window._qbItems[k];}
+  renderDesignPriceList();
+  if(on){const el=document.querySelectorAll('#design-pricelist-tbody tr')[i];const inp=el&&el.querySelector('input[type=number]');if(inp){inp.focus();inp.select();}}
+}
+function plQty(i,v){const r=(window._plRows||[])[i];if(!r)return;const k=_plKey(r);const n=Math.max(1,+v||1);window._qbSel[k]=n;_updateQboqBtn();}
+function _updateQboqBtn(){
+  const b=document.getElementById('design-qboq-btn');if(!b)return;
+  const n=Object.keys(window._qbSel||{}).length;
+  const eb=window._qbEditId&&((S.design.quickBoqs||[]).find(x=>x.id==window._qbEditId));
+  b.textContent=(eb?'💾 Update Quick BOQ':'📋 Quick BOQ')+(n?' ('+n+')':'');b.style.opacity=n?'1':'.6';
+  const bn=document.getElementById('design-qboq-banner');
+  if(bn)bn.innerHTML=eb?'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:rgba(245,158,11,.15);border:1px solid #f59e0b;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12px">✏️ Editing <b>'+esc(eb.name)+'</b> — change the selection / quantities, then press “Update Quick BOQ”. <button class="btn btn-ghost btn-xs" onclick="cancelEditQuickBOQ()">✕ Cancel</button></div>':'';
+}
+function createQuickBOQ(){
+  const keys=Object.keys(window._qbSel||{});
+  if(!keys.length){alert('Tick the items you need in the list and enter their quantities first.');return;}
+  const d=new Date(),pad=n=>String(n).padStart(2,'0');
+  const date=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  const items=keys.map(k=>{const r=window._qbItems[k];return {pn:r.pn,desc:r.desc,vendor:r.vendor,unit:r.unit,price:r.price,qty:window._qbSel[k]||1};});
+  if(!S.design)S.design={priceList:[],docs:[],activeDocId:null,calc:{}};
+  if(!S.design.quickBoqs)S.design.quickBoqs=[];
+  if(window._qbEditId){
+    const ex=S.design.quickBoqs.find(x=>x.id==window._qbEditId);
+    if(ex){ex.items=items;ex.updated=date;save();window._qbSel={};window._qbItems={};window._qbEditId=null;switchDesignTab('docs');return;}
+    window._qbEditId=null;
+  }
+  const n=S.design.quickBoqs.length+1;
+  const boq={id:Date.now()+Math.floor(Math.random()*1000),name:'Quick BOQ #'+n+' — '+date+' '+pad(d.getHours())+':'+pad(d.getMinutes()),date,items};
+  S.design.quickBoqs.unshift(boq);
+  save();
+  window._qbSel={};window._qbItems={};
+  switchDesignTab('docs');
+}
+// ── Manual price-list items ──
+function openManualItem(id){
+  const ex=id?((S.design.manualItems||[]).find(x=>x.id==id)):null;
+  let ov=document.getElementById('modal-manual-item');
+  if(!ov){
+    ov=document.createElement('div');ov.className='modal-overlay';ov.id='modal-manual-item';ov.style.zIndex='500';
+    ov.onclick=function(e){if(e.target===ov)closeModal('modal-manual-item');};
+    ov.innerHTML='<div class="modal" style="max-width:480px"><div class="modal-header"><div class="modal-title" id="mi-title">Add Item</div><button class="del-btn" onclick="closeModal(\'modal-manual-item\')">✕</button></div><div style="padding:16px 20px">'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+
+      '<div class="field"><label>Part #</label><input id="mi-pn"></div><div class="field"><label>Vendor</label><input id="mi-vendor"></div>'+
+      '<div class="field" style="grid-column:1/3"><label>Description</label><input id="mi-desc"></div>'+
+      '<div class="field"><label>Unit</label><input id="mi-unit" value="Pcs"></div><div class="field"><label>Unit Price</label><input id="mi-price" type="number" min="0" step="0.01"></div></div>'+
+      '<input type="hidden" id="mi-id"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:14px"><div id="mi-import-wrap" style="display:flex;gap:6px;align-items:center"><button class="btn btn-ghost" onclick="importManualItemsExcel()" title="Excel columns: Part #, Description, Vendor, Unit, Unit Price">⬆ Import Excel</button></div><div style="display:flex;gap:8px"><button class="btn btn-ghost" onclick="closeModal(\'modal-manual-item\')">Cancel</button><button class="btn btn-primary" onclick="saveManualItem()">💾 Save</button></div></div><div style="font-size:11px;color:var(--muted);margin-top:8px">Import format: Part # · Description · Vendor · Unit · Unit Price</div></div></div>';
+    document.body.appendChild(ov);
+  }
+  document.getElementById('mi-title').textContent=ex?'Edit Item':'Add Item';
+  document.getElementById('mi-import-wrap').style.display=ex?'none':'flex';
+  document.getElementById('mi-id').value=ex?ex.id:'';
+  document.getElementById('mi-pn').value=ex?ex.pn||'':'';
+  document.getElementById('mi-vendor').value=ex?ex.vendor||'':'';
+  document.getElementById('mi-desc').value=ex?ex.desc||'':'';
+  document.getElementById('mi-unit').value=ex?ex.unit||'Pcs':'Pcs';
+  document.getElementById('mi-price').value=ex?ex.price:'';
+  openModal('modal-manual-item');
+  setTimeout(()=>document.getElementById('mi-pn').focus(),50);
+}
+function saveManualItem(){
+  const g=i=>document.getElementById(i).value.trim();
+  if(!g('mi-pn')&&!g('mi-desc')){alert('Enter a part number or description');return;}
+  if(!S.design.manualItems)S.design.manualItems=[];
+  const id=g('mi-id'),d=new Date(),pad=n=>String(n).padStart(2,'0');
+  const date=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  const data={pn:g('mi-pn'),vendor:g('mi-vendor'),desc:g('mi-desc'),unit:g('mi-unit')||'Pcs',price:+g('mi-price')||0,date};
+  if(id){const ex=S.design.manualItems.find(x=>x.id==id);if(ex)Object.assign(ex,data);
+    Object.keys(window._qbSel||{}).forEach(k=>{const it=window._qbItems[k];if(it&&it.manualId==id){const q=window._qbSel[k];delete window._qbSel[k];delete window._qbItems[k];const r={pn:data.pn,desc:data.desc,vendor:data.vendor,unit:data.unit,price:data.price,manualId:ex.id};const nk=_plKey(r);window._qbSel[nk]=q;window._qbItems[nk]=r;}});}
+  else S.design.manualItems.unshift(Object.assign({id:Date.now()+Math.floor(Math.random()*1000)},data));
+  save();closeModal('modal-manual-item');renderDesignPriceList();
+}
+function deleteManualItem(id){
+  if(!confirm('Delete this item?'))return;
+  S.design.manualItems=(S.design.manualItems||[]).filter(x=>x.id!=id);
+  Object.keys(window._qbSel||{}).forEach(k=>{if(window._qbItems[k]&&window._qbItems[k].manualId==id){delete window._qbSel[k];delete window._qbItems[k];}});
+  save();renderDesignPriceList();
+}
+
+function importManualItemsExcel(){
+  let inp=document.getElementById('manual-items-import-input');
+  if(!inp){inp=document.createElement('input');inp.type='file';inp.id='manual-items-import-input';inp.accept='.xlsx,.xls,.csv';inp.style.display='none';inp.addEventListener('change',handleManualItemsImport);document.body.appendChild(inp);}
+  inp.value='';inp.click();
+}
+async function handleManualItemsImport(e){
+  const file=e.target.files[0];if(!file)return;e.target.value='';
+  const buf=await file.arrayBuffer().catch(err=>{alert('Cannot read file: '+err.message);return null;});if(!buf)return;
+  if(typeof XLSX!=='undefined'){
+    try{const wb=XLSX.read(buf);const ws=wb.Sheets[wb.SheetNames[0]];_processManualItemRows(XLSX.utils.sheet_to_json(ws,{header:1,defval:''}));}
+    catch(err){alert('Parse error: '+err.message);}
+  }else{
+    try{window.parent.postMessage({__zeina_excel_parse:true,buf},'*');}catch(ex){alert('Cannot parse in this context.');return;}
+    const handler=ev=>{if(!ev.data||!ev.data.__zeina_excel_parsed)return;window.removeEventListener('message',handler);_processManualItemRows(ev.data.rows);};
+    window.addEventListener('message',handler);setTimeout(()=>window.removeEventListener('message',handler),8000);
+  }
+}
+function _processManualItemRows(rows){
+  if(!rows||!rows.length){alert('No data in file.');return;}
+  const norm=x=>String(x||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+  const aliases={pn:['partno','partnumber','part','itemcode','pn'],desc:['description','desc','item','itemdescription'],vendor:['vendor','supplier'],unit:['unit','uom'],price:['unitprice','price','rate','unitrate']};
+  let hi=-1,map={};
+  for(let i=0;i<Math.min(rows.length,5);i++){let hits=0,tm={};(rows[i]||[]).forEach((cell,ci)=>{const c=norm(cell);Object.keys(aliases).forEach(k=>{if(aliases[k].indexOf(c)!==-1&&tm[k]===undefined){tm[k]=ci;hits++;}});});if(hits>=2){hi=i;map=tm;break;}}
+  if(hi===-1)map={pn:0,desc:1,vendor:2,unit:3,price:4};
+  const g=(row,k)=>map[k]!==undefined?String(row[map[k]]==null?'':row[map[k]]).trim():'';
+  const d=new Date(),pad=n=>String(n).padStart(2,'0');const date=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  if(!S.design.manualItems)S.design.manualItems=[];
+  let added=0,skipped=0;const out=[];
+  rows.slice(hi+1).forEach((row,i)=>{
+    if(!row||row.every(c=>!String(c==null?'':c).trim()))return;
+    const pn=g(row,'pn'),desc=g(row,'desc');
+    if(!pn&&!desc){skipped++;return;}
+    const price=parseFloat(String(g(row,'price')).replace(/[^0-9.\-]/g,''))||0;
+    out.push({id:Date.now()+i+Math.floor(Math.random()*1000),pn,desc,vendor:g(row,'vendor'),unit:g(row,'unit')||'Pcs',price,date});added++;
+  });
+  if(!added){alert('No valid rows found. Expected columns: Part #, Description, Vendor, Unit, Unit Price.');return;}
+  S.design.manualItems=out.concat(S.design.manualItems);
+  save();closeModal('modal-manual-item');renderDesignPriceList();
+  alert('✅ '+added+' item(s) imported'+(skipped?' ('+skipped+' row(s) skipped)':'')+'.');
+}
+
+function editQuickBOQ(id){
+  const b=((S.design&&S.design.quickBoqs)||[]).find(x=>x.id==id);if(!b)return;
+  window._qbSel={};window._qbItems={};
+  b.items.forEach(it=>{const r={pn:it.pn,desc:it.desc,vendor:it.vendor,unit:it.unit,price:it.price};const k=_plKey(r);window._qbSel[k]=+it.qty||1;window._qbItems[k]=r;});
+  window._qbEditId=b.id;
+  ['design-pricelist-search-pn','design-pricelist-search-desc','design-pricelist-search-vendor'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});
+  switchDesignTab('pricelist');
+}
+function cancelEditQuickBOQ(){window._qbSel={};window._qbItems={};window._qbEditId=null;renderDesignPriceList();}
+function exportQuickBOQ(id){
+  const b=((S.design&&S.design.quickBoqs)||[]).find(x=>x.id==id);if(!b)return;
+  const data=[[b.name],[],['#','Part #','Description','Vendor','Unit','Qty','Unit Price','Total']];
+  let tot=0;
+  b.items.forEach((it,i)=>{const t=(+it.qty||0)*(+it.price||0);tot+=t;data.push([i+1,it.pn,it.desc,it.vendor,it.unit,+it.qty||0,+it.price||0,t]);});
+  data.push([]);data.push(['','','','','','','TOTAL',tot]);
+  _downloadExcel(b.name.replace(/[^a-z0-9\-_ ]/gi,'_').replace(/\s+/g,'_').replace(/_+/g,'_')+'.xlsx',data);
+}
+function deleteQuickBOQ(id){
+  if(!confirm('Delete this Quick BOQ?'))return;
+  S.design.quickBoqs=(S.design.quickBoqs||[]).filter(x=>x.id!=id);save();renderDesignDocsList();
 }
 function filterPriceList(){ renderDesignPriceList(); }
 
@@ -8019,12 +8467,25 @@ function refreshDesignItemPickers(){
 function renderDesignDocsList(){
   const wrap=document.getElementById('design-docs-list');
   if(!wrap) return;
-  const docs=S.design.docs||[];
-  if(!docs.length){
-    wrap.innerHTML='<div style="padding:40px;text-align:center;color:var(--muted)">No design documents yet. Click "+ New Design" to start a quantity takeoff.</div>';
+  const docs=S.design.docs||[],qb=S.design.quickBoqs||[];
+  if(!docs.length&&!qb.length){
+    wrap.innerHTML='<div style="padding:40px;text-align:center;color:var(--muted)">No Quick BOQs yet. Tick items in the Price List, enter quantities and click "Quick BOQ".</div>';
     return;
   }
-  wrap.innerHTML=docs.map(d=>`<div class="card" style="margin-bottom:10px">
+  const qbHtml=qb.map(x=>{const tot=x.items.reduce((s,i)=>s+(+i.qty||0)*(+i.price||0),0);return `<div class="card" style="margin-bottom:10px;border-left:3px solid var(--accent)">
+    <div class="card-body">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px"><div style="font-weight:700;color:var(--text)">${esc(x.name)} <span style="font-size:10px;background:var(--accent);color:#fff;border-radius:4px;padding:1px 6px;vertical-align:middle">Quick BOQ</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">${x.items.length} items · ${esc(x.date||'')}</div></div>
+        <div style="font-weight:700;color:var(--accent)">${fmt(tot)}</div>
+        <div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="editQuickBOQ(${x.id})">✏️ Edit</button><button class="btn btn-ghost btn-sm" onclick="exportQuickBOQ(${x.id})">⬇ Excel</button><button class="del-btn" onclick="deleteQuickBOQ(${x.id})">✕</button></div>
+      </div>
+      <details style="margin-top:8px"><summary style="cursor:pointer;font-size:12px;color:var(--muted)">View items</summary>
+        <div class="table-wrap" style="margin-top:6px"><table><thead><tr><th>#</th><th>Part #</th><th>Description</th><th>Vendor</th><th>Unit</th><th style="text-align:right">Qty</th><th style="text-align:right">Unit Price</th><th style="text-align:right">Total</th></tr></thead><tbody>
+        ${x.items.map((i,n)=>`<tr><td>${n+1}</td><td style="font-family:var(--mono);font-size:12px">${esc(i.pn)}</td><td>${esc(i.desc)}</td><td>${esc(i.vendor)}</td><td>${esc(i.unit)}</td><td class="num">${+i.qty||0}</td><td class="num">${fmt(i.price)}</td><td class="num">${fmt((+i.qty||0)*(+i.price||0))}</td></tr>`).join('')}
+        </tbody></table></div></details>
+    </div></div>`;}).join('');
+  wrap.innerHTML=qbHtml+docs.map(d=>`<div class="card" style="margin-bottom:10px">
     <div class="card-body" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
       <div style="cursor:pointer;flex:1;min-width:200px" onclick="openDesignDoc(${d.id})">
         <div style="font-weight:700;color:var(--text)">${esc(d.name)}</div>
@@ -8950,6 +9411,7 @@ if(saved)try{
   (S.users||[]).forEach(u=>{
     if(!u.permissions) u.permissions={};
     ['design','ve','bizdev'].forEach(k=>{ if(u.permissions[k]===undefined) u.permissions[k]=true; });
+    if(u.permissions.cashflow===undefined) u.permissions.cashflow=(u.role==='Admin'||u.role==='Manager');
   });
   // Backfill: make sure every already-Won quotation has its Value Engineering record created
   // (covers quotations that were marked Won before this sync existed, or whose pipeline row's
@@ -9347,12 +9809,12 @@ if (_portalBridgePending) {
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px">
                   <div class="card">
-                    <div class="card-header"><div class="card-title">Cost by Type</div></div>
+                    <div class="card-header"><div class="card-title cs-type-title">Cost by Type</div><button class="btn btn-primary btn-sm cs-add-coll no-print" style="display:none" onclick="openCollections()">+ Add Collection</button></div>
                     <div class="card-body">
                       <div class="chart-container"><canvas id="chart-by-type"></canvas></div>
                       <div class="table-wrap" style="margin-top:12px">
                         <table id="table-by-type">
-                          <thead><tr><th>Type</th><th>Amount (SAR)</th><th>% of Total</th></tr></thead>
+                          <thead class="cs-type-thead"><tr><th>Type</th><th>Amount (SAR)</th><th>% of Total</th></tr></thead>
                           <tbody></tbody>
                         </table>
                       </div>
@@ -9821,12 +10283,12 @@ if (_portalBridgePending) {
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px">
                   <div class="card">
-                    <div class="card-header"><div class="card-title">Cost by Type</div></div>
+                    <div class="card-header"><div class="card-title cs-type-title">Cost by Type</div><button class="btn btn-primary btn-sm cs-add-coll no-print" style="display:none" onclick="openCollections()">+ Add Collection</button></div>
                     <div class="card-body">
                       <div class="chart-container"><canvas id="chart-by-type"></canvas></div>
                       <div class="table-wrap" style="margin-top:12px">
                         <table id="table-by-type">
-                          <thead><tr><th>Type</th><th>Amount (SAR)</th><th>% of Total</th></tr></thead>
+                          <thead class="cs-type-thead"><tr><th>Type</th><th>Amount (SAR)</th><th>% of Total</th></tr></thead>
                           <tbody></tbody>
                         </table>
                       </div>
